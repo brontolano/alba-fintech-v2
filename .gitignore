@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.env
+.env.local
+.env.production
+*.log
+.nul
+nul
+.DS_Store
+*.db
+*.sqlite

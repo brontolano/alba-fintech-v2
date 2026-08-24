@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Unit {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  code         String        @unique
+  description  String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  users        User[]
+  transactions Transaction[]
+
+  @@map("units")
+}
+
+model User {
+  id                   String        @id @default(cuid())
+  email                String        @unique
+  name                 String?
+  passwordHash         String        @map("password_hash")
+  role                 Role          @default(STAFF)
+  unitId               String?       @map("unit_id")
+  isActive             Boolean       @default(true)
+  emailVerified        DateTime?     @map("email_verified")
+  image                String?
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+  approvals            Approval[]
+  transactionsApproved Transaction[] @relation("TransactionApprover")
+  transactionsCreated  Transaction[] @relation("TransactionCreator")
+  unit                 Unit?         @relation(fields: [unitId], references: [id])
+
+  @@map("users")
+}
+
+model Transaction {
+  id           String            @id @default(cuid())
+  unitId       String            @map("unit_id")
+  type         TransactionType
+  amount       Float
+  description  String
+  status       TransactionStatus @default(DRAFT)
+  reference    String?
+  createdById  String            @map("created_by_id")
+  approvedById String?           @map("approved_by_id")
+  approvedAt   DateTime?         @map("approved_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  approvals    Approval[]
+  approvedBy   User?             @relation("TransactionApprover", fields: [approvedById], references: [id])
+  createdBy    User              @relation("TransactionCreator", fields: [createdById], references: [id])
+  unit         Unit              @relation(fields: [unitId], references: [id])
+
+  @@index([unitId])
+  @@index([status])
+  @@index([createdById])
+  @@map("transactions")
+}
+
+model Approval {
+  id            String         @id @default(cuid())
+  transactionId String         @map("transaction_id")
+  approverId    String         @map("approver_id")
+  status        ApprovalStatus @default(PENDING)
+  comment       String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  approver      User           @relation(fields: [approverId], references: [id])
+  transaction   Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([approverId])
+  @@map("approvals")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  oldData   String?  @map("old_data")
+  newData   String?  @map("new_data")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+enum Role {
+  SUPERADMIN
+  PIMPINAN
+  MANAGER
+  STAFF
+
+  @@map("role")
+}
+
+enum TransactionStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("transaction_status")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+
+  @@map("transaction_type")
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("approval_status")
+}

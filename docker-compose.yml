@@ -1,0 +1,21 @@
+# Next.js, ALBA Finance v2
+# This file is committed for Hostinger standalone deployment reference.
+
+version: '3.8'
+
+services:
+  app:
+    image: node:22-alpine
+    working_dir: /app
+    ports:
+      - '3000:3000'
+    environment:
+      - DATABASE_URL
+      - NEXTAUTH_URL=https://alba.brontolano.com
+      - NEXTAUTH_SECRET
+      - NODE_ENV=production
+    volumes:
+      - .:/app
+      - ./tmp:/tmp
+    command: sh -c 'npm install && npx prisma generate && npx next build'
+    profiles: ['dev']
