@@ -1,44 +1,116 @@
 # ALBA Finance v2
 
-Sistem keuangan berbasis web untuk pesantren/organisasi — dikembangkan dengan **Next.js 14**, **Prisma**, **MySQL**, dan **NextAuth v4**. Dirancang untuk deployment di **Hostinger** dengan konfigurasi **standalone**.
+Aplikasi keuangan berbasis web untuk pesantren dan organisasi. Saat ini aplikasi menyediakan alur transaksi, approval, dashboard berdasarkan role, serta POS retail sederhana. Stack utama: **Next.js 14 App Router**, **Prisma 6**, **MySQL**, dan **NextAuth v4**.
 
-## 🔑 Fitur Utama
-- 💸 **Transaction Manager** — CRUD pemasukan/pengeluaran
-- ✅ **Approval Workflow** — status tracking (Draft → Pending → Approved/Rejected)
-- 📦 **Retail POS** — point-of-sale dengan cart system
-- 🏢 **Unit Management** — manajemen unit organisasi (CRUD + soft-delete)
-- 🔐 **RBAC System** — 4 role (Superadmin, Pimpinan, Manager, Staff)
+## Progress Saat Ini
 
-## 🏗️ Tech Stack
+### Sudah tersedia
+- **Transaction Manager**: membuat, mengubah, melihat, mencari, dan memfilter transaksi pemasukan/pengeluaran.
+- **Approval Workflow**: status `DRAFT`, `PENDING`, `APPROVED`, dan `REJECTED` dengan aksi approval untuk Superadmin dan Pimpinan.
+- **Retail POS**: cart dan pembuatan beberapa transaksi sekaligus; transaksi POS masuk ke alur approval.
+- **RBAC**: role `SUPERADMIN`, `PIMPINAN`, `MANAGER`, dan `STAFF` dengan dashboard serta akses menu sesuai role.
+- **Unit Management**: CRUD unit dan status aktif/nonaktif untuk Superadmin dan Pimpinan.
+- **User Management**: tersedia pada area Superadmin.
+- **Buku Besar**: ringkasan transaksi yang sudah disetujui untuk Superadmin dan Pimpinan.
+
+### Masih dalam pengembangan
+- **Inventory / Stok Barang**: halaman saat ini masih placeholder dan mengarahkan pengguna ke POS.
+- **Audit Log**: model database dan API sudah tersedia, tetapi halaman UI masih placeholder.
+- **AI Assistant**: menu masih berstatus beta dan halaman implementasinya belum tersedia.
+
+## Tech Stack
+
 | Tools | Version |
 |-------|---------|
-| Next.js | 14 (App Router) |
-| Prisma | 6.x |
+| Next.js | 14.2.18 (App Router) |
+| React | 18 |
+| Prisma / Prisma Client | 6.19.3 |
 | Database | MySQL |
-| Auth | NextAuth v4 |
-| UI | Tailwind CSS + shadcn/ui |
-| Deploy | Hostinger (Node.js) |
+| Authentication | NextAuth 4.24 |
+| UI | Tailwind CSS, Radix UI, Lucide React |
+| Validation | Zod |
+| Deployment | Node.js standalone di Hostinger |
 
-## ⚙️ Setup
+## Setup Lokal
+
+Prasyarat: Node.js 18 atau lebih baru dan database MySQL yang dapat diakses aplikasi.
+
 ```bash
-cp .env.example .env    # edit DATABASE_URL ke MySQL
+npm install
+
+# Buat .env dari template yang tersedia, lalu isi DATABASE_URL,
+# NEXTAUTH_URL, dan NEXTAUTH_SECRET.
+npx prisma validate
 npx prisma generate
-npx prisma db push      # buat tabel di database
-npx prisma db:seed      # seed admin:pass = bismillah
-npx next build         # compile (5.8s)
-node server.js         # jalankan di Hostinger (port 3000)
+npx prisma db push
+npm run db:seed
+
+npm run dev
 ```
 
-Lihat full panduan: [DEPLOYMENT.md](./DEPLOYMENT.md) | [DEPLOY.md](./DEPLOY.md)
+Buka `http://localhost:3000`. Untuk menjalankan build production secara lokal:
 
-## 🔐 Role Access Matrix
+```bash
+npm run build
+npm run start
+```
+
+## Script NPM
+
+| Perintah | Kegunaan |
+|----------|----------|
+| `npm run dev` | Menjalankan development server |
+| `npm run build` | Membuat build production |
+| `npm run start` | Menjalankan build production |
+| `npm run lint` | Menjalankan lint Next.js |
+| `npm run db:generate` | Generate Prisma Client |
+| `npm run db:push` | Sinkronisasi schema ke database |
+| `npm run db:seed` | Membuat data awal |
+| `npm run db:studio` | Membuka Prisma Studio |
+| `npm run deploy:prepare` | Menyiapkan artefak deployment |
+
+## Akun Seed
+
+`npm run db:seed` membuat satu Unit Pusat dan empat akun berikut. Semua akun seed menggunakan password sementara `bismillah`.
+
+| Role | Email |
+|------|-------|
+| Superadmin | `admin@brontolano.com` |
+| Pimpinan | `pimpinan@brontolano.com` |
+| Manager | `manager@brontolano.com` |
+| Staff | `staff@brontolano.com` |
+
+Segera ganti password setelah login pertama dan jangan gunakan password seed di production.
+
+## Matriks Akses
+
 | Fitur | Superadmin | Pimpinan | Manager | Staff |
 |-------|:-:|:-:|:-:|:-:|
-| Transaction CRUD | ✅ | ✅ | ✅ | ✅ (own unit) |
-| Approval | ✅ | ✅ | ❌ | ❌ |
-| POS | ✅ | ✅ | ✅ | ✅ |
-| Unit Management | ✅ | ✅ | ❌ | ❌ |
-| User Management | ✅ | ❌ | ❌ | ❌ |
+| Dashboard role | Ya | Ya | Ya | Ya |
+| Transaksi | Semua | Semua | Unit sendiri | Unit sendiri |
+| Approval | Ya | Ya | Tidak | Tidak |
+| POS | Ya | Tidak di menu | Ya | Ya |
+| Buku Besar | Ya | Ya | Tidak | Tidak |
+| Manajemen Unit | Ya | Ya | Tidak | Tidak |
+| Manajemen User | Ya | Tidak | Tidak | Tidak |
+| Audit Log | Ya | Tidak | Tidak | Tidak |
 
-> **Developer:** BrontoLano (@brontolano) | **Ustadz:** Muhammad Hamdan  
-> **Environment:** Production-ready — GitHub push verified (61 files, commit `7e9a8c2`)
+## Deployment
+
+Aplikasi dikonfigurasi untuk deployment Node.js standalone di Hostinger. Pastikan environment berikut diatur pada server:
+
+```env
+DATABASE_URL="mysql://user:password@host:3306/database"
+NEXTAUTH_URL="https://domain-anda.example"
+NEXTAUTH_SECRET="secret-random-minimal-32-byte"
+NODE_ENV="production"
+```
+
+Panduan lengkap tersedia di [DEPLOYMENT.md](./DEPLOYMENT.md) dan [DEPLOY.md](./DEPLOY.md). Jangan commit file `.env` atau kredensial database.
+
+## Catatan Status
+
+Repository ini sedang aktif dikembangkan. Fitur yang diberi label “masih dalam pengembangan” belum boleh dianggap selesai untuk kebutuhan production tanpa verifikasi tambahan.
+
+> **Developer:** BrontoLano (@brontolano)
+> **Ustadz:** Muhammad Hamdan
