@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth';
+import { z } from 'zod';
+
+// Validation schemas
+const updateTransactionSchema = z.object({
+  type: z.enum(['INCOME', 'EXPENSE']).optional(),
+  amount: z.number().positive('Amount harus lebih dari 0').optional(),
+  description: z.string().min(3, 'Deskripsi minimal 3 karakter').max(500).optional(),
+  reference: z.string().optional(),
+  status: z.enum(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED']).optional(),
+  accountId: z.string().optional().nullable(),
+});
 
 // GET /api/transactions/:id
 // Get single transaction detail
@@ -31,48 +42,30 @@ export async function GET(request: Request) {
     const userId = session.user.id;
     const userUnitId = session.user.unitId;
 
-    let include = true;
-
-    if (role === 'STAFF') {
-      include = false; // will filter below
-    }
-
     // Fetch transaction
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
-      select: include
-        ? {
-            id: true,
-            unitId: true,
-            type: true,
-            amount: true,
-            description: true,
-            status: true,
-            reference: true,
-            createdById: true,
-            approvedById: true,
-            approvedAt: true,
-            createdAt: true,
-            updatedAt: true,
-            unit: { select: { name: true, code: true } },
-            createdBy: {
-              select: { name: true, email: true, role: true, unit: { select: { name: true } } },
-            },
-            approvedBy: { select: { name: true, email: true, role: true } },
-          }
-        : {
-            id: true,
-            unitId: true,
-            type: true,
-            amount: true,
-            description: true,
-            status: true,
-            reference: true,
-            createdById: true,
-            createdAt: true,
-            updatedAt: true,
-            createdBy: { select: { name: true, email: true } },
-          },
+      select: {
+        id: true,
+        unitId: true,
+        type: true,
+        amount: true,
+        description: true,
+        status: true,
+        reference: true,
+        accountId: true,
+        createdById: true,
+        approvedById: true,
+        approvedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        unit: { select: { name: true, code: true } },
+        createdBy: {
+          select: { name: true, email: true, role: true, unit: { select: { name: true } } },
+        },
+        approvedBy: { select: { name: true, email: true, role: true } },
+        account: { select: { name: true, code: true } },
+      },
     });
 
     if (!transaction) {
@@ -127,7 +120,17 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const { type, amount, description, reference, status } = body;
+    
+    // Validate input
+    const parsed = updateTransactionSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: parsed.error.errors },
+        { status: 400 }
+      );
+    }
+
+    const { type, amount, description, reference, status, accountId } = parsed.data;
 
     // Fetch existing transaction
     const existing = await prisma.transaction.findUnique({
@@ -137,6 +140,15 @@ export async function PATCH(request: Request) {
         createdById: true,
         unitId: true,
         status: true,
+        type: true,
+        amount: true,
+        description: true,
+        reference: true,
+        accountId: true,
+        approvedById: true,
+        approvedAt: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -164,23 +176,40 @@ export async function PATCH(request: Request) {
       );
     }
 
+    // Verify account exists if provided
+    if (accountId) {
+      const account = await prisma.account.findUnique({
+        where: { id: accountId },
+        select: { id: true, isActive: true },
+      });
+      if (!account || !account.isActive) {
+        return NextResponse.json(
+          { error: 'Akun tidak valid' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Update
     const updated = await prisma.transaction.update({
       where: { id: transactionId },
       data: {
         ...(type && { type }),
         ...(amount !== undefined && { amount }),
-        ...(description !== undefined && { description }),
-        ...(reference !== undefined && { reference }),
-        ...(status && { status: status as any }),
+        ...(description !== undefined && { description: description.trim() }),
+        ...(reference !== undefined && { reference: reference ? reference.trim() : undefined }),
+        ...(status && { status }),
+        ...(accountId !== undefined && { accountId }),
       },
       select: {
         id: true,
+        unitId: true,
         type: true,
         amount: true,
         description: true,
         status: true,
         reference: true,
+        accountId: true,
         updatedAt: true,
       },
     });
@@ -211,7 +240,7 @@ export async function PATCH(request: Request) {
 }
 
 // DELETE /api/transactions/:id
-// Delete transaction — only if DRAFT status
+// Delete transaction — only if DRAFT or PENDING status
 export async function DELETE(request: Request) {
   const { pathname } = new URL(request.url);
   const segments = pathname.split('/').filter(Boolean);
@@ -257,10 +286,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Hanya bisa delete jika DRAFT
-    if (existing.status !== 'DRAFT') {
+    // Hanya bisa delete jika DRAFT atau PENDING
+    if (existing.status === 'APPROVED' || existing.status === 'REJECTED') {
       return NextResponse.json(
-        { error: 'Hanya transaksi dengan status DRAFT yang bisa dihapus' },
+        { error: 'Hanya transaksi dengan status DRAFT atau PENDING yang bisa dihapus' },
         { status: 400 }
       );
     }

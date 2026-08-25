@@ -19,32 +19,32 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+} from '@/components/ui/Table';
+import { Button } from '@/components/ui/Button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@/components/ui/Dialog';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/Select';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+} from '@/components/ui/DropdownMenu';
+import { Badge } from '@/components/ui/Badge';
+import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { useRouter } from 'next/navigation';
 
 interface Unit {
@@ -86,7 +86,9 @@ export default function UnitsPage() {
       const res = await fetch('/api/units');
       if (res.ok) {
         const data = await res.json();
-        setUnits(Array.isArray(data.units) ? data.units : []);
+        // API returns { data: [...] }, page expects the array directly
+        const unitsArray = Array.isArray(data.data) ? data.data : [];
+        setUnits(unitsArray);
       } else {
         setUnits([]);
       }

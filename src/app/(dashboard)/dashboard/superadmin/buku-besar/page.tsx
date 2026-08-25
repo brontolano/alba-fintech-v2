@@ -12,10 +12,10 @@ import {
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Alert, AlertDescription } from '@/components/ui/Alert';
 
 interface AccountType {
   ASSET: { label: string; color: string; icon: any };
@@ -85,29 +85,51 @@ export default function BukuBesarPage() {
       const res = await fetch(`/api/transactions?type=all&status=APPROVED&limit=30`);
       if (res.ok) {
         const data = await res.json();
-        // Convert transactions to journal entries
-        const converted = (data.data || []).map((t: any) => ({
-          id: t.id,
-          date: t.createdAt,
-          description: t.description,
-          reference: t.reference,
-          totalDebit: t.type === 'INCOME' ? t.amount : 0,
-          totalCredit: t.type === 'EXPENSE' ? t.amount : 0,
-          createdBy: { name: t.createdBy?.name || 'Sistem' },
-          lines: [
-            {
-              id: `${t.id}-1`,
-              account: {
-                name: t.type === 'INCOME' ? 'Kas/BIlangan' : 'Beban',
-                code: '1-100',
-                type: t.type,
+        // Convert transactions to journal entries using dynamic accounts from COA
+        const converted = (data.data || []).map((t: any) => {
+          // Use actual account from transaction, or fallback to dynamic lookup
+          let accountName = 'Kas/BIlangan';
+          let accountCode = '1-100';
+          let accountType = t.type;
+          
+          if (t.account) {
+            // Use account info from transaction data
+            accountName = t.account.name;
+            accountCode = t.account.code;
+            accountType = t.account.type || t.type;
+          } else if (accounts[t.accountId]) {
+            // Fallback to accounts map if account data wasn't included
+            const acc = accounts[t.accountId];
+            if (acc) {
+              accountName = acc.name;
+              accountCode = acc.code;
+              accountType = acc.type || t.type;
+            }
+          }
+          
+          return {
+            id: t.id,
+            date: t.createdAt,
+            description: t.description,
+            reference: t.reference,
+            totalDebit: t.type === 'INCOME' ? t.amount : 0,
+            totalCredit: t.type === 'EXPENSE' ? t.amount : 0,
+            createdBy: { name: t.createdBy?.name || 'Sistem' },
+            lines: [
+              {
+                id: `${t.id}-1`,
+                account: {
+                  name: accountName,
+                  code: accountCode,
+                  type: accountType,
+                },
+                debit: t.type === 'INCOME' ? t.amount : 0,
+                credit: t.type === 'EXPENSE' ? t.amount : 0,
+                description: t.description,
               },
-              debit: t.type === 'INCOME' ? t.amount : 0,
-              credit: t.type === 'EXPENSE' ? t.amount : 0,
-              description: t.description,
-            },
-          ],
-        }));
+            ],
+          };
+        });
         setEntries(converted);
       }
     } catch (error) {

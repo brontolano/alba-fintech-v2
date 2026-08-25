@@ -37,6 +37,7 @@ model User {
   transactionsApproved Transaction[] @relation("TransactionApprover")
   transactionsCreated  Transaction[] @relation("TransactionCreator")
   unit                 Unit?         @relation(fields: [unitId], references: [id])
+  auditLogs            AuditLog[]
 
   @@map("users")
 }
@@ -58,6 +59,8 @@ model Transaction {
   approvedBy   User?             @relation("TransactionApprover", fields: [approvedById], references: [id])
   createdBy    User              @relation("TransactionCreator", fields: [createdById], references: [id])
   unit         Unit              @relation(fields: [unitId], references: [id])
+  account      Account?          @relation(fields: [accountId], references: [id])
+  accountId    String?           @map("account_id")
 
   @@index([unitId])
   @@index([status])
@@ -98,6 +101,36 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+model Account {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String   @unique
+  type        AccountType
+  description String?
+  parentId    String?  @map("parent_id")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  parent      Account?  @relation("AccountParent", fields: [parentId], references: [id])
+  children    Account[] @relation("AccountParent")
+  transactions Transaction[]
+
+  @@index([type])
+  @@index([parentId])
+  @@map("accounts")
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+
+  @@map("account_type")
 }
 
 enum Role {

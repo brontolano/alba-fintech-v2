@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth';
+import { z } from 'zod';
+
+// Validation schemas
+const createApprovalSchema = z.object({
+  transactionId: z.string().min(1, 'Transaction ID wajib diisi'),
+  action: z.enum(['approve', 'reject']),
+  comment: z.string().max(500).optional(),
+});
 
 // GET /api/approvals
 // List semua approval requests
@@ -17,7 +25,7 @@ export async function GET(request: Request) {
     const role = session.user.role;
     const userId = session.user.id;
 
-    let where = {};
+    let where: any = {};
 
     // STAFF: hanya approval request untuk transaksi yang dia buat
     // MANAGER: hanya approval request di unit-nya
@@ -70,7 +78,10 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ data: approvals });
+    return NextResponse.json({ 
+      data: approvals,
+      meta: { count: approvals.length }
+    });
   } catch (error) {
     console.error('[GET /api/approvals]', error);
     return NextResponse.json(
@@ -98,27 +109,30 @@ export async function POST(request: Request) {
   try {
     const userId = session.user.id;
     const body = await request.json();
-    const { transactionId, action, comment } = body;
-
-    // Validation
-    if (!transactionId || !action) {
+    
+    // Validate input
+    const parsed = createApprovalSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'transactionId dan action wajib diisi' },
+        { error: 'Validation failed', details: parsed.error.errors },
         { status: 400 }
       );
     }
 
-    if (!['approve', 'reject'].includes(action)) {
-      return NextResponse.json(
-        { error: 'action harus "approve" atau "reject"' },
-        { status: 400 }
-      );
-    }
+    const { transactionId, action, comment } = parsed.data;
 
     // Check transaction exists and is pending
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
-      select: { id: true, status: true },
+      select: { 
+        id: true, 
+        status: true,
+        unitId: true,
+        amount: true,
+        type: true,
+        description: true,
+        approvedById: true,
+      },
     });
 
     if (!transaction) {
@@ -133,6 +147,26 @@ export async function POST(request: Request) {
         { error: 'Hanya transaksi dengan status PENDING yang bisa diproses' },
         { status: 400 }
       );
+    }
+
+    // PIMPINAN can only approve if transaction hasn't been approved by another pimpinan
+    // SUPERADMIN can override any approval
+    if (role === 'PIMPINAN' && transaction.approvedById) {
+      // Check if it's already been processed by checking approval records
+      const existingApproval = await prisma.approval.findFirst({
+        where: { 
+          transactionId,
+          status: { in: ['APPROVED', 'REJECTED'] }
+        },
+        select: { id: true },
+      });
+      
+      if (existingApproval) {
+        return NextResponse.json(
+          { error: 'Transaksi sudah diproses sebelumnya' },
+          { status: 400 }
+        );
+      }
     }
 
     const approvalStatus = action === 'approve' ? 'APPROVED' : 'REJECTED';
@@ -160,15 +194,16 @@ export async function POST(request: Request) {
       });
 
       // Create approval record (or update if exists)
+      // Use a more specific where clause to satisfy TS
       await tx.approval.upsert({
-        where: { transactionId: transactionId },
+        where: { transactionId: transactionId as string },
         update: {
           approverId: userId,
           status: approvalStatus as any,
           comment: comment || null,
         },
         create: {
-          transactionId,
+          transactionId: transactionId as string,
           approverId: userId,
           status: approvalStatus as any,
           comment: comment || undefined,

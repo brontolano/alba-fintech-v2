@@ -2,6 +2,26 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth';
+import { z } from 'zod';
+
+// Validation schemas
+const createTransactionSchema = z.object({
+  unitId: z.string().min(1, 'Unit ID wajib diisi'),
+  type: z.enum(['INCOME', 'EXPENSE']),
+  amount: z.number().positive('Amount harus lebih dari 0'),
+  description: z.string().min(3, 'Deskripsi minimal 3 karakter').max(500),
+  reference: z.string().optional(),
+  accountId: z.string().optional(),
+});
+
+const updateTransactionSchema = z.object({
+  type: z.enum(['INCOME', 'EXPENSE']).optional(),
+  amount: z.number().positive('Amount harus lebih dari 0').optional(),
+  description: z.string().min(3, 'Deskripsi minimal 3 karakter').max(500).optional(),
+  reference: z.string().optional(),
+  status: z.enum(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED']).optional(),
+  accountId: z.string().optional().nullable(),
+});
 
 // GET /api/transactions
 // List transactions. Role-based visibility:
@@ -20,7 +40,7 @@ export async function GET(request: Request) {
     const userUnitId = session.user.unitId;
     const userId = session.user.id;
 
-    let where = {};
+    let where: any = {};
 
     if (role === 'STAFF') {
       // Staff: hanya transaksi yang dibuatnya sendiri
@@ -46,15 +66,20 @@ export async function GET(request: Request) {
         approvedAt: true,
         createdAt: true,
         updatedAt: true,
+        accountId: true,
         // Include names for display
         unit: { select: { name: true, code: true } },
         createdBy: { select: { name: true, email: true, role: true } },
         approvedBy: { select: { name: true, email: true } },
+        account: { select: { name: true, code: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ data: transactions });
+    return NextResponse.json({ 
+      data: transactions,
+      meta: { count: transactions.length }
+    });
   } catch (error) {
     console.error('[GET /api/transactions]', error);
     return NextResponse.json(
@@ -65,7 +90,7 @@ export async function GET(request: Request) {
 }
 
 // POST /api/transactions
-// Create new transaction (status: DRAFT → set to PENDING after submit)
+// Create new transaction (status: PENDING — siap untuk approval)
 // Role access: all authenticated users
 export async function POST(request: Request) {
   const session = await getServerSession(authConfig);
@@ -79,36 +104,17 @@ export async function POST(request: Request) {
     const userId = session.user.id;
 
     const body = await request.json();
-    const { unitId, type, amount, description, reference } = body;
-
-    // Validation
-    if (!unitId || !type || amount === undefined) {
+    
+    // Validate input
+    const parsed = createTransactionSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'unitId, type, dan amount wajib diisi' },
+        { error: 'Validation failed', details: parsed.error.errors },
         { status: 400 }
       );
     }
 
-    if (amount <= 0) {
-      return NextResponse.json(
-        { error: 'Amount harus lebih dari 0' },
-        { status: 400 }
-      );
-    }
-
-    if (description && description.trim().length < 3) {
-      return NextResponse.json(
-        { error: 'Deskripsi minimal 3 karakter' },
-        { status: 400 }
-      );
-    }
-
-    if (!['INCOME', 'EXPENSE'].includes(type)) {
-      return NextResponse.json(
-        { error: 'Type harus INCOME atau EXPENSE' },
-        { status: 400 }
-      );
-    }
+    const { unitId, type, amount, description, reference, accountId } = parsed.data;
 
     // RBAC: Staff hanya bisa buat transaksi untuk unit-nya
     const finalUnitId = role === 'SUPERADMIN' || role === 'PIMPINAN' 
@@ -122,14 +128,49 @@ export async function POST(request: Request) {
       );
     }
 
+    // Verify unit exists and user has access
+    const unit = await prisma.unit.findUnique({
+      where: { id: finalUnitId },
+      select: { id: true, isActive: true },
+    });
+    
+    if (!unit) {
+      return NextResponse.json(
+        { error: 'Unit tidak ditemukan' },
+        { status: 404 }
+      );
+    }
+
+    if (!unit.isActive && role !== 'SUPERADMIN' && role !== 'PIMPINAN') {
+      return NextResponse.json(
+        { error: 'Unit sudah tidak aktif' },
+        { status: 400 }
+      );
+    }
+
+    // Verify account exists if provided
+    if (accountId) {
+      const account = await prisma.account.findUnique({
+        where: { id: accountId },
+        select: { id: true, isActive: true },
+      });
+      if (!account || !account.isActive) {
+        return NextResponse.json(
+          { error: 'Akun tidak valid' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Create transaction with PENDING status (siap untuk approval)
     const transaction = await prisma.transaction.create({
       data: {
         unitId: finalUnitId,
         type,
         amount,
-        description: description ? description.trim() : '',
+        description: description.trim(),
         reference: reference ? reference.trim() : undefined,
+        accountId: accountId || undefined,
         status: 'PENDING',
         createdById: userId,
       },
@@ -141,6 +182,7 @@ export async function POST(request: Request) {
         description: true,
         status: true,
         reference: true,
+        accountId: true,
         createdAt: true,
       },
     });
