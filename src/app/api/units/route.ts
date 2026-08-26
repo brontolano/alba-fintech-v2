@@ -10,6 +10,7 @@ const createUnitSchema = z.object({
   code: z.string().min(1, 'Kode unit wajib diisi').max(20).toUpperCase(),
   description: z.string().optional(),
   isActive: z.boolean().optional().default(true),
+  lembagaId: z.string().optional(),
 });
 
 const updateUnitSchema = z.object({
@@ -17,6 +18,7 @@ const updateUnitSchema = z.object({
   code: z.string().min(1).max(20).toUpperCase().optional(),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
+  lembagaId: z.string().optional(),
 });
 
 // GET /api/units
@@ -39,6 +41,7 @@ export async function GET(request: Request) {
           code: true,
           description: true,
           isActive: true,
+          lembagaId: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -59,6 +62,7 @@ export async function GET(request: Request) {
           code: true, 
           description: true,
           isActive: true,
+          lembagaId: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -107,7 +111,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, code, description } = parsed.data;
+    const { name, code, description, lembagaId } = parsed.data;
 
     // Check for duplicate
     const existing = await prisma.unit.findUnique({
@@ -121,11 +125,20 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate lembagaId if provided
+    if (lembagaId) {
+      const lembaga = await prisma.lembaga.findUnique({ where: { id: lembagaId }, select: { id: true } });
+      if (!lembaga) {
+        return NextResponse.json({ error: 'Lembaga tidak ditemukan' }, { status: 404 });
+      }
+    }
+
     const unit = await prisma.unit.create({
       data: {
         name,
         code: code.toUpperCase(),
         description: description || null,
+        lembagaId: lembagaId || null,
       },
       select: {
         id: true,

@@ -7,6 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Lembaga {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  code         String?       @unique
+  description  String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  units        Unit[]
+
+  @@map("lembarga")
+}
+
 model Unit {
   id           String        @id @default(cuid())
   name         String        @unique
@@ -15,9 +28,12 @@ model Unit {
   isActive     Boolean       @default(true)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  lembagaId    String?       @map("lembaga_id")
+  lembaga      Lembaga?       @relation(fields: [lembagaId], references: [id])
   transactions Transaction[]
   users        User[]
 
+  @@index([lembagaId], map: "units_lembaga_id_fkey")
   @@map("units")
 }
 

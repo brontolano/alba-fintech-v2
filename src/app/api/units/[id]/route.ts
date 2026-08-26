@@ -9,6 +9,7 @@ const updateUnitSchema = z.object({
   code: z.string().min(1, 'Kode unit wajib diisi').max(20).toUpperCase().optional(),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
+  lembagaId: z.string().optional(),
 });
 
 // GET /api/units/:id
@@ -37,6 +38,7 @@ export async function GET(request: Request) {
         code: true,
         description: true,
         isActive: true,
+        lembagaId: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -132,6 +134,14 @@ export async function PATCH(request: Request) {
           { error: 'Kode unit sudah digunakan' },
           { status: 409 }
         );
+      }
+    }
+
+    // Validate lembagaId if provided
+    if (parsed.data.lembagaId) {
+      const lembaga = await prisma.lembaga.findUnique({ where: { id: parsed.data.lembagaId }, select: { id: true } });
+      if (!lembaga) {
+        return NextResponse.json({ error: 'Lembaga tidak ditemukan' }, { status: 404 });
       }
     }
 

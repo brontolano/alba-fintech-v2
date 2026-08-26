@@ -16,6 +16,7 @@ import {
   Clock,
   FileCheck,
   ChevronLeft,
+  Building,
 } from 'lucide-react';
 
 const sections = [
@@ -115,6 +116,22 @@ const sections = [
       'Filter berdasarkan rentang tanggal dan unit',
       'Rekonsiliasi antar unit untuk pimpinan',
     ],
+  },
+  {
+    id: 'lembaga',
+    icon: Building,
+    title: 'Manajemen Lembaga',
+    content:
+      'Hanya Superadmin yang dapat mengelola lembaga induk. Lembaga berperan sebagai entitas induk dari satu atau lebih unit usaha, sehingga pencatatan keuangan dapat dilakukan secara terpusat pada satu lembaga.',
+    steps: [
+      'Pilih menu "Manajemen Lembaga" di sidebar (Superadmin)',
+      'Klik "Tambah Lembaga" untuk membuat entitas induk baru',
+      'Isi nama lembaga, kode (opsional), dan deskripsi',
+      'Klik "Simpan"',
+      'Lembaga yang dibuat dapat ditautkan ke unit usaha saat menambahkan atau mengedit unit',
+    ],
+    note:
+      'Satu lembaga dapat memiliki banyak unit. Unit-unit di bawah satu lembaga akan membagikan laporan keuangan terpusat.',
   },
   {
     id: 'pengguna-unit',

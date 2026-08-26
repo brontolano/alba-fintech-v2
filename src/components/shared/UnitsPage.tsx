@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Building2, Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { Building2, Plus, Search, Edit, Trash2, Building } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Modal, Button } from '@/components/ui';
 import { toast } from 'sonner';
 
@@ -11,6 +11,7 @@ interface Unit {
   code: string;
   description?: string;
   isActive: boolean;
+  lembagaId?: string;
   _count?: { users: number; transactions: number };
   createdAt: string;
 }
@@ -20,10 +21,18 @@ interface CreateForm {
   code: string;
   description: string;
   isActive: boolean;
+  lembagaId?: string;
+}
+
+interface Lembaga {
+  id: string;
+  name: string;
+  code: string | null;
 }
 
 export default function UnitsPage() {
   const [units, setUnits] = useState<Unit[]>([]);
+  const [lembagas, setLembagas] = useState<Lembaga[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -33,6 +42,7 @@ export default function UnitsPage() {
     code: '',
     description: '',
     isActive: true,
+    lembagaId: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -52,18 +62,30 @@ export default function UnitsPage() {
 
   useEffect(() => {
     fetchUnits();
+    fetchLembagas();
   }, []);
+
+  const fetchLembagas = async () => {
+    try {
+      const res = await fetch('/api/lembaga');
+      const data = await res.json();
+      setLembagas(data.data ?? []);
+    } catch (err) {
+      console.error('Error fetching lembaga:', err);
+    }
+  };
 
   const filtered = search
     ? units.filter((u) =>
         u.name.toLowerCase().includes(search.toLowerCase()) ||
-        u.code.toLowerCase().includes(search.toLowerCase())
+        u.code.toLowerCase().includes(search.toLowerCase()) ||
+        (u.lembagaId && lembagas.find((l) => l.id === u.lembagaId)?.name?.toLowerCase().includes(search.toLowerCase()))
       )
     : units;
 
   const openCreateModal = () => {
     setEditingUnit(null);
-    setForm({ name: '', code: '', description: '', isActive: true });
+    setForm({ name: '', code: '', description: '', isActive: true, lembagaId: '' });
     setShowModal(true);
   };
 
@@ -74,6 +96,7 @@ export default function UnitsPage() {
       code: unit.code,
       description: unit.description ?? '',
       isActive: unit.isActive,
+      lembagaId: unit.lembagaId ?? '',
     });
     setShowModal(true);
   };
@@ -135,7 +158,7 @@ export default function UnitsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Manajemen Unit</h1>
-          <p className="text-slate-500 text-sm mt-1">Kelola unit usaha</p>
+          <p className="text-slate-500 text-sm mt-1">Kelola unit usaha di bawah lembaga induk</p>
         </div>
         <Button variant="default" onClick={openCreateModal}>
           <Plus size={16} />
@@ -177,6 +200,7 @@ export default function UnitsPage() {
               <thead>
                 <tr className="border-b border-slate-100">
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Nama</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Lembaga</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Kode</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Status</th>
                   <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">User</th>
@@ -187,6 +211,7 @@ export default function UnitsPage() {
                 {filtered.map((u) => (
                   <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50">
                     <td className="py-3 px-4 font-medium text-slate-800">{u.name}</td>
+                    <td className="py-3 px-4 text-sm text-slate-600">{u.lembagaId ? lembagas.find((l) => l.id === u.lembagaId)?.name ?? '-' : '-'}</td>
                     <td className="py-3 px-4 text-sm text-slate-600 font-mono">{u.code}</td>
                     <td className="py-3 px-4"><Badge variant={u.isActive ? 'success' : 'outline'}>{u.isActive ? 'Aktif' : 'Non-aktif'}</Badge></td>
                     <td className="py-3 px-4 text-right text-sm text-slate-600">{u._count?.users ?? 0}</td>
@@ -229,6 +254,20 @@ export default function UnitsPage() {
               placeholder="Nama unit usaha"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Lembaga Induk</label>
+            <select
+              value={form.lembagaId}
+              onChange={(e) => setForm({ ...form, lembagaId: e.target.value || undefined })}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+            >
+              <option value="">Pilih lembaga (opsional)</option>
+              {lembagas.map((l) => (
+                <option key={l.id} value={l.id}>{l.name} {l.code ? `(${l.code})` : ''}</option>
+              ))}
+            </select>
           </div>
 
           <div>

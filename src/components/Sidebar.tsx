@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Users,
   Building2,
+  Building,
   Wallet,
   CheckSquare,
   Package,
@@ -43,6 +44,7 @@ const ROLE_PREFIX: Record<UserRole, string> = {
 const NAV: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
   { label: 'Manajemen User', href: '/users', icon: Users, roles: ['SUPERADMIN'], badge: 'Admin', badgeVariant: 'info' },
+  { label: 'Manajemen Lembaga', href: '/lembaga', icon: Building, roles: ['SUPERADMIN'], badge: 'Admin', badgeVariant: 'info' },
   { label: 'Manajemen Unit', href: '/units', icon: Building2, roles: ['SUPERADMIN'], badge: 'Admin', badgeVariant: 'info' },
   { label: 'Transaksi', href: '/transactions', icon: Wallet, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'], badge: 'Core', badgeVariant: 'success' },
   { label: 'Approval', href: '/approvals', icon: CheckSquare, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'], badge: 'Pending', badgeVariant: 'warning' },
