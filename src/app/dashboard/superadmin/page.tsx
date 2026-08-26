@@ -6,6 +6,8 @@ import { Users, Building2, Wallet, ScrollText, ArrowUpRight } from 'lucide-react
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { StatCard } from '@/components/ui/StatCard';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SuperadminDashboard() {
   const session = await getServerSession(authConfig);
   if (!session?.user || session.user.role !== 'SUPERADMIN') redirect('/login');

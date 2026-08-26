@@ -7,6 +7,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { StatCard } from '@/components/ui/StatCard';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default async function PimpinanDashboard() {
   const session = await getServerSession(authConfig);
   if (!session?.user || session.user.role !== 'PIMPINAN') redirect('/login');
