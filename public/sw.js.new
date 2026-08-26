@@ -1,0 +1,102 @@
+// PWA Service Worker - ALBA Finance v2
+// Caches static assets for offline use
+
+const CACHE_NAME = 'alba-finance-v2';
+const ASSETS = [
+  '/icons/icon-192x192.svg',
+  '/icons/icon-512x512.svg',
+  '/favicon.svg',
+  '/offline.html',
+  '/manifest.json'
+];
+
+const STATIC_ASSET_EXTENSIONS = ['.js', '.css', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map'];
+
+// Install - cache only static assets
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        // Only cache assets that exist - skip if any fail
+        return Promise.allSettled(ASSETS.map((url) => {
+          return fetch(url).then((response) => {
+            if (response.ok) {
+              return cache.put(url, response);
+            }
+            throw new Error(`Failed to cache ${url}`);
+          }).catch(() => {
+            // Silently skip assets that don't exist
+            return null;
+          });
+        }));
+      })
+      .then(() => self.skipWaiting())
+  );
+});
+
+// Activate - clean up old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((names) =>
+      Promise.all(
+        names.map((name) => {
+          if (name !== CACHE_NAME) {
+            return caches.delete(name);
+          }
+          return null;
+        })
+      )
+    ).then(() => self.clients.claim())
+  );
+});
+
+// Helper: check if request is for static asset
+function isStaticAsset(url) {
+  return STATIC_ASSET_EXTENSIONS.some(ext => url.includes(ext));
+}
+
+// Fetch - stale-while-revalidate for static assets, network-only for everything else
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // For Next.js app routes and dynamic content, always go to network
+  if (url.pathname.startsWith('/_next/') || url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // For HTML pages (like "/"), always go to network (don't cache SPA shell)
+  if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
+    return;
+  }
+
+  // For static assets, use cache-first with network fallback
+  if (isStaticAsset(url.pathname)) {
+    event.respondWith(
+      caches.match(event.request)
+        .then((response) => {
+          if (response) {
+            return response;
+          }
+          return fetch(event.request).then((fetchResponse) => {
+            if (fetchResponse.status === 200) {
+              const cloned = fetchResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
+              return fetchResponse;
+            }
+            return fetchResponse;
+          });
+        })
+        .catch(() => {
+          // Offline fallback for images
+          if (url.pathname.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i)) {
+            return caches.match('/icons/icon-192x192.svg');
+          }
+        })
+    );
+  }
+});

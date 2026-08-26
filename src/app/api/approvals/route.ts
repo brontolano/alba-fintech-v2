@@ -193,16 +193,9 @@ export async function POST(request: Request) {
         },
       });
 
-      // Create approval record (or update if exists)
-      // Use a more specific where clause to satisfy TS
-      await tx.approval.upsert({
-        where: { transactionId: transactionId as string },
-        update: {
-          approverId: userId,
-          status: approvalStatus as any,
-          comment: comment || null,
-        },
-        create: {
+      // Create approval record for this action
+      await tx.approval.create({
+        data: {
           transactionId: transactionId as string,
           approverId: userId,
           status: approvalStatus as any,

@@ -43,4 +43,7 @@ export {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from './DropdownMenu';
+export { TransactionStatusBadge, TransactionTypeBadge } from './TransactionBadges';

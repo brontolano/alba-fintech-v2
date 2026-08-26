@@ -42,8 +42,10 @@ export async function GET(request: Request) {
           createdAt: true,
           updatedAt: true,
           _count: {
-            users: true,
-            transactions: true,
+            select: {
+              users: true,
+              transactions: true,
+            },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -65,7 +67,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ 
-      data: units,
+      data: units as any,
       meta: {
         count: units.length,
         role: role,

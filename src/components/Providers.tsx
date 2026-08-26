@@ -1,15 +1,17 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
-import { PWAProvider } from './PWAProvider';
+// PWAProvider temporarily disabled for development
+// import { PWAProvider } from './PWAProvider';
+import { ToasterProvider } from '@/components/ToasterProvider';
+import NotificationBell from '@/components/NotificationBell';
 
-// PWAProvider doesn't need to render children, it's a void component
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <PWAProvider>
-        {children}
-      </PWAProvider>
+      {children}
+      <ToasterProvider />
+      <NotificationBell />
     </SessionProvider>
   );
 }

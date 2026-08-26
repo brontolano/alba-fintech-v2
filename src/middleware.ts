@@ -39,22 +39,14 @@ export async function middleware(req: NextRequest) {
 
     const role = token.role as Role;
 
-    // Role-based gate: each role can only access its own dashboard
-    if (pathname.startsWith('/dashboard/superadmin') && role !== 'SUPERADMIN') {
-      return NextResponse.redirect(new URL(ROLE_HOMES[role] ?? '/login', req.url));
-    }
-    if (pathname.startsWith('/dashboard/pimpinan') && role !== 'PIMPINAN') {
-      return NextResponse.redirect(new URL(ROLE_HOMES[role] ?? '/login', req.url));
-    }
-    if (pathname.startsWith('/dashboard/manager') && role !== 'MANAGER') {
-      return NextResponse.redirect(new URL(ROLE_HOMES[role] ?? '/login', req.url));
-    }
-    if (pathname.startsWith('/dashboard/staff') && role !== 'STAFF') {
+    // /dashboard (no role suffix) → redirect to role home
+    if (pathname === '/dashboard' || pathname === '/dashboard/') {
       return NextResponse.redirect(new URL(ROLE_HOMES[role] ?? '/login', req.url));
     }
 
-    // /dashboard (no role suffix) → redirect to role home
-    if (pathname === '/dashboard' || pathname === '/dashboard/') {
+    // Role-based gate: each role can only access its own dashboard prefix
+    const rolePrefix = `/dashboard/${role.toLowerCase()}`;
+    if (!pathname.startsWith(rolePrefix)) {
       return NextResponse.redirect(new URL(ROLE_HOMES[role] ?? '/login', req.url));
     }
   }

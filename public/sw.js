@@ -4,8 +4,8 @@
 const CACHE_NAME = 'alba-finance-v1';
 const ASSETS = [
   '/',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  '/icons/icon-192x192.svg',
+  '/icons/icon-512x512.svg',
   '/offline.html'
 ];
 
@@ -48,8 +48,10 @@ self.addEventListener('fetch', (event) => {
                 fetchResponse.type === 'basic' &&
                 !event.request.url.includes('/api/') &&
                 !event.request.url.includes('/_next/data/')) {
+              const cloned = fetchResponse.clone();
               caches.open(CACHE_NAME)
-                .then((cache) => cache.put(event.request, fetchResponse.clone()));
+                .then((cache) => cache.put(event.request, cloned));
+              return fetchResponse;
             }
             return fetchResponse;
           }).catch(() => {

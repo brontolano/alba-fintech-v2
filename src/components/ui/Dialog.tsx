@@ -1,3 +1,5 @@
+'use client';
+
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
@@ -81,7 +83,7 @@ export const DialogContent: React.FC<DialogContentProps> = ({
   return (
     <div
       className={cn(
-        "fixed bottom-0 z-50 mx-auto mb-4 max-w-lg rounded-lg border bg-white p-6 shadow-lg md:top-1/2 md:-translate-y-1/2",
+        "fixed bottom-0 z-[60] mx-auto mb-4 max-w-lg rounded-lg border bg-white p-6 shadow-lg md:top-1/2 md:-translate-y-1/2",
         className
       )}
       onClick={(e) => e.stopPropagation()}

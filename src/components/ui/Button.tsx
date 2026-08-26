@@ -8,10 +8,12 @@ export interface ButtonProps
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   asChild?: boolean;
+  loading?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'default', size = 'default', asChild = false, ...props }, ref) => {
+  ({ className, variant = 'default', size = 'default', asChild = false, loading = false, disabled, children, ...props }, ref) => {
+    const isDisabled = loading || disabled;
     const baseStyles =
       'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
 
@@ -34,26 +36,30 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const classes = cn(baseStyles, variants[variant], sizes[size], className);
 
-    if (asChild) {
-      // When asChild is true, render as span-like (useful for Radix patterns)
-      // In our simplified version, we just ignore asChild and render a button
-      return (
-        <button
-          className={classes}
-          ref={ref}
-          {...props}
-        />
-      );
-    }
-
+  if (asChild) {
     return (
       <button
         className={classes}
         ref={ref}
+        disabled={isDisabled}
         {...props}
-      />
+      >
+        {loading ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : children}
+      </button>
     );
   }
+
+  return (
+    <button
+      className={classes}
+      ref={ref}
+      disabled={isDisabled}
+      {...props}
+    >
+      {loading ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : children}
+    </button>
+  );
+}
 );
 
 Button.displayName = 'Button';

@@ -38,6 +38,7 @@ model User {
   transactionsCreated  Transaction[] @relation("TransactionCreator")
   unit                 Unit?         @relation(fields: [unitId], references: [id])
   auditLogs            AuditLog[]
+  notifications    Notification[]
 
   @@map("users")
 }
@@ -164,4 +165,30 @@ enum ApprovalStatus {
   REJECTED
 
   @@map("approval_status")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+
+  @@map("notification_type")
 }
