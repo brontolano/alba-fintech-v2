@@ -30,6 +30,7 @@ type NavItem = {
   roles: UserRole[];
   badge?: string;
   badgeVariant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'outline';
+  isAbsolute?: boolean;
 };
 
 const ROLE_PREFIX: Record<UserRole, string> = {
@@ -45,7 +46,7 @@ const NAV: NavItem[] = [
   { label: 'Manajemen Unit', href: '/units', icon: Building2, roles: ['SUPERADMIN'], badge: 'Admin', badgeVariant: 'info' },
   { label: 'Transaksi', href: '/transactions', icon: Wallet, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'], badge: 'Core', badgeVariant: 'success' },
   { label: 'Approval', href: '/approvals', icon: CheckSquare, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'], badge: 'Pending', badgeVariant: 'warning' },
-  { label: 'Rekonsiliasi', href: '/rekonsiliasi', icon: FileText, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'] },
+  { label: 'Rekonsiliasi', href: '/dashboard/rekonsiliasi', icon: FileText, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'], isAbsolute: true },
   { label: 'Inventory / POS', href: '/inventory', icon: Package, roles: ['SUPERADMIN', 'MANAGER', 'STAFF'] },
   { label: 'AI Assistant', href: '/ai-assistant', icon: Bot, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'], badge: 'Beta', badgeVariant: 'info' },
   { label: 'Audit Log', href: '/audit', icon: ScrollText, roles: ['SUPERADMIN'] },
@@ -78,6 +79,17 @@ export default function Sidebar({
     ? 'w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 z-50'
     : 'w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 hidden lg:flex';
 
+  // Determine full href: isAbsolute items use href directly; others get role prefix
+  const buildHref = (item: NavItem): string => {
+    if (item.isAbsolute) {
+      return item.href;
+    }
+    if (item.href === '/dashboard') {
+      return '/dashboard';
+    }
+    return `/dashboard/${rolePrefix}${item.href}`;
+  };
+
   return (
     <aside className={sidebarClass}>
       <div className="px-6 py-5 border-b border-slate-200">
@@ -93,13 +105,8 @@ export default function Sidebar({
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {items.map((item) => {
           const Icon = item.icon;
-          let isActive: boolean;
-          if (item.href === '/dashboard') {
-            isActive = pathname === item.href || pathname === '/dashboard/' || pathname.startsWith(`/${rolePrefix}`);
-          } else {
-            isActive = pathname === `/dashboard/${rolePrefix}${item.href}`;
-          }
-          const fullHref = item.href === '/dashboard' ? '/dashboard' : `/dashboard/${rolePrefix}${item.href}`;
+          const fullHref = buildHref(item);
+          const isActive = pathname === fullHref || pathname === item.href;
           return (
             <Link
               key={item.href}
