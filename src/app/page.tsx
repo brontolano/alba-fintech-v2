@@ -6,6 +6,7 @@ import {
   Users,
   ArrowRight,
   Check,
+  BookOpen,
 } from 'lucide-react';
 
 const features = [
@@ -73,12 +74,12 @@ export default function HomePage() {
             >
               Masuk ke Aplikasi <ArrowRight size={18} />
             </Link>
-            <a
-              href="#fitur"
+            <Link
+              href="/panduan"
               className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold px-6 py-3 rounded-lg border border-slate-300 transition"
             >
-              Pelajari Fitur
-            </a>
+              <BookOpen size={18} className="text-brand-600" /> Panduan Penggunaan
+            </Link>
           </div>
         </div>
       </section>

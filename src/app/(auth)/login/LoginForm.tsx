@@ -139,16 +139,6 @@ export default function LoginForm() {
             </Link>
           </div>
 
-          <details className="mt-4">
-            <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">Demo akun (dev only)</summary>
-            <ul className="mt-2 space-y-1 pl-4 text-xs text-slate-600">
-              <li><span className="font-mono">admin@brontolano.com</span> — Super Admin</li>
-              <li><span className="font-mono">pimpinan@brontolano.com</span> — Pimpinan</li>
-              <li><span className="font-mono">manager@brontolano.com</span> — Manager</li>
-              <li><span className="font-mono">staff@brontolano.com</span> — Staff</li>
-              <li className="font-mono text-brand-600">Password: bismillah</li>
-            </ul>
-          </details>
         </div>
       </div>
     </main>
