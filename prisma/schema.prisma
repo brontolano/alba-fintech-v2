@@ -15,31 +15,32 @@ model Unit {
   isActive     Boolean       @default(true)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-  users        User[]
   transactions Transaction[]
+  users        User[]
 
   @@map("units")
 }
 
 model User {
-  id                   String        @id @default(cuid())
-  email                String        @unique
+  id                   String         @id @default(cuid())
+  email                String         @unique
   name                 String?
-  passwordHash         String        @map("password_hash")
-  role                 Role          @default(STAFF)
-  unitId               String?       @map("unit_id")
-  isActive             Boolean       @default(true)
-  emailVerified        DateTime?     @map("email_verified")
+  passwordHash         String         @map("password_hash")
+  role                 Role           @default(STAFF)
+  unitId               String?        @map("unit_id")
+  isActive             Boolean        @default(true)
+  emailVerified        DateTime?      @map("email_verified")
   image                String?
-  createdAt            DateTime      @default(now()) @map("created_at")
-  updatedAt            DateTime      @updatedAt @map("updated_at")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
   approvals            Approval[]
-  transactionsApproved Transaction[] @relation("TransactionApprover")
-  transactionsCreated  Transaction[] @relation("TransactionCreator")
-  unit                 Unit?         @relation(fields: [unitId], references: [id])
   auditLogs            AuditLog[]
-  notifications    Notification[]
+  notifications        Notification[]
+  transactionsApproved Transaction[]  @relation("TransactionApprover")
+  transactionsCreated  Transaction[]  @relation("TransactionCreator")
+  unit                 Unit?          @relation(fields: [unitId], references: [id])
 
+  @@index([unitId], map: "users_unit_id_fkey")
   @@map("users")
 }
 
@@ -54,18 +55,20 @@ model Transaction {
   createdById  String            @map("created_by_id")
   approvedById String?           @map("approved_by_id")
   approvedAt   DateTime?         @map("approved_at")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+  accountId    String?           @map("account_id")
   approvals    Approval[]
+  account      Account?          @relation(fields: [accountId], references: [id])
   approvedBy   User?             @relation("TransactionApprover", fields: [approvedById], references: [id])
   createdBy    User              @relation("TransactionCreator", fields: [createdById], references: [id])
   unit         Unit              @relation(fields: [unitId], references: [id])
-  account      Account?          @relation(fields: [accountId], references: [id])
-  accountId    String?           @map("account_id")
 
   @@index([unitId])
   @@index([status])
   @@index([createdById])
+  @@index([accountId], map: "transactions_account_id_fkey")
+  @@index([approvedById], map: "transactions_approved_by_id_fkey")
   @@map("transactions")
 }
 
@@ -105,23 +108,39 @@ model AuditLog {
 }
 
 model Account {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  code        String   @unique
-  type        AccountType
-  description String?
-  parentId    String?  @map("parent_id")
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  parent      Account?  @relation("AccountParent", fields: [parentId], references: [id])
-  children    Account[] @relation("AccountParent")
+  id           String        @id @default(cuid())
+  name         String        @unique
+  code         String        @unique
+  type         AccountType
+  description  String?
+  parentId     String?       @map("parent_id")
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  parent       Account?      @relation("AccountParent", fields: [parentId], references: [id])
+  children     Account[]     @relation("AccountParent")
   transactions Transaction[]
 
   @@index([type])
   @@index([parentId])
   @@map("accounts")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String?          @map("user_id")
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  user      User?            @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
 }
 
 enum AccountType {
@@ -165,23 +184,6 @@ enum ApprovalStatus {
   REJECTED
 
   @@map("approval_status")
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String?  @map("user_id")
-  title     String
-  message   String
-  type      NotificationType
-  isRead    Boolean  @default(false) @map("is_read")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  user      User?    @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([isRead])
-  @@index([createdAt])
-  @@map("notifications")
 }
 
 enum NotificationType {

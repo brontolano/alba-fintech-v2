@@ -73,9 +73,10 @@ export async function POST(request: NextRequest) {
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             try {
               const data = JSON.parse(body);
-              resolve(data.choices?.[0]?.message?.content ?? '');
+              resolve(data.choices?.[0]?.message?.content ?? data.message?.content ?? '');
             } catch (parseError) {
-              reject(new Error(`Parse error: ${parseError} | body (first 500): ${body.substring(0, 500)}`));
+              // Respons bukan JSON — fallback ke teks mentah agar UI tetap dapat balasan
+              resolve(body || 'Maaf, tidak dapat memproses respons dari AI provider.');
             }
           } else {
             reject(new Error(`HTTP ${res.statusCode}: ${body.substring(0, 500)}`));
