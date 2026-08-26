@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import { Users, Plus, Search, Edit, Trash2, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Modal, Button, Select } from '@/components/ui';
 import { toast } from 'sonner';
-import type { Role } from '@prisma/client';
+
+type UserRole = 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF';
 
 interface User {
   id: string;
   email: string;
   name?: string;
-  role: Role;
+  role: UserRole;
   unitId?: string;
   isActive: boolean;
   createdAt: string;
@@ -26,7 +27,7 @@ interface CreateForm {
   name: string;
   email: string;
   password: string;
-  role: Role;
+  role: UserRole;
   unitId: string;
   isActive: boolean;
 }
@@ -310,7 +311,7 @@ export default function UsersPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as Role })}>
+              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as UserRole })}>
                 {Object.entries(ROLE_LABEL).map(([val, label]) => (
                   <option key={val} value={val}>{label}</option>
                 ))}

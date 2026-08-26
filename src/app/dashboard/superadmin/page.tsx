@@ -22,9 +22,9 @@ export default async function SuperadminDashboard() {
     }),
   ]);
 
-  const userMap = new Map(
+  const userMap: Map<string, { id: string; name: string | null; email: string }> = new Map(
     (await prisma.user.findMany({ select: { id: true, name: true, email: true } })).map(
-      (u) => [u.id, u] as const
+      (u: { id: string; name: string | null; email: string }) => [u.id, u] as const
     )
   );
 
@@ -58,7 +58,7 @@ export default async function SuperadminDashboard() {
             <p className="px-6 py-12 text-center text-slate-400 text-sm">Belum ada aktivitas</p>
           ) : (
             <ul className="divide-y divide-slate-100">
-              {recentLogs.map((log) => {
+              {recentLogs.map((log: any) => {
                 const user = log.userId ? userMap.get(log.userId) : null;
                 const display = user?.name ?? user?.email ?? (log.userId ?? 'System');
                 return (

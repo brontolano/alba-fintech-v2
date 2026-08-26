@@ -2,19 +2,20 @@ import type { DefaultSession, AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import type { Role } from '@prisma/client';
+
+type UserRole = 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF';
 
 declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
-      role: Role;
+      role: UserRole;
       unitId: string | null;
     } & DefaultSession['user'];
   }
 
   interface User {
-    role: Role;
+    role: UserRole;
     unitId: string | null;
   }
 }
@@ -22,7 +23,7 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
-    role: Role;
+    role: UserRole;
     unitId: string | null;
   }
 }

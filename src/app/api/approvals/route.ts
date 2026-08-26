@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth';
 import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 
 // Validation schemas
 const createApprovalSchema = z.object({
@@ -173,7 +174,7 @@ export async function POST(request: Request) {
     const transactionStatus = action === 'approve' ? 'APPROVED' : 'REJECTED';
 
     // Update transaction status (atomic)
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Update transaction
       const updated = await tx.transaction.update({
         where: { id: transactionId },

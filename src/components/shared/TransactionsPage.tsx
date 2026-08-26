@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { Wallet, Plus, Search, Eye, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Modal, Button, Badge, Select, TransactionStatusBadge, TransactionTypeBadge } from '@/components/ui';
 import { toast } from 'sonner';
-import type { Role } from '@prisma/client';
+
+type UserRole = 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF';
 
 interface Transaction {
   id: string;
@@ -48,7 +49,7 @@ export default function TransactionsPage() {
     unitId: '',
   });
   const [submitting, setSubmitting] = useState(false);
-  const [userRole, setUserRole] = useState<Role>('STAFF');
+  const [userRole, setUserRole] = useState<UserRole>('STAFF');
 
   const fetchTransactions = async () => {
     setLoading(true);

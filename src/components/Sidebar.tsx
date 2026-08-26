@@ -14,7 +14,8 @@ import {
   LogOut,
   ChevronRight,
 } from 'lucide-react';
-import type { Role } from '@prisma/client';
+
+type UserRole = 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF';
 import type { LucideIcon } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { Badge } from '@/components/ui';
@@ -25,12 +26,12 @@ type NavItem = {
   label: string;
   href: string;
   icon: IconType;
-  roles: Role[];
+  roles: UserRole[];
   badge?: string;
   badgeVariant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'outline';
 };
 
-const ROLE_PREFIX: Record<Role, string> = {
+const ROLE_PREFIX: Record<UserRole, string> = {
   SUPERADMIN: 'superadmin',
   PIMPINAN: 'pimpinan',
   MANAGER: 'manager',
@@ -48,7 +49,7 @@ const NAV: NavItem[] = [
   { label: 'Audit Log', href: '/audit', icon: ScrollText, roles: ['SUPERADMIN'] },
 ];
 
-const ROLE_LABEL: Record<Role, string> = {
+const ROLE_LABEL: Record<UserRole, string> = {
   SUPERADMIN: 'Super Admin',
   PIMPINAN: 'Pimpinan',
   MANAGER: 'Manager',
@@ -60,7 +61,7 @@ export default function Sidebar({
   name,
   forceMobile = false,
 }: {
-  role: Role;
+  role: UserRole;
   name?: string | null;
   forceMobile?: boolean;
 }) {

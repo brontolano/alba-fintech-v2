@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import type { Role } from '@prisma/client';
 
-const ROLE_HOMES: Record<Role, string> = {
+type UserRole = 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF';
+
+const ROLE_HOMES: Record<UserRole, string> = {
   SUPERADMIN: '/dashboard/superadmin',
   PIMPINAN: '/dashboard/pimpinan',
   MANAGER: '/dashboard/manager',
@@ -37,7 +38,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    const role = token.role as Role;
+    const role = token.role as UserRole;
 
     // /dashboard (no role suffix) → redirect to role home
     if (pathname === '/dashboard' || pathname === '/dashboard/') {
