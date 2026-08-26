@@ -51,7 +51,9 @@ export async function POST(request: NextRequest) {
     });
 
     const parsedUrl = new URL(baseUrl);
-    const path = `${parsedUrl.pathname}/chat/completions`;
+    // Pastikan path selalu diawali "/chat/completions" — hindari duplikat /v1/v1/...
+    const trimmed = parsedUrl.pathname.replace(/\/+$/, '');
+    const path = `${trimmed}/chat/completions`;
 
     const assistantMessage = await new Promise<string>((resolve, reject) => {
       const req = https.request({
