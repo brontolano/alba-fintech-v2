@@ -103,12 +103,10 @@ export async function POST(request: Request) {
   }
 
   const role = session.user.role;
-  if (role !== 'SUPERADMIN' && role !== 'PIMPINAN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const userId = session.user.id;
+  const userUnitId = session.user.unitId;
 
   try {
-    const userId = session.user.id;
     const body = await request.json();
     
     // Validate input
@@ -150,24 +148,31 @@ export async function POST(request: Request) {
       );
     }
 
-    // PIMPINAN can only approve if transaction hasn't been approved by another pimpinan
-    // SUPERADMIN can override any approval
-    if (role === 'PIMPINAN' && transaction.approvedById) {
-      // Check if it's already been processed by checking approval records
-      const existingApproval = await prisma.approval.findFirst({
-        where: { 
-          transactionId,
-          status: { in: ['APPROVED', 'REJECTED'] }
-        },
-        select: { id: true },
-      });
-      
-      if (existingApproval) {
+    // RBAC unit check: MANAGER hanya boleh approve transaksi di unitnya
+    if (role === 'MANAGER') {
+      if (userUnitId && transaction.unitId !== userUnitId) {
         return NextResponse.json(
-          { error: 'Transaksi sudah diproses sebelumnya' },
-          { status: 400 }
+          { error: 'Anda hanya dapat menyetujui transaksi unit Anda' },
+          { status: 403 }
         );
       }
+    }
+
+    // SUPERADMIN + PIMPINAN + MANAGER (unit-scoped sudah dicek di atas)
+    // Check if it's already been processed by checking approval records
+    const existingApproval = await prisma.approval.findFirst({
+      where: { 
+        transactionId,
+        status: { in: ['APPROVED', 'REJECTED'] }
+      },
+      select: { id: true },
+    });
+    
+    if (existingApproval) {
+      return NextResponse.json(
+        { error: 'Transaksi sudah diproses sebelumnya' },
+        { status: 400 }
+      );
     }
 
     const approvalStatus = action === 'approve' ? 'APPROVED' : 'REJECTED';

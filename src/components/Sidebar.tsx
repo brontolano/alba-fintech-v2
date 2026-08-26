@@ -13,6 +13,7 @@ import {
   ScrollText,
   LogOut,
   ChevronRight,
+  FileText,
 } from 'lucide-react';
 
 type UserRole = 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF';
@@ -43,7 +44,8 @@ const NAV: NavItem[] = [
   { label: 'Manajemen User', href: '/users', icon: Users, roles: ['SUPERADMIN'], badge: 'Admin', badgeVariant: 'info' },
   { label: 'Manajemen Unit', href: '/units', icon: Building2, roles: ['SUPERADMIN'], badge: 'Admin', badgeVariant: 'info' },
   { label: 'Transaksi', href: '/transactions', icon: Wallet, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'], badge: 'Core', badgeVariant: 'success' },
-  { label: 'Approval', href: '/approvals', icon: CheckSquare, roles: ['SUPERADMIN', 'PIMPINAN'], badge: 'Pending', badgeVariant: 'warning' },
+  { label: 'Approval', href: '/approvals', icon: CheckSquare, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'], badge: 'Pending', badgeVariant: 'warning' },
+  { label: 'Rekonsiliasi', href: '/rekonsiliasi', icon: FileText, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'] },
   { label: 'Inventory / POS', href: '/inventory', icon: Package, roles: ['SUPERADMIN', 'MANAGER', 'STAFF'] },
   { label: 'AI Assistant', href: '/ai-assistant', icon: Bot, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'], badge: 'Beta', badgeVariant: 'info' },
   { label: 'Audit Log', href: '/audit', icon: ScrollText, roles: ['SUPERADMIN'] },
