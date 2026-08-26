@@ -10,6 +10,9 @@ const ROLE_HOMES: Record<UserRole, string> = {
   STAFF: '/dashboard/staff',
 };
 
+// Path di bawah /dashboard yang bisa diakses semua role yang terautentikasi
+const SHARED_DASHBOARD_PATHS = ['/dashboard/rekonsiliasi'];
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -43,6 +46,11 @@ export async function middleware(req: NextRequest) {
     // /dashboard (no role suffix) → redirect to role home
     if (pathname === '/dashboard' || pathname === '/dashboard/') {
       return NextResponse.redirect(new URL(ROLE_HOMES[role] ?? '/login', req.url));
+    }
+
+    // Shared dashboard paths (accessible by all authenticated roles)
+    if (SHARED_DASHBOARD_PATHS.some((shared) => pathname === shared || pathname.startsWith(`${shared}/`))) {
+      return NextResponse.next();
     }
 
     // Role-based gate: each role can only access its own dashboard prefix
