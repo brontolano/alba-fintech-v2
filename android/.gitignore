@@ -1,0 +1,18 @@
+# Android
+*.apk
+*.ap_
+*.aab
+.bin/
+.gradle/
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+proguard_logs/
+*.jscache
+build/
+.navigation/
+*.iml
+.idea/
+.DS_Store
+**/build/
