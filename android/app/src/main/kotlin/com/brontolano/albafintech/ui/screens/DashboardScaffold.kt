@@ -11,7 +11,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -97,17 +96,7 @@ fun AppScaffold(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Alba FIntech") },
-                navigationIcon = {
-                    if (navController.previousBackStackEntry != null && !isSuperAdmin) {
-                        IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Back"
-                            )
-                        }
-                    }
-                }
+                title = { Text("Alba FIntech") }
             )
         },
         floatingActionButton = {
