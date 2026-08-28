@@ -11,7 +11,11 @@ const ROLE_HOMES: Record<UserRole, string> = {
 };
 
 // Path di bawah /dashboard yang bisa diakses semua role yang terautentikasi
-const SHARED_DASHBOARD_PATHS = ['/dashboard/rekonsiliasi'];
+const SHARED_DASHBOARD_PATHS = [
+  '/dashboard/rekonsiliasi',
+  '/dashboard/reports',   // Laporan keuangan — akses PIMPINAN (auth check di page)
+  '/dashboard/account',   // Halaman akun user — semua role
+];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -43,6 +47,13 @@ export async function middleware(req: NextRequest) {
 
     const role = token.role as UserRole;
 
+    // Fix: redirect malformed URLs like /dashboard/pimpinan/dashboard/xxx → /dashboard/xxx
+    const rolePrefix = `/dashboard/${role.toLowerCase()}`;
+    if (pathname.startsWith(`${rolePrefix}/dashboard/`)) {
+      const fixed = pathname.replace(`${rolePrefix}/dashboard/`, '/dashboard/');
+      return NextResponse.redirect(new URL(fixed, req.url));
+    }
+
     // /dashboard (no role suffix) → redirect to role home
     if (pathname === '/dashboard' || pathname === '/dashboard/') {
       return NextResponse.redirect(new URL(ROLE_HOMES[role] ?? '/login', req.url));
@@ -54,8 +65,7 @@ export async function middleware(req: NextRequest) {
     }
 
     // Role-based gate: each role can only access its own dashboard prefix
-    const rolePrefix = `/dashboard/${role.toLowerCase()}`;
-    if (!pathname.startsWith(rolePrefix)) {
+    if (!pathname.startsWith(`/dashboard/${role.toLowerCase()}`)) {
       return NextResponse.redirect(new URL(ROLE_HOMES[role] ?? '/login', req.url));
     }
   }
