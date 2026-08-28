@@ -12,6 +12,7 @@ const createTransactionSchema = z.object({
   description: z.string().min(3, 'Deskripsi minimal 3 karakter').max(500),
   reference: z.string().optional(),
   accountId: z.string().optional(),
+  photoUrl: z.string().optional(),
 });
 
 const updateTransactionSchema = z.object({
@@ -21,6 +22,7 @@ const updateTransactionSchema = z.object({
   reference: z.string().optional(),
   status: z.enum(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED']).optional(),
   accountId: z.string().optional().nullable(),
+  photoUrl: z.string().optional(),
 });
 
 // GET /api/transactions
@@ -114,7 +116,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { unitId, type, amount, description, reference, accountId } = parsed.data;
+    const { unitId, type, amount, description, reference, accountId, photoUrl } = parsed.data;
 
     // RBAC: Staff hanya bisa buat transaksi untuk unit-nya
     const finalUnitId = role === 'SUPERADMIN' || role === 'PIMPINAN' 
@@ -170,6 +172,7 @@ export async function POST(request: Request) {
         amount,
         description: description.trim(),
         reference: reference ? reference.trim() : undefined,
+        photoUrl: photoUrl || undefined,
         accountId: accountId || undefined,
         status: 'PENDING',
         createdById: userId,
@@ -182,6 +185,7 @@ export async function POST(request: Request) {
         description: true,
         status: true,
         reference: true,
+        photoUrl: true,
         accountId: true,
         createdAt: true,
       },

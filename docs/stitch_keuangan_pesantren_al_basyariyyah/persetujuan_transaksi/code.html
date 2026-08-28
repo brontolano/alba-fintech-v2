@@ -1,0 +1,228 @@
+<!DOCTYPE html><html lang="id" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Persetujuan Transaksi - ALBA Finance</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed": "#001c3b",
+                        "on-surface": "#1a1c1e",
+                        "surface-container-high": "#e9e7eb",
+                        "surface-dim": "#dad9dd",
+                        "tertiary-container": "#503300",
+                        "surface-variant": "#e3e2e6",
+                        "secondary": "#16677a",
+                        "background": "#faf9fc",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#60410c",
+                        "on-tertiary-fixed": "#291800",
+                        "on-secondary-fixed-variant": "#004e5e",
+                        "on-secondary-fixed": "#001f27",
+                        "on-secondary-container": "#1b697c",
+                        "primary-fixed": "#d5e3ff",
+                        "outline-variant": "#c4c6cf",
+                        "on-primary-container": "#8aa4cf",
+                        "on-surface-variant": "#43474e",
+                        "inverse-surface": "#2f3033",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "tertiary": "#341f00",
+                        "primary-fixed-dim": "#adc8f5",
+                        "tertiary-fixed-dim": "#edbf7f",
+                        "surface-tint": "#455f87",
+                        "secondary-fixed-dim": "#8cd1e6",
+                        "surface-container-low": "#f4f3f7",
+                        "secondary-fixed": "#b1ecff",
+                        "surface-container-highest": "#e3e2e6",
+                        "primary-container": "#1e3a5f",
+                        "inverse-on-surface": "#f1f0f4",
+                        "surface-bright": "#faf9fc",
+                        "error-container": "#ffdad6",
+                        "error": "#ba1a1a",
+                        "primary": "#022448",
+                        "surface-container": "#eeedf1",
+                        "inverse-primary": "#adc8f5",
+                        "on-background": "#1a1c1e",
+                        "tertiary-fixed": "#ffddb2",
+                        "surface": "#faf9fc",
+                        "on-primary-fixed-variant": "#2d486d",
+                        "on-tertiary": "#ffffff",
+                        "secondary-container": "#a2e7fd",
+                        "outline": "#74777f",
+                        "on-tertiary-container": "#c69b5f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "space-8": "64px",
+                        "space-7": "48px",
+                        "gutter": "24px",
+                        "space-4": "16px",
+                        "space-6": "32px",
+                        "space-5": "24px",
+                        "space-2": "8px",
+                        "space-1": "4px",
+                        "container-max": "1280px",
+                        "space-3": "12px"
+                    },
+                    "fontFamily": {
+                        "h3": ["Inter"],
+                        "body": ["Inter"],
+                        "h1": ["Inter"],
+                        "caption": ["Inter"],
+                        "h2": ["Inter"],
+                        "small": ["Inter"],
+                        "tabular-nums": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "h3": ["20px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "body": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "h1": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "caption": ["12px", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "h2": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "small": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "tabular-nums": ["14px", { "lineHeight": "1.5", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky bg-background dark:bg-on-primary-fixed z-40 transition-colors duration-200">
+<div class="flex justify-between items-center px-gutter py-space-3 max-w-container-max mx-auto">
+<div class="flex items-center gap-space-3">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden">
+<img alt="Institution Logo" class="object-cover w-full h-full" data-alt="A highly detailed 50-100 word prompt describing a professional corporate logo placeholder for ALBA Finance. The logo should feature subtle geometric shapes conveying trust, stability, and institutional authority, utilizing a refined color palette of deep navy blues and crisp whites. The lighting should be soft, studio-quality, emphasizing the premium and modern SaaS aesthetic. The overall mood is confident and established." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmRxPdBUj_pqNRTfNa8pIfFtZOD-X1JndNpXgevMx1fBAPq-ZqR25VqUkBHcARvaAZqD_3xpWg6yz2q5z4ZyMgWE4XkILCUAO7eUlKMXMLUGr18Gt9gV7JluRIhzlpylnzqlJZypc-EIJjT0IaLmqYvih9_BKmxJDZCtye35_jCOTZ1bSrI7r1d9YHZRMJKJihx4ryBQBF0aN07jhbIdBaR4-HF187CJtnlwynwUtBOzTRbFuYl392">
+</div>
+<h1 class="font-h2 text-h2 font-bold text-primary dark:text-primary-fixed">ALBA Finance</h1>
+</div>
+<button aria-label="Notifications" class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-primary-container p-2 rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow px-gutter py-space-5 max-w-container-max mx-auto w-full mb-[100px]">
+<div class="mb-space-6">
+<h2 class="font-h1 text-h1 text-on-surface mb-space-2">Persetujuan</h2>
+<div class="inline-flex items-center gap-2 bg-secondary-container/30 px-space-3 py-space-2 rounded-lg">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: &quot;FILL&quot; 1;">info</span>
+<p class="font-small text-small text-on-surface-variant">Ada 12 transaksi menunggu persetujuan Anda</p>
+</div>
+</div>
+<!-- Approval Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-4">
+<!-- Card 1 -->
+<article class="bg-surface-container-lowest rounded-DEFAULT p-space-4 shadow-sm border border-surface-variant flex flex-col gap-space-4 hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start">
+<div>
+<span class="inline-block px-2 py-1 bg-surface-variant text-on-surface-variant rounded-full font-caption text-caption mb-2">Kantor Pusat</span>
+<h3 class="font-h3 text-h3 text-on-surface">Pembelian Inventaris Kantor</h3>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">devices</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-caption text-caption text-on-surface-variant">Nominal Transaksi</span>
+<span class="font-tabular-nums text-h2 text-primary font-bold">Rp 15.500.000</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+<span class="font-small text-small">12 Okt 2023, 10:30 WIB</span>
+</div>
+<div class="flex gap-space-2 mt-auto pt-space-2">
+<button class="flex-1 py-space-2 px-space-4 rounded-DEFAULT border-2 border-error text-error font-body text-body font-medium hover:bg-error-container transition-colors">
+                        Tolak
+                    </button>
+<button class="flex-1 py-space-2 px-space-4 rounded-DEFAULT bg-primary text-on-primary font-body text-body font-medium hover:bg-primary-container transition-colors shadow-sm">
+                        Setujui
+                    </button>
+</div>
+</article>
+<!-- Card 2 -->
+<article class="bg-surface-container-lowest rounded-DEFAULT p-space-4 shadow-sm border border-surface-variant flex flex-col gap-space-4 hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start">
+<div>
+<span class="inline-block px-2 py-1 bg-surface-variant text-on-surface-variant rounded-full font-caption text-caption mb-2">Kantin Utama</span>
+<h3 class="font-h3 text-h3 text-on-surface">Restock Bahan Baku Mingguan</h3>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-caption text-caption text-on-surface-variant">Nominal Transaksi</span>
+<span class="font-tabular-nums text-h2 text-primary font-bold">Rp 8.250.000</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+<span class="font-small text-small">12 Okt 2023, 09:15 WIB</span>
+</div>
+<div class="flex gap-space-2 mt-auto pt-space-2">
+<button class="flex-1 py-space-2 px-space-4 rounded-DEFAULT border-2 border-error text-error font-body text-body font-medium hover:bg-error-container transition-colors">
+                        Tolak
+                    </button>
+<button class="flex-1 py-space-2 px-space-4 rounded-DEFAULT bg-primary text-on-primary font-body text-body font-medium hover:bg-primary-container transition-colors shadow-sm">
+                        Setujui
+                    </button>
+</div>
+</article>
+<!-- Card 3 -->
+<article class="bg-surface-container-lowest rounded-DEFAULT p-space-4 shadow-sm border border-surface-variant flex flex-col gap-space-4 hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start">
+<div>
+<span class="inline-block px-2 py-1 bg-surface-variant text-on-surface-variant rounded-full font-caption text-caption mb-2">Koperasi Karyawan</span>
+<h3 class="font-h3 text-h3 text-on-surface">Pembayaran Tagihan Supplier</h3>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">local_shipping</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-caption text-caption text-on-surface-variant">Nominal Transaksi</span>
+<span class="font-tabular-nums text-h2 text-primary font-bold">Rp 24.000.000</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+<span class="font-small text-small">11 Okt 2023, 15:45 WIB</span>
+</div>
+<div class="flex gap-space-2 mt-auto pt-space-2">
+<button class="flex-1 py-space-2 px-space-4 rounded-DEFAULT border-2 border-error text-error font-body text-body font-medium hover:bg-error-container transition-colors">
+                        Tolak
+                    </button>
+<button class="flex-1 py-space-2 px-space-4 rounded-DEFAULT bg-primary text-on-primary font-body text-body font-medium hover:bg-primary-container transition-colors shadow-sm">
+                        Setujui
+                    </button>
+</div>
+</article>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-lg bg-surface-container-highest dark:bg-on-primary-fixed shadow-md pb-safe"><div class="flex justify-around items-center px-space-2 py-space-2"><a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-3 py-space-1 hover:bg-surface-variant dark:hover:bg-primary-container scale-95 transition-transform duration-150 rounded-lg" href="#"><span class="material-symbols-outlined">home</span><span class="font-caption text-caption mt-1">Beranda</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-3 py-space-1 hover:bg-surface-variant dark:hover:bg-primary-container scale-95 transition-transform duration-150 rounded-lg" href="#"><span class="material-symbols-outlined">account_balance_wallet</span><span class="font-caption text-caption mt-1">Transaksi</span></a><a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed px-space-3 py-space-1 bg-surface-variant dark:bg-primary-container scale-100 transition-transform duration-150 rounded-lg" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">task_alt</span><span class="font-caption text-caption mt-1 font-bold">Persetujuan</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-3 py-space-1 hover:bg-surface-variant dark:hover:bg-primary-container scale-95 transition-transform duration-150 rounded-lg" href="#"><span class="material-symbols-outlined">assessment</span><span class="font-caption text-caption mt-1">Laporan</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-3 py-space-1 hover:bg-surface-variant dark:hover:bg-primary-container scale-95 transition-transform duration-150 rounded-lg" href="#"><span class="material-symbols-outlined">account_tree</span><span class="font-caption text-caption mt-1">Rekonsiliasi</span></a></div></nav>
+
+
+</body></html>

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Unit Kantor Dashboard - ALBA Finance</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#a2e7fd",
+                        "inverse-primary": "#adc8f5",
+                        "tertiary-fixed-dim": "#edbf7f",
+                        "on-error": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#1a1c1e",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "on-surface": "#1a1c1e",
+                        "surface-tint": "#455f87",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#341f00",
+                        "secondary-fixed-dim": "#8cd1e6",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#1e3a5f",
+                        "on-error-container": "#93000a",
+                        "primary-fixed-dim": "#adc8f5",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#503300",
+                        "on-secondary-fixed": "#001f27",
+                        "on-primary-fixed-variant": "#2d486d",
+                        "background": "#faf9fc",
+                        "on-secondary-fixed-variant": "#004e5e",
+                        "primary": "#022448",
+                        "on-secondary-container": "#1b697c",
+                        "surface-container-high": "#e9e7eb",
+                        "outline": "#74777f",
+                        "secondary": "#16677a",
+                        "surface-container-low": "#f4f3f7",
+                        "surface-container-highest": "#e3e2e6",
+                        "tertiary-fixed": "#ffddb2",
+                        "primary-fixed": "#d5e3ff",
+                        "on-primary-container": "#8aa4cf",
+                        "on-tertiary-fixed": "#291800",
+                        "on-surface-variant": "#43474e",
+                        "on-tertiary-fixed-variant": "#60410c",
+                        "surface-bright": "#faf9fc",
+                        "surface-dim": "#dad9dd",
+                        "surface": "#faf9fc",
+                        "outline-variant": "#c4c6cf",
+                        "surface-variant": "#e3e2e6",
+                        "inverse-on-surface": "#f1f0f4",
+                        "inverse-surface": "#2f3033",
+                        "surface-container": "#eeedf1",
+                        "secondary-fixed": "#b1ecff",
+                        "on-tertiary-container": "#c69b5f",
+                        "on-primary-fixed": "#001c3b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "space-5": "24px",
+                        "space-2": "8px",
+                        "space-4": "16px",
+                        "space-7": "48px",
+                        "space-1": "4px",
+                        "space-3": "12px",
+                        "space-8": "64px",
+                        "container-max": "1280px",
+                        "gutter": "24px",
+                        "space-6": "32px"
+                    },
+                    "fontFamily": {
+                        "small": ["Inter"],
+                        "tabular-nums": ["JetBrains Mono"],
+                        "caption": ["Inter"],
+                        "h1": ["Inter"],
+                        "body": ["Inter"],
+                        "h3": ["Inter"],
+                        "h2": ["Inter"]
+                    },
+                    "fontSize": {
+                        "small": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "tabular-nums": ["14px", { "lineHeight": "1.5", "fontWeight": "500" }],
+                        "caption": ["12px", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "h1": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "h3": ["20px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "h2": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col pb-space-8 md:pb-0">
+<!-- TopAppBar -->
+<header class="bg-surface shadow-sm docked full-width top-0 z-40 bg-surface-container-low border-none">
+<div class="flex justify-between items-center w-full px-space-4 h-16 max-w-container-max mx-auto">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A small, professional corporate logo for ALBA Institution. It features a modern, clean geometric design in deep navy blue on a crisp white background. The style is highly corporate, trustworthy, and minimalist, suitable for a financial institution avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpOLrDL6n-efaSyGcx_6Dqe_JOEedvo4PndPkQDZsXBkTUmDXyY9EAyk2BAqmdmtj8c4stiv0sjEr8cwZqIG1OdFw0HeVIbEf8vixwiMrkM83sRY-25CQhxauMoNcOdpKLXPP5L9-8S8WRjgOIM0cvwkObyBB0Jj6z0s6bTIR2shmDM_-ukLcTDV0UGJHVkwmjo_mjqFx4h2QtHfVbiw__aMbiqlD-TxTyUmAR4BuuX3IjNBwRUUTK"/>
+</div>
+<h1 class="font-h2 text-h2 font-bold text-primary tracking-tight">ALBA Finance</h1>
+</div>
+<!-- Desktop Navigation -->
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-primary font-bold hover:bg-surface-container-high transition-colors px-3 py-2 rounded-lg flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-body text-body">Home</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-colors px-3 py-2 rounded-lg flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-body text-body">Transactions</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-colors px-3 py-2 rounded-lg flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body text-body">Reports</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-colors px-3 py-2 rounded-lg flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-body text-body">Profile</span>
+</a>
+</nav>
+<button class="text-on-surface-variant hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-container-max mx-auto px-space-4 py-space-6 flex flex-col gap-space-6">
+<!-- Header Section -->
+<section class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<div>
+<h2 class="font-h1 text-h1 text-primary">Unit Kantor Dashboard</h2>
+<p class="font-body text-body text-on-surface-variant mt-1">Overview and recent activities.</p>
+</div>
+<div class="flex gap-3">
+<button class="bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors font-body text-body px-4 py-2 rounded flex items-center gap-2">
+<span class="material-symbols-outlined">download</span>
+                    Laporan Kantor
+                </button>
+<button class="bg-primary text-on-primary hover:bg-primary-fixed-variant transition-colors font-body text-body px-4 py-2 rounded flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined">add</span>
+                    New Transaction
+                </button>
+</div>
+</section>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-space-5">
+<!-- Saldo Card -->
+<div class="col-span-1 md:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm p-space-5 flex flex-col justify-between relative overflow-hidden border border-surface-container-high">
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-symbols-outlined text-[100px] text-primary">account_balance</span>
+</div>
+<div>
+<h3 class="font-h3 text-h3 text-on-surface-variant mb-2">Saldo Unit Kantor</h3>
+<div class="font-h1 text-h1 text-primary mb-1">Rp 124.500.000</div>
+<div class="font-small text-small text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+                        +5.2% from last month
+                    </div>
+</div>
+<div class="mt-6 flex gap-4">
+<div class="flex flex-col">
+<span class="font-caption text-caption text-on-surface-variant">Total Pemasukan</span>
+<span class="font-tabular-nums text-tabular-nums text-on-surface">Rp 45.200.000</span>
+</div>
+<div class="flex flex-col border-l border-surface-container-high pl-4">
+<span class="font-caption text-caption text-on-surface-variant">Total Pengeluaran</span>
+<span class="font-tabular-nums text-tabular-nums text-on-surface">Rp 18.700.000</span>
+</div>
+</div>
+</div>
+<!-- Transaction Summary Card -->
+<div class="col-span-1 md:col-span-4 bg-primary rounded-xl shadow-sm p-space-5 text-on-primary flex flex-col justify-center">
+<h3 class="font-h3 text-h3 text-primary-fixed mb-4">Total Transaksi Hari Ini</h3>
+<div class="flex items-end gap-3 mb-2">
+<span class="font-h1 text-h1">42</span>
+<span class="font-body text-body text-primary-fixed mb-1">transactions</span>
+</div>
+<div class="w-full bg-primary-fixed-variant rounded-full h-2 mt-2">
+<div class="bg-secondary-container h-2 rounded-full" style="width: 75%"></div>
+</div>
+<p class="font-caption text-caption text-primary-fixed mt-3">75% of daily average</p>
+</div>
+<!-- Pending Approvals -->
+<div class="col-span-1 md:col-span-4 bg-surface-container-lowest rounded-xl shadow-sm p-space-5 border border-surface-container-high">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-h3 text-h3 text-primary">Pengajuan Persetujuan</h3>
+<span class="bg-error-container text-on-error-container font-caption text-caption px-2 py-1 rounded-full">3 Pending</span>
+</div>
+<div class="flex flex-col gap-3">
+<!-- Approval Item 1 -->
+<div class="flex justify-between items-center p-3 bg-surface-container rounded-lg">
+<div class="flex flex-col">
+<span class="font-body text-body text-on-surface">Pembelian ATK</span>
+<span class="font-caption text-caption text-on-surface-variant">Req: Budi S.</span>
+</div>
+<div class="font-tabular-nums text-tabular-nums text-on-surface">Rp 2.500.000</div>
+</div>
+<!-- Approval Item 2 -->
+<div class="flex justify-between items-center p-3 bg-surface-container rounded-lg">
+<div class="flex flex-col">
+<span class="font-body text-body text-on-surface">Maintenance AC</span>
+<span class="font-caption text-caption text-on-surface-variant">Req: Teknisi</span>
+</div>
+<div class="font-tabular-nums text-tabular-nums text-on-surface">Rp 1.200.000</div>
+</div>
+<!-- Approval Item 3 -->
+<div class="flex justify-between items-center p-3 bg-surface-container rounded-lg">
+<div class="flex flex-col">
+<span class="font-body text-body text-on-surface">Konsumsi Rapat</span>
+<span class="font-caption text-caption text-on-surface-variant">Req: Admin</span>
+</div>
+<div class="font-tabular-nums text-tabular-nums text-on-surface">Rp 850.000</div>
+</div>
+</div>
+<button class="w-full mt-4 text-primary font-small text-small text-center hover:bg-surface-container-high py-2 rounded transition-colors">View All Approvals</button>
+</div>
+<!-- Recent Transactions Table -->
+<div class="col-span-1 md:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm p-space-5 border border-surface-container-high overflow-x-auto">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-h3 text-h3 text-primary">Recent Transactions (Unit Kantor)</h3>
+<button class="text-on-surface-variant hover:text-primary transition-colors flex items-center">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-surface-container-highest text-on-surface-variant font-caption text-caption uppercase">
+<th class="py-3 px-2">Date</th>
+<th class="py-3 px-2">Description</th>
+<th class="py-3 px-2">Category</th>
+<th class="py-3 px-2 text-right">Amount</th>
+<th class="py-3 px-2 text-center">Status</th>
+</tr>
+</thead>
+<tbody class="font-small text-small text-on-surface">
+<tr class="border-b border-surface-container hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-2">Today, 10:45</td>
+<td class="py-3 px-2">Pembayaran Listrik Bulanan</td>
+<td class="py-3 px-2">Operasional</td>
+<td class="py-3 px-2 text-right font-tabular-nums text-tabular-nums text-error">- Rp 5.400.000</td>
+<td class="py-3 px-2 text-center"><span class="bg-surface-container-high text-on-surface-variant px-2 py-1 rounded-full text-caption">Completed</span></td>
+</tr>
+<tr class="border-b border-surface-container hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-2">Today, 09:12</td>
+<td class="py-3 px-2">Top up Kas Kecil</td>
+<td class="py-3 px-2">Internal</td>
+<td class="py-3 px-2 text-right font-tabular-nums text-tabular-nums text-secondary">+ Rp 10.000.000</td>
+<td class="py-3 px-2 text-center"><span class="bg-surface-container-high text-on-surface-variant px-2 py-1 rounded-full text-caption">Completed</span></td>
+</tr>
+<tr class="border-b border-surface-container hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-2">Yesterday, 15:30</td>
+<td class="py-3 px-2">Beli Tinta Printer</td>
+<td class="py-3 px-2">Inventaris</td>
+<td class="py-3 px-2 text-right font-tabular-nums text-tabular-nums text-error">- Rp 850.000</td>
+<td class="py-3 px-2 text-center"><span class="bg-surface-container-high text-on-surface-variant px-2 py-1 rounded-full text-caption">Completed</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-2">Yesterday, 11:00</td>
+<td class="py-3 px-2">Biaya Kurir Ekspedisi</td>
+<td class="py-3 px-2">Layanan</td>
+<td class="py-3 px-2 text-right font-tabular-nums text-tabular-nums text-error">- Rp 125.000</td>
+<td class="py-3 px-2 text-center"><span class="bg-secondary-container text-on-secondary-container px-2 py-1 rounded-full text-caption">Processing</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden bg-surface bg-surface-container-lowest shadow-lg shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-none fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-space-2 pb-space-4 pt-space-2 rounded-t-lg">
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-xl px-space-4 py-space-1 active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-caption text-caption mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-secondary px-space-4 py-space-1 transition-colors" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-caption text-caption mt-1">Transactions</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-secondary px-space-4 py-space-1 transition-colors" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-caption text-caption mt-1">Reports</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-secondary px-space-4 py-space-1 transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-caption text-caption mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

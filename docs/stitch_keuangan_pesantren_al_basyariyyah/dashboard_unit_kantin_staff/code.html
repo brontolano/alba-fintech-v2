@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard Unit Kantin</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#a2e7fd",
+                        "inverse-primary": "#adc8f5",
+                        "tertiary-fixed-dim": "#edbf7f",
+                        "on-error": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#1a1c1e",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "on-surface": "#1a1c1e",
+                        "surface-tint": "#455f87",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#341f00",
+                        "secondary-fixed-dim": "#8cd1e6",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#1e3a5f",
+                        "on-error-container": "#93000a",
+                        "primary-fixed-dim": "#adc8f5",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#503300",
+                        "on-secondary-fixed": "#001f27",
+                        "on-primary-fixed-variant": "#2d486d",
+                        "background": "#faf9fc",
+                        "on-secondary-fixed-variant": "#004e5e",
+                        "primary": "#022448",
+                        "on-secondary-container": "#1b697c",
+                        "surface-container-high": "#e9e7eb",
+                        "outline": "#74777f",
+                        "secondary": "#16677a",
+                        "surface-container-low": "#f4f3f7",
+                        "surface-container-highest": "#e3e2e6",
+                        "tertiary-fixed": "#ffddb2",
+                        "primary-fixed": "#d5e3ff",
+                        "on-primary-container": "#8aa4cf",
+                        "on-tertiary-fixed": "#291800",
+                        "on-surface-variant": "#43474e",
+                        "on-tertiary-fixed-variant": "#60410c",
+                        "surface-bright": "#faf9fc",
+                        "surface-dim": "#dad9dd",
+                        "surface": "#faf9fc",
+                        "outline-variant": "#c4c6cf",
+                        "surface-variant": "#e3e2e6",
+                        "inverse-on-surface": "#f1f0f4",
+                        "inverse-surface": "#2f3033",
+                        "surface-container": "#eeedf1",
+                        "secondary-fixed": "#b1ecff",
+                        "on-tertiary-container": "#c69b5f",
+                        "on-primary-fixed": "#001c3b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "space-5": "24px",
+                        "space-2": "8px",
+                        "space-4": "16px",
+                        "space-7": "48px",
+                        "space-1": "4px",
+                        "space-3": "12px",
+                        "space-8": "64px",
+                        "container-max": "1280px",
+                        "gutter": "24px",
+                        "space-6": "32px"
+                    },
+                    "fontFamily": {
+                        "small": ["Inter"],
+                        "tabular-nums": ["JetBrains Mono"],
+                        "caption": ["Inter"],
+                        "h1": ["Inter"],
+                        "body": ["Inter"],
+                        "h3": ["Inter"],
+                        "h2": ["Inter"]
+                    },
+                    "fontSize": {
+                        "small": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "tabular-nums": ["14px", { "lineHeight": "1.5", "fontWeight": "500" }],
+                        "caption": ["12px", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "h1": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "h3": ["20px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "h2": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Custom scrollbar for desktop if needed */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e3e2e6;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body h-screen flex flex-col md:flex-row overflow-hidden">
+<!-- Navigation Drawer (Desktop/Tablet) -->
+<aside class="hidden md:flex flex-col h-full w-72 rounded-r-lg bg-surface dark:bg-surface-dim shadow-xl z-40 py-space-5 shrink-0 border-r border-surface-container-highest">
+<div class="px-space-5 mb-space-8">
+<h1 class="font-h2 text-h2 font-black text-primary">ALBA Units</h1>
+</div>
+<nav class="flex-1 space-y-space-2 px-space-2">
+<!-- Non-active links for context, focusing on Kantin as active -->
+<a class="flex items-center space-x-space-3 text-on-surface-variant dark:text-outline-variant px-4 py-3 mx-2 hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all rounded-full group" href="#">
+<span class="material-symbols-outlined" data-icon="business">business</span>
+<span class="font-body text-body group-hover:text-primary transition-colors">Unit Kantor</span>
+</a>
+<a class="flex items-center space-x-space-3 bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary font-semibold rounded-full mx-2 px-4 py-3 translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="restaurant" data-weight="fill" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+<span class="font-body text-body">Unit Kantin</span>
+</a>
+<a class="flex items-center space-x-space-3 text-on-surface-variant dark:text-outline-variant px-4 py-3 mx-2 hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all rounded-full group" href="#">
+<span class="material-symbols-outlined" data-icon="shopping_basket">shopping_basket</span>
+<span class="font-body text-body group-hover:text-primary transition-colors">Unit Koperasi</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full relative overflow-y-auto bg-surface-container-lowest">
+<!-- TopAppBar (Mobile/Tablet/Desktop) -->
+<header class="flex justify-between items-center w-full px-space-4 h-16 max-w-container-max mx-auto bg-surface dark:bg-surface-dim text-primary dark:text-primary-fixed-dim shadow-sm sticky top-0 z-30">
+<div class="flex items-center gap-space-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden shrink-0 flex items-center justify-center text-primary font-bold">
+                    A
+                </div>
+<div>
+<h2 class="font-h3 text-h3 font-bold text-primary dark:text-inverse-primary leading-tight">ALBA Finance</h2>
+<p class="font-caption text-caption text-on-surface-variant">Kantin Staff</p>
+</div>
+</div>
+<button aria-label="Notifications" class="p-2 rounded-full hover:bg-surface-container-high dark:hover:bg-surface-container transition-colors relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+</header>
+<!-- Canvas / Dashboard Content -->
+<div class="flex-1 p-space-4 md:p-space-6 max-w-container-max mx-auto w-full pb-28 md:pb-8 space-y-space-6">
+<!-- Cash on Hand Header -->
+<section class="bg-primary text-on-primary rounded-xl p-space-5 shadow-lg relative overflow-hidden flex flex-col justify-between items-start min-h-[160px]">
+<div class="absolute inset-0 bg-gradient-to-br from-primary via-primary-container to-secondary opacity-50"></div>
+<div class="relative z-10 w-full flex justify-between items-start">
+<div>
+<p class="font-small text-small text-primary-fixed-dim opacity-80 mb-1">Kas Harian Saat Ini</p>
+<h3 class="font-h1 text-h1 font-tabular-nums tracking-tight">Rp 2.450.000</h3>
+</div>
+<div class="bg-surface-tint/30 p-2 rounded-full backdrop-blur-sm">
+<span class="material-symbols-outlined text-on-primary" data-icon="account_balance_wallet">account_balance_wallet</span>
+</div>
+</div>
+<div class="relative z-10 mt-space-4 flex items-center gap-2">
+<span class="inline-flex items-center px-2 py-1 rounded-md bg-secondary text-on-secondary font-caption text-caption">
+<span class="material-symbols-outlined text-[14px] mr-1" data-icon="trending_up">trending_up</span>
+                        +15% dari kemarin
+                    </span>
+</div>
+</section>
+<!-- Prominent Record Sale Button -->
+<section>
+<button class="w-full bg-secondary-container hover:bg-secondary text-on-secondary-container hover:text-on-secondary transition-colors duration-200 rounded-xl p-space-4 flex items-center justify-center gap-space-3 shadow-sm hover:shadow-md active:scale-[0.98]">
+<span class="material-symbols-outlined text-2xl" data-icon="add_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">add_circle</span>
+<span class="font-h3 text-h3">Catat Penjualan</span>
+</button>
+</section>
+<!-- Quick Actions Grid -->
+<section>
+<h4 class="font-h3 text-h3 text-primary mb-space-3">Menu Cepat</h4>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-space-3">
+<button class="bg-surface-container hover:bg-surface-container-high transition-colors p-space-4 rounded-lg flex flex-col items-center justify-center gap-2 aspect-square active:scale-95 duration-100">
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="local_dining">local_dining</span>
+</div>
+<span class="font-small text-small text-center text-on-surface">Paket Makan</span>
+</button>
+<button class="bg-surface-container hover:bg-surface-container-high transition-colors p-space-4 rounded-lg flex flex-col items-center justify-center gap-2 aspect-square active:scale-95 duration-100">
+<div class="w-12 h-12 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="local_cafe">local_cafe</span>
+</div>
+<span class="font-small text-small text-center text-on-surface">Minuman Dingin</span>
+</button>
+<button class="bg-surface-container hover:bg-surface-container-high transition-colors p-space-4 rounded-lg flex flex-col items-center justify-center gap-2 aspect-square active:scale-95 duration-100">
+<div class="w-12 h-12 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="fastfood">fastfood</span>
+</div>
+<span class="font-small text-small text-center text-on-surface">Cemilan</span>
+</button>
+<button class="bg-surface-container hover:bg-surface-container-high transition-colors p-space-4 rounded-lg flex flex-col items-center justify-center gap-2 aspect-square active:scale-95 duration-100">
+<div class="w-12 h-12 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined" data-icon="more_horiz">more_horiz</span>
+</div>
+<span class="font-small text-small text-center text-on-surface">Lainnya</span>
+</button>
+</div>
+</section>
+<!-- Daily Summary List -->
+<section class="bg-surface border border-surface-container-highest rounded-lg overflow-hidden shadow-sm">
+<div class="p-space-4 border-b border-surface-container-highest flex justify-between items-center bg-surface-container-low">
+<h4 class="font-h3 text-h3 text-primary">Ringkasan Hari Ini</h4>
+<button class="text-secondary font-small text-small hover:underline">Lihat Semua</button>
+</div>
+<ul class="divide-y divide-surface-container-highest">
+<li class="p-space-4 flex justify-between items-center hover:bg-surface-container-lowest transition-colors">
+<div class="flex items-center gap-space-3">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed/30 text-on-tertiary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-sm" data-icon="local_dining">local_dining</span>
+</div>
+<div>
+<p class="font-body text-body text-on-surface font-medium">Paket Nasi Ayam</p>
+<p class="font-caption text-caption text-on-surface-variant">12:30 • Tunai</p>
+</div>
+</div>
+<span class="font-tabular-nums text-tabular-nums text-primary font-semibold">+Rp 25.000</span>
+</li>
+<li class="p-space-4 flex justify-between items-center hover:bg-surface-container-lowest transition-colors">
+<div class="flex items-center gap-space-3">
+<div class="w-10 h-10 rounded-full bg-secondary-fixed/30 text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-sm" data-icon="local_cafe">local_cafe</span>
+</div>
+<div>
+<p class="font-body text-body text-on-surface font-medium">Es Teh Manis (x2)</p>
+<p class="font-caption text-caption text-on-surface-variant">12:28 • QRIS</p>
+</div>
+</div>
+<span class="font-tabular-nums text-tabular-nums text-primary font-semibold">+Rp 10.000</span>
+</li>
+<li class="p-space-4 flex justify-between items-center hover:bg-surface-container-lowest transition-colors">
+<div class="flex items-center gap-space-3">
+<div class="w-10 h-10 rounded-full bg-primary-fixed/30 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-sm" data-icon="fastfood">fastfood</span>
+</div>
+<div>
+<p class="font-body text-body text-on-surface font-medium">Gorengan Campur</p>
+<p class="font-caption text-caption text-on-surface-variant">12:15 • Tunai</p>
+</div>
+</div>
+<span class="font-tabular-nums text-tabular-nums text-primary font-semibold">+Rp 15.000</span>
+</li>
+</ul>
+</section>
+</div>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-space-2 pb-space-4 pt-space-2 bg-surface dark:bg-surface-dim shadow-[0_-2px_10px_rgba(0,0,0,0.05)] rounded-t-lg">
+<a class="flex flex-col items-center justify-center bg-secondary-container dark:bg-primary-container text-on-secondary-container dark:text-on-primary-container rounded-xl px-space-4 py-space-1 scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="home" data-weight="fill" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-caption text-caption mt-1">Beranda</span>
+</a>
+<!-- Contextual Active State Override based on prompt intent (Home/Beranda is active) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-4 py-space-1 hover:text-secondary dark:hover:text-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="add_box">add_box</span>
+<span class="font-caption text-caption mt-1">Tambah</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-4 py-space-1 hover:text-secondary dark:hover:text-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-caption text-caption mt-1">Riwayat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-4 py-space-1 hover:text-secondary dark:hover:text-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-caption text-caption mt-1">Profil</span>
+</a>
+</nav>
+</main>
+</body></html>

@@ -15,6 +15,7 @@ interface Transaction {
   description: string;
   status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
   reference?: string;
+  photoUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   unit: { name: string; code: string };
@@ -33,6 +34,7 @@ interface CreateForm {
   description: string;
   reference: string;
   unitId: string;
+  photoUrl: string;
 }
 
 export default function TransactionsPage() {
@@ -47,6 +49,7 @@ export default function TransactionsPage() {
     description: '',
     reference: '',
     unitId: '',
+    photoUrl: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('STAFF');
@@ -124,6 +127,7 @@ export default function TransactionsPage() {
           amount: parseFloat(form.amount),
           description: form.description,
           reference: form.reference || undefined,
+          photoUrl: form.photoUrl || undefined,
           unitId: userRole === 'SUPERADMIN' || userRole === 'PIMPINAN' ? form.unitId : undefined,
         }),
       });
@@ -135,7 +139,7 @@ export default function TransactionsPage() {
       toast.success('Transaksi berhasil dibuat');
       setTransactions([result.data, ...transactions]);
       setShowModal(false);
-      setForm({ type: 'INCOME', amount: '', description: '', reference: '', unitId: '' });
+      setForm({ type: 'INCOME', amount: '', description: '', reference: '', unitId: '', photoUrl: '' });
     } catch (err: any) {
       toast.error(err.message || 'Gagal membuat transaksi');
     } finally {
@@ -227,6 +231,14 @@ export default function TransactionsPage() {
                       <td className="py-3 px-4">
                         <p className="font-medium text-slate-800">{tx.description}</p>
                         {tx.reference && <p className="text-xs text-slate-400">{tx.reference}</p>}
+                        {tx.photoUrl && (
+                          <img
+                            src={tx.photoUrl}
+                            alt="Nota"
+                            className="mt-1 max-w-20 max-h-20 rounded border border-slate-200 object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        )}
                       </td>
                       <td className="py-3 px-4"><TransactionTypeBadge type={tx.type} /></td>
                       <td className="py-3 px-4 text-right">
@@ -322,6 +334,20 @@ export default function TransactionsPage() {
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
               placeholder="No. referensi / bukti transfer"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Foto Nota (URL)</label>
+            <input
+              type="url"
+              value={form.photoUrl}
+              onChange={(e) => setForm({ ...form, photoUrl: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+              placeholder="https://.../nota.jpg (tempelkan link gambar bukti transaksi)"
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              Pastikan gambar sudah di-upload (mis. postimages.org, imgbb.com) lalu tempelkan URL-nya di sini.
+            </p>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

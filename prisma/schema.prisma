@@ -68,6 +68,7 @@ model Transaction {
   description  String
   status       TransactionStatus @default(DRAFT)
   reference    String?
+  photoUrl     String?           @map("photo_url")
   createdById  String            @map("created_by_id")
   approvedById String?           @map("approved_by_id")
   approvedAt   DateTime?         @map("approved_at")

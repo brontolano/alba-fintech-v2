@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Keuangan Pesantren</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans selection:bg-emerald-500 selection:text-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo, useEffect } = React;
+    const { 
+      Wallet, TrendingUp, TrendingDown, Search, Filter, 
+      Calendar, BookOpen, PlusCircle, PieChart, 
+      ArrowUpRight, ArrowDownRight, FileText 
+    } = lucide;
+
+    const initialTransactions = [
+      { id: 1, date: "2025-06-25", description: "Pindahn HER 2025/2026 (Saldo Awal)", type: "saldo", amount: 3483843600 },
+      { id: 2, date: "2026-06-25", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 2000000 },
+      { id: 3, date: "2026-06-25", description: "HER Bulan Juli (Tf)", type: "debit", amount: 500000 },
+      { id: 4, date: "2026-06-26", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 1000000 },
+      { id: 5, date: "2026-06-26", description: "HER Bulan Juli (Tf)", type: "debit", amount: 250000 },
+      { id: 6, date: "2026-06-27", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 2000000 },
+      { id: 7, date: "2026-06-27", description: "HER Bulan Juli (Tf)", type: "debit", amount: 500000 },
+      { id: 8, date: "2026-06-28", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 1000000 },
+      { id: 9, date: "2026-06-28", description: "HER Bulan Juli (Tf)", type: "debit", amount: 250000 },
+      { id: 10, date: "2026-06-29", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 1000000 },
+      { id: 11, date: "2026-06-29", description: "HER Bulan Juli (Tf)", type: "debit", amount: 250000 },
+      { id: 12, date: "2026-06-30", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 1000000 },
+      { id: 13, date: "2026-06-30", description: "HER Bulan Juli (Tf)", type: "debit", amount: 250000 },
+      { id: 14, date: "2026-07-01", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 7000000 },
+      { id: 15, date: "2026-07-01", description: "HER Bulan Juli (Tf)", type: "debit", amount: 1750000 },
+      { id: 16, date: "2026-07-02", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 7000000 },
+      { id: 17, date: "2026-07-02", description: "HER Bulan Juli (Tf)", type: "debit", amount: 1750000 },
+      { id: 18, date: "2026-07-03", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 1000000 },
+      { id: 19, date: "2026-07-03", description: "HER Bulan Juli (Tf)", type: "debit", amount: 250000 },
+      { id: 20, date: "2026-07-04", description: "Perluasan Kampus, Fasilitas dll (Tunai)", type: "debit", amount: 1000000 },
+      { id: 21, date: "2026-07-04", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 3000000 },
+      { id: 22, date: "2026-07-04", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 250000 },
+      { id: 23, date: "2026-07-04", description: "HER Bulan Juli (Tf)", type: "debit", amount: 750000 },
+      { id: 24, date: "2026-07-05", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 3000000 },
+      { id: 25, date: "2026-07-05", description: "Perluasan Kampus, Fasilitas dll (Tunai)", type: "debit", amount: 1000000 },
+      { id: 26, date: "2026-07-05", description: "HER Bulan Juli (Tf)", type: "debit", amount: 750000 },
+      { id: 27, date: "2026-07-05", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 250000 },
+      { id: 28, date: "2026-07-06", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 4000000 },
+      { id: 29, date: "2026-07-06", description: "HER Bulan Juli (Tf)", type: "debit", amount: 1000000 },
+      { id: 30, date: "2026-07-07", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 7000000 },
+      { id: 31, date: "2026-07-07", description: "Perluasan Kampus, Fasilitas dll (Tunai)", type: "debit", amount: 1000000 },
+      { id: 32, date: "2026-07-07", description: "HER Bulan Juli (Tf)", type: "debit", amount: 1750000 },
+      { id: 33, date: "2026-07-07", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 250000 },
+      { id: 34, date: "2026-07-08", description: "Perluasan Kampus, Fasilitas dll (Tunai)", type: "debit", amount: 1000000 },
+      { id: 35, date: "2026-07-08", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 12150000 },
+      { id: 36, date: "2026-07-08", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 250000 },
+      { id: 37, date: "2026-07-08", description: "HER Bulan Juli (Tf)", type: "debit", amount: 3250000 },
+      { id: 38, date: "2026-07-09", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 9000000 },
+      { id: 39, date: "2026-07-09", description: "Perluasan Kampus, Fasilitas dll (Tunai)", type: "debit", amount: 550000 },
+      { id: 40, date: "2026-07-09", description: "HER Bulan Juli (Tf)", type: "debit", amount: 2800000 },
+      { id: 41, date: "2026-07-09", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 250000 },
+      { id: 42, date: "2026-07-10", description: "Perluasan Kampus, Fasilitas (Tf)", type: "debit", amount: 62185000 },
+      { id: 43, date: "2026-07-10", description: "Perluasan Kampus, Fasilitas, dll (Tunai)", type: "debit", amount: 65650000 },
+      { id: 44, date: "2026-07-10", description: "HER Bulan Juli (Tf)", type: "debit", amount: 15425000 },
+      { id: 45, date: "2026-07-10", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 16600000 },
+      { id: 46, date: "2026-07-11", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 10500000 },
+      { id: 47, date: "2026-07-11", description: "Perluasan Kampus, Fasilitas dll (Tunai)", type: "debit", amount: 19460000 },
+      { id: 48, date: "2026-07-11", description: "HER Bulan Juli (Tf)", type: "debit", amount: 2500000 },
+      { id: 49, date: "2026-07-11", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 1250000 },
+      { id: 50, date: "2026-07-12", description: "Perluasan Kampus, Fasilitas dll (Tunai)", type: "debit", amount: 6000000 },
+      { id: 51, date: "2026-07-12", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 2000000 },
+      { id: 52, date: "2026-07-12", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 1700000 },
+      { id: 53, date: "2026-07-12", description: "HER Bulan Juli (Tf)", type: "debit", amount: 500000 },
+      { id: 54, date: "2026-07-13", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 20000000 },
+      { id: 55, date: "2026-07-13", description: "Perluasan Kampus, Fasilitas dll (Tunai)", type: "debit", amount: 6350000 },
+      { id: 56, date: "2026-07-13", description: "HER Bulan Juli (Tf)", type: "debit", amount: 5175000 },
+      { id: 57, date: "2026-07-13", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 1500000 },
+      { id: 58, date: "2026-07-14", description: "Perluasan Kampus, Fasilitas dll (Tf)", type: "debit", amount: 11000000 },
+      { id: 59, date: "2026-07-14", description: "Perluasan Kampus, Fasilitas dll (Tunai)", type: "debit", amount: 2000000 },
+      { id: 60, date: "2026-07-14", description: "HER Bulan Juli (Tf)", type: "debit", amount: 2750000 },
+      { id: 61, date: "2026-07-14", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 500000 },
+      { id: 62, date: "2026-07-15", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 38500000 },
+      { id: 63, date: "2026-07-15", description: "Perluasan Kampus, Fasilitas dll (Tunai)", type: "debit", amount: 14900000 },
+      { id: 64, date: "2026-07-15", description: "HER Bulan Juli (Tf)", type: "debit", amount: 9900000 },
+      { id: 65, date: "2026-07-15", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 4050000 },
+      { id: 66, date: "2026-07-16", description: "Perluasan Kampus, Fasilitas, dll (Tunai)", type: "debit", amount: 3000000 },
+      { id: 67, date: "2026-07-16", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 1125000 },
+      { id: 68, date: "2026-07-16", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 56800000 },
+      { id: 69, date: "2026-07-16", description: "HER Bulan Juli (Tf)", type: "debit", amount: 14175000 },
+      { id: 70, date: "2026-07-17", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 119230000 },
+      { id: 71, date: "2026-07-17", description: "Perluasan Kampus, Fasilitas, dll (Tunai)", type: "debit", amount: 172570000 },
+      { id: 72, date: "2026-07-17", description: "HER Bulan Juli (Tf)", type: "debit", amount: 29750000 },
+      { id: 73, date: "2026-07-17", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 43600000 },
+      { id: 74, date: "2026-07-18", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 7250000 },
+      { id: 75, date: "2026-07-18", description: "Perluasan Kampus, Fasilitas, dll (Tunai)", type: "debit", amount: 2000000 },
+      { id: 76, date: "2026-07-18", description: "HER Bulan Juli (Tf)", type: "debit", amount: 1750000 },
+      { id: 77, date: "2026-07-18", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 900000 },
+      { id: 78, date: "2026-07-19", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 5000000 },
+      { id: 79, date: "2026-07-19", description: "Perluasan Kampus, Fasilitas, dll (Tunai)", type: "debit", amount: 2000000 },
+      { id: 80, date: "2026-07-19", description: "HER Bulan Juli (Tf)", type: "debit", amount: 1250000 },
+      { id: 81, date: "2026-07-19", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 500000 },
+      { id: 82, date: "2026-07-20", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 6495000 },
+      { id: 83, date: "2026-07-20", description: "Perluasan Kampus, Fasilitas, dll (Tunai)", type: "debit", amount: 1000000 },
+      { id: 84, date: "2026-07-20", description: "HER Bulan Juli (Tf)", type: "debit", amount: 1750000 },
+      { id: 85, date: "2026-07-20", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 250000 },
+      { id: 86, date: "2026-07-21", description: "Perluasan Kampus, Fasilitas (Tf)", type: "debit", amount: 3100000 },
+      { id: 87, date: "2026-07-21", description: "Perluasan Kampus, Fasilitas, dll (Tunai)", type: "debit", amount: 2000000 },
+      { id: 88, date: "2026-07-21", description: "HER Bulan Juli (Tf)", type: "debit", amount: 1200000 },
+      { id: 89, date: "2026-07-21", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 500000 },
+      { id: 90, date: "2026-07-22", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 3400000 },
+      { id: 91, date: "2026-07-22", description: "HER Juli (Tf)", type: "debit", amount: 750000 },
+      { id: 92, date: "2026-07-23", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 4000000 },
+      { id: 93, date: "2026-07-23", description: "Perluasan Kampus, Fasilitas, dll (Tunai)", type: "debit", amount: 1000000 },
+      { id: 94, date: "2026-07-23", description: "HER Juli (Tf)", type: "debit", amount: 1000000 },
+      { id: 95, date: "2026-07-23", description: "HER Juli (Tunai)", type: "debit", amount: 250000 },
+      { id: 96, date: "2026-07-24", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 1400000 },
+      { id: 97, date: "2026-07-24", description: "Perluasan Kampus, Fasilitas, dll (Tunai)", type: "debit", amount: 2000000 },
+      { id: 98, date: "2026-07-24", description: "HER Bulan Juli (Tf)", type: "debit", amount: 250000 },
+      { id: 99, date: "2026-07-24", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 500000 },
+      { id: 100, date: "2026-07-25", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 400000 },
+      { id: 101, date: "2026-07-25", description: "Perluasan Kampus, Fasilitas, dll (Tunai)", type: "debit", amount: 1550000 },
+      { id: 102, date: "2026-07-25", description: "HER Juli (Tunai)", type: "debit", amount: 500000 },
+      { id: 103, date: "2026-07-26", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 6000000 },
+      { id: 104, date: "2026-07-26", description: "Perluasan Kampus, Fasilitas, dll (Tunai)", type: "debit", amount: 1000000 },
+      { id: 105, date: "2026-07-26", description: "HER Bulan Juli (Tf)", type: "debit", amount: 1500000 },
+      { id: 106, date: "2026-07-26", description: "HER Bulan Juli (Tunai)", type: "debit", amount: 250000 },
+      { id: 107, date: "2026-07-27", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 1400000 },
+      { id: 108, date: "2026-07-27", description: "HER Bulan Juli (Tf)", type: "debit", amount: 250000 },
+      { id: 109, date: "2026-07-28", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 550000 },
+      { id: 110, date: "2026-07-28", description: "HER Juli (Tf)", type: "debit", amount: 250000 },
+      { id: 111, date: "2026-07-29", description: "Perluasan Kampus, Fasilitas, dll (Tf)", type: "debit", amount: 2000000 },
+      { id: 112, date: "2026-07-29", description: "Perluasan Kampus, Fasilitas, dll (Tunai)", type: "debit", amount: 1000000 },
+      { id: 113, date: "2026-07-29", description: "HER Juli (Tf)", type: "debit", amount: 500000 },
+      { id: 114, date: "2026-07-29", description: "HER Juli (Tunai)", type: "debit", amount: 250000 },
+      { id: 115, date: "2026-07-30", description: "Mang Adang 1 Juni - 25 Juli", type: "kredit", amount: 1000000 },
+      { id: 116, date: "2026-07-30", description: "Mang Adit 1 Juni - 25 Juli", type: "kredit", amount: 990000 },
+      { id: 117, date: "2026-07-30", description: "Mang Arif 1 Juni - 25 Juli", type: "kredit", amount: 720000 },
+      { id: 118, date: "2026-07-30", description: "Perluasan Kampus, Fasilitas, dll", type: "debit", amount: 945000 },
+      { id: 119, date: "2026-07-30", description: "HER Juli (Tunai)", type: "debit", amount: 250000 },
+      { id: 120, date: "2026-07-30", description: "HER Agustus (Tf)", type: "debit", amount: 500000 },
+      { id: 121, date: "2026-07-30", description: "HER Juli (Yang keluar)", type: "kredit", amount: 250000 },
+      { id: 122, date: "2026-07-30", description: "Shodaqoh", type: "kredit", amount: 400000 },
+      { id: 123, date: "2026-07-30", description: "MT Ust Imam", type: "kredit", amount: 500000 },
+      { id: 124, date: "2026-07-31", description: "HER Registrasi Agustus (Tf)", type: "debit", amount: 17455000 },
+      { id: 125, date: "2026-07-31", description: "HER Registrasi Agustus (Tunai)", type: "debit", amount: 2250000 },
+      { id: 126, date: "2026-07-31", description: "Bu Hajar (Uang jajan, sabun, malam Jum'at)", type: "kredit", amount: 2150000 },
+      { id: 127, date: "2026-07-31", description: "Mang Zainal (Uang bensin)", type: "kredit", amount: 100000 },
+      { id: 128, date: "2026-07-31", description: "Pengembalian Uang Santri Lama (Keluar)", type: "kredit", amount: 1852000 },
+      { id: 129, date: "2026-07-31", description: "Cok Konsumsi Rapat", type: "kredit", amount: 980000 },
+      { id: 130, date: "2026-07-31", description: "Mang Ihin KH. Amin", type: "kredit", amount: 5000000 },
+      { id: 131, date: "2026-08-01", description: "HER Januari 2026 (Tf)", type: "debit", amount: 950000 },
+      { id: 132, date: "2026-08-01", description: "HER Februari 2026 (Tf)", type: "debit", amount: 500000 },
+      { id: 133, date: "2026-08-01", description: "HER Maret 2026 (Tf)", type: "debit", amount: 450000 },
+      { id: 134, date: "2026-08-01", description: "HER April 2026 (Tf)", type: "debit", amount: 100000 },
+      { id: 135, date: "2026-08-01", description: "HER Agustus 2026 (Tf)", type: "debit", amount: 19000000 },
+      { id: 136, date: "2026-08-01", description: "HER Agustus 2026 (Tunai)", type: "debit", amount: 2935000 },
+      { id: 137, date: "2026-08-01", description: "HER Desember 2025 (Tf)", type: "debit", amount: 500000 },
+      { id: 138, date: "2026-08-01", description: "HER Juli 2026 (Tf)", type: "debit", amount: 1750000 },
+      { id: 139, date: "2026-08-01", description: "HER Juli 2026 (Tunai)", type: "debit", amount: 500000 },
+      { id: 140, date: "2026-08-01", description: "Perluasan Kampus fasilitas dll (Tf)", type: "debit", amount: 8400000 },
+      { id: 141, date: "2026-08-01", description: "Perluasan Kampus, fasilitas dll (Tunai)", type: "debit", amount: 1845000 },
+      { id: 142, date: "2026-08-01", description: "Mang Rijal 6 Hari", type: "kredit", amount: 499500 },
+      { id: 143, date: "2026-08-01", description: "Mang Juna 7 Hari", type: "kredit", amount: 592500 },
+      { id: 144, date: "2026-08-01", description: "Mang Ikbal 7 Hari", type: "kredit", amount: 210000 },
+      { id: 145, date: "2026-08-01", description: "Mang Arip 7 Hari", type: "kredit", amount: 227500 },
+      { id: 146, date: "2026-08-01", description: "Mang Adit 7 Hari", type: "kredit", amount: 210000 },
+      { id: 147, date: "2026-08-01", description: "Mang Dian 7 Hari", type: "kredit", amount: 367500 },
+      { id: 148, date: "2026-08-01", description: "Mang Sahidin 7 Hari", type: "kredit", amount: 595000 },
+      { id: 149, date: "2026-08-01", description: "Mang Adang 6 Hari", type: "kredit", amount: 480000 },
+      { id: 150, date: "2026-08-01", description: "Mang Ende 7 Hari", type: "kredit", amount: 592500 },
+      { id: 151, date: "2026-08-01", description: "Mang Ade 7 Hari", type: "kredit", amount: 630000 },
+      { id: 152, date: "2026-08-01", description: "Pengembalian Daful Santri", type: "kredit", amount: 2490000 },
+      { id: 153, date: "2026-08-01", description: "Pengembalian Daful Santri", type: "kredit", amount: 3060000 },
+      { id: 154, date: "2026-08-01", description: "Uang Jagung", type: "kredit", amount: 375000 },
+      { id: 155, date: "2026-08-01", description: "Uang Rokok", type: "kredit", amount: 216000 },
+      { id: 156, date: "2026-08-02", description: "Balanja Adah", type: "kredit", amount: 1012000 },
+      { id: 157, date: "2026-08-02", description: "Kembalian Pasar (Adah)", type: "debit", amount: 160000 }
+    ];
+
+    function App() {
+      const [activeTab, setActiveTab] = useState('dashboard');
+      const [searchTerm, setSearchTerm] = useState('');
+      const [filterType, setFilterType] = useState('all');
+      const [transactions, setTransactions] = useState(initialTransactions);
+      const [modalOpen, setModalOpen] = useState(false);
+      const [toast, setToast] = useState('');
+
+      const [newDate, setNewDate] = useState('2026-08-02');
+      const [newDesc, setNewDesc] = useState('');
+      const [newType, setNewType] = useState('debit');
+      const [newAmount, setNewAmount] = useState('');
+
+      const totalDebit = useMemo(() => {
+        return transactions.filter(t => t.type === 'debit').reduce((acc, curr) => acc + curr.amount, 0);
+      }, [transactions]);
+
+      const totalKredit = useMemo(() => {
+        return transactions.filter(t => t.type === 'kredit').reduce((acc, curr) => acc + curr.amount, 0);
+      }, [transactions]);
+
+      const initialSaldo = -3483843600;
+      const currentSaldo = initialSaldo + totalDebit - totalKredit;
+
+      const filteredTransactions = useMemo(() => {
+        return transactions.filter(t => {
+          const matchesSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase()) || t.date.includes(searchTerm);
+          const matchesType = filterType === 'all' ? true : t.type === filterType;
+          return matchesSearch && matchesType;
+        }).reverse();
+      }, [transactions, searchTerm, filterType]);
+
+      const formatIDR = (num) => {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
+      };
+
+      const showToastMsg = (msg) => {
+        setToast(msg);
+        setTimeout(() => setToast(''), 3000);
+      };
+
+      const handleAddTransaction = (e) => {
+        e.preventDefault();
+        if (!newDesc || !newAmount) {
+          showToastMsg('Harap isi keterangan dan nominal dengan benar!');
+          return;
+        }
+        const newItem = {
+          id: transactions.length + 1,
+          date: newDate,
+          description: newDesc,
+          type: newType,
+          amount: parseFloat(newAmount)
+        };
+        setTransactions([...transactions, newItem]);
+        setModalOpen(false);
+        setNewDesc('');
+        setNewAmount('');
+        showToastMsg('Transaksi berhasil ditambahkan!');
+      };
+
+      return (
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-24 select-none max-w-md mx-auto relative shadow-2xl">
+          {toast && (
+            <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 bg-emerald-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-medium">
+              {toast}
+            </div>
+          )}
+
+          <header className="bg-emerald-700 text-white pt-6 pb-8 px-4 rounded-b-3xl shadow-md">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <span className="text-xs uppercase tracking-wider bg-emerald-600 px-2.5 py-1 rounded-full font-semibold">Keuangan Pesantren</span>
+                <h1 className="text-xl font-bold mt-1">Buku Kas & Saldo Bulanan</h1>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center border-2 border-emerald-500 shadow-inner">
+                <i data-lucide="book-open" className="w-5 h-5 text-emerald-100"></i>
+              </div>
+            </div>
+
+            <div className="bg-emerald-800/80 backdrop-blur-md rounded-2xl p-4 border border-emerald-600 shadow-inner mt-2">
+              <p className="text-xs text-emerald-200 font-medium">Sisa Saldo Akhir Terkini</p>
+              <h2 className="text-2xl font-black mt-1 text-rose-300">{formatIDR(currentSaldo)}</h2>
+              <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-emerald-700/60">
+                <div className="flex items-center space-x-2">
+                  <div className="p-1.5 bg-emerald-700 rounded-lg">
+                    <i data-lucide="arrow-down-right" className="w-4 h-4 text-emerald-300"></i>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-emerald-200">Total Masuk</p>
+                    <p className="text-xs font-bold text-white">{formatIDR(totalDebit)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="p-1.5 bg-emerald-700 rounded-lg">
+                    <i data-lucide="arrow-up-right" className="w-4 h-4 text-amber-300"></i>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-emerald-200">Total Keluar</p>
+                    <p className="text-xs font-bold text-white">{formatIDR(totalKredit)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="px-4 mt-6">
+            {activeTab === 'dashboard' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Ringkasan Periode</h3>
+                  <button 
+                    onClick={() => setModalOpen(true)}
+                    className="flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-sm transition"
+                  >
+                    <i data-lucide="plus-circle" className="w-4 h-4"></i>
+                    <span>Catat Transaksi</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-emerald-600 mb-2">
+                      <span className="text-xs font-semibold">Pemasukan / Masuk</span>
+                      <i data-lucide="trending-up" className="w-4 h-4"></i>
+                    </div>
+                    <p className="text-xs font-bold text-slate-800">{formatIDR(totalDebit)}</p>
+                    <span className="text-[10px] text-slate-400 mt-1">Termasuk Kembalian Pasar</span>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-rose-600 mb-2">
+                      <span className="text-xs font-semibold">Pengeluaran / Keluar</span>
+                      <i data-lucide="trending-down" className="w-4 h-4"></i>
+                    </div>
+                    <p className="text-xs font-bold text-slate-800">{formatIDR(totalKredit)}</p>
+                    <span className="text-[10px] text-slate-400 mt-1">Gaji Mang, Konsumsi, dll</span>
+                  </div>
+                </div>
+
+                <div className="bg-emerald-900 text-emerald-100 p-4 rounded-2xl flex items-center justify-between shadow-md">
+                  <div>
+                    <p className="text-xs text-emerald-300 font-medium">Buku Kas Periode</p>
+                    <h4 className="text-sm font-bold text-white">Juni - Agustus 2026</h4>
+                    <p className="text-[10px] text-emerald-200 mt-0.5">Saldo Akhir Akurat: -Rp 2.544.488.100</p>
+                  </div>
+                  <button 
+                    onClick={() => setActiveTab('transactions')}
+                    className="bg-emerald-700 hover:bg-emerald-600 text-white text-xs px-3 py-2 rounded-xl transition font-medium"
+                  >
+                    Lihat Buku
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'transactions' && (
+              <div className="space-y-4">
+                <div className="flex space-x-2">
+                  <div className="relative flex-1">
+                    <i data-lucide="search" className="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
+                    <input 
+                      type="text" 
+                      placeholder="Cari keterangan atau tanggal..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <select 
+                    value={filterType} 
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-slate-600"
+                  >
+                    <option value="all">Semua</option>
+                    <option value="debit">Debit (+)</option>
+                    <option value="kredit">Kredit (-)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2.5">
+                  {filteredTransactions.length === 0 ? (
+                    <div className="text-center py-12 bg-white rounded-2xl border border-slate-100">
+                      <i data-lucide="file-text" className="w-10 h-10 text-slate-300 mx-auto mb-2"></i>
+                      <p className="text-xs text-slate-500">Tidak ada transaksi yang ditemukan.</p>
+                    </div>
+                  ) : (
+                    filteredTransactions.map((t) => (
+                      <div key={t.id} className="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${t.type === 'saldo' ? 'bg-amber-50 text-amber-600' : t.type === 'debit' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                            {t.type === 'saldo' ? 'MIN' : t.type === 'debit' ? 'IN' : 'OUT'}
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-800 line-clamp-1">{t.description}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center space-x-1">
+                              <i data-lucide="calendar" className="w-3 h-3"></i>
+                              <span>{t.date}</span>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-xs font-black ${t.type === 'saldo' ? 'text-amber-600' : t.type === 'debit' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {t.type === 'saldo' ? '- ' : t.type === 'debit' ? '+ ' : '- '}{formatIDR(t.amount)}
+                          </p>
+                          <span className="text-[9px] uppercase tracking-wider text-slate-400 font-semibold">{t.type}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'summary' && (
+              <div className="space-y-4">
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                  <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">Laporan Keuangan Singkat</h3>
+                  <div className="space-y-3 pt-2">
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                      <span className="text-xs text-slate-500">Saldo Awal Pindahan</span>
+                      <span className="text-xs font-bold text-rose-600">- {formatIDR(3483843600)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                      <span className="text-xs text-slate-500">Total Pemasukan / Debit</span>
+                      <span className="text-xs font-bold text-emerald-600">+ {formatIDR(totalDebit)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                      <span className="text-xs text-slate-500">Total Pengeluaran / Kredit</span>
+                      <span className="text-xs font-bold text-rose-600">- {formatIDR(totalKredit)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1">
+                      <span className="text-xs font-bold text-slate-700">Saldo Akhir</span>
+                      <span className="text-sm font-black text-rose-600">{formatIDR(currentSaldo)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+
+          {modalOpen && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+                <h3 className="text-sm font-bold text-slate-800 mb-4">Tambah Catatan Keuangan</h3>
+                <form onSubmit={handleAddTransaction} className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Tanggal</label>
+                    <input 
+                      type="date" 
+                      value={newDate} 
+                      onChange={(e) => setNewDate(e.target.value)}
+                      className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Keterangan</label>
+                    <input 
+                      type="text" 
+                      placeholder="Contoh: HER Agustus (Tf)"
+                      value={newDesc} 
+                      onChange={(e) => setNewDesc(e.target.value)}
+                      className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Jenis</label>
+                      <select 
+                        value={newType} 
+                        onChange={(e) => setNewType(e.target.value)}
+                        className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="debit">Debit (+)</option>
+                        <option value="kredit">Kredit (-)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Nominal (Rp)</label>
+                      <input 
+                        type="number" 
+                        placeholder="1000000"
+                        value={newAmount} 
+                        onChange={(e) => setNewAmount(e.target.value)}
+                        className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex space-x-2 pt-2">
+                    <button 
+                      type="button" 
+                      onClick={() => setModalOpen(false)}
+                      className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold py-2.5 rounded-xl transition"
+                    >
+                      Batal
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-xl shadow-sm transition"
+                    >
+                      Simpan
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-slate-100 px-6 py-3 flex justify-between items-center z-40 shadow-lg">
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              className={`flex flex-col items-center space-y-1 ${activeTab === 'dashboard' ? 'text-emerald-600' : 'text-slate-400'}`}
+            >
+              <i data-lucide="wallet" className="w-5 h-5"></i>
+              <span className="text-[10px] font-semibold">Beranda</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('transactions')}
+              className={`flex flex-col items-center space-y-1 ${activeTab === 'transactions' ? 'text-emerald-600' : 'text-slate-400'}`}
+            >
+              <i data-lucide="book-open" className="w-5 h-5"></i>
+              <span className="text-[10px] font-semibold">Buku Kas</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('summary')}
+              className={`flex flex-col items-center space-y-1 ${activeTab === 'summary' ? 'text-emerald-600' : 'text-slate-400'}`}
+            >
+              <i data-lucide="pie-chart" className="w-5 h-5"></i>
+              <span className="text-[10px] font-semibold">Laporan</span>
+            </button>
+          </nav>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+    setTimeout(() => lucide.createIcons(), 100);
+  </script>
+</body>
+</html>

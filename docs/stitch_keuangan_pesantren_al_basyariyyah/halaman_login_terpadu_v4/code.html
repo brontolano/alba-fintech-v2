@@ -1,0 +1,193 @@
+<!DOCTYPE html><html lang="id" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Satu Aplikasi Finansial - FinPesantren</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#1a1c1e",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#adc8f5",
+                        "inverse-primary": "#adc8f5",
+                        "tertiary-fixed": "#ffddb2",
+                        "inverse-surface": "#2f3033",
+                        "on-primary-fixed-variant": "#2d486d",
+                        "primary-container": "#1e3a5f",
+                        "on-primary-container": "#8aa4cf",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed": "#001f27",
+                        "secondary-container": "#a2e7fd",
+                        "background": "#faf9fc",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#455f87",
+                        "outline-variant": "#c4c6cf",
+                        "surface-container-highest": "#e3e2e6",
+                        "surface-container": "#eeedf1",
+                        "on-tertiary-fixed-variant": "#60410c",
+                        "surface": "#faf9fc",
+                        "outline": "#74777f",
+                        "inverse-on-surface": "#f1f0f4",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed": "#b1ecff",
+                        "on-background": "#1a1c1e",
+                        "surface-dim": "#dad9dd",
+                        "on-primary-fixed": "#001c3b",
+                        "surface-bright": "#faf9fc",
+                        "surface-variant": "#e3e2e6",
+                        "on-surface-variant": "#43474e",
+                        "tertiary": "#341f00",
+                        "primary": "#022448",
+                        "on-secondary-fixed-variant": "#004e5e",
+                        "on-tertiary-container": "#c69b5f",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "on-secondary-container": "#1b697c",
+                        "secondary": "#16677a",
+                        "on-tertiary-fixed": "#291800",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#d5e3ff",
+                        "tertiary-fixed-dim": "#edbf7f",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#e9e7eb",
+                        "secondary-fixed-dim": "#8cd1e6",
+                        "surface-container-low": "#f4f3f7",
+                        "tertiary-container": "#503300"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "space-4": "16px",
+                        "space-7": "48px",
+                        "space-5": "24px",
+                        "space-3": "12px",
+                        "space-6": "32px",
+                        "space-8": "64px",
+                        "space-2": "8px",
+                        "container-max": "1280px",
+                        "gutter": "24px",
+                        "space-1": "4px"
+                    },
+                    "fontFamily": {
+                        "h1": ["Inter"],
+                        "caption": ["Inter"],
+                        "small": ["Inter"],
+                        "tabular-nums": ["JetBrains Mono"],
+                        "h2": ["Inter"],
+                        "h3": ["Inter"],
+                        "body": ["Inter"]
+                    },
+                    "fontSize": {
+                        "h1": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "caption": ["12px", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "small": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "tabular-nums": ["14px", { "lineHeight": "1.5", "fontWeight": "500" }],
+                        "h2": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "h3": ["20px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "body": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(2, 36, 72, 0.05);
+        }
+        .pagination-dot {
+            transition: all 0.3s ease;
+        }
+        .pagination-dot.active {
+            width: 24px;
+            background-color: theme('colors.primary');
+        }
+        .fade-in-up {
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen font-body antialiased selection:bg-primary-container selection:text-on-primary-container flex flex-col items-center justify-center relative overflow-hidden">
+<!-- Ambient Background Elements -->
+<div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+<div class="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary-fixed opacity-30 blur-3xl mix-blend-multiply"></div>
+<div class="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-secondary-fixed opacity-20 blur-3xl mix-blend-multiply"></div>
+</div>
+<!-- Main Container -->
+<main class="w-full max-w-[428px] h-[100dvh] md:h-[85vh] md:max-h-[850px] bg-surface flex flex-col relative z-10 shadow-2xl md:rounded-[40px] overflow-hidden border-x md:border border-outline-variant/30 mx-auto justify-center"><div class="flex-1 flex flex-col items-center justify-center px-gutter py-space-8 w-full">
+<!-- Logo -->
+<div class="mb-space-6 w-24 h-24">
+<img alt="Logo Al-Basyariyah" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqntWAPKvOpBH8ZTaOsNnNivIk1ev_Wc-J5jk4PIhEK_ROBiBEdlNwXhd1m0B8IYjW4E-chjYrX0QBcc6rlBbvE0ttkFS-GaoHN_D7Y1tcuOiQ2fZySP1WArPce0kKBtOTazAr9Ek4oYsym78tOrN3oPZFKVTExlffXA8i1QVMnKQM374FKTjeSqI2qiQlWXNPXfM7wEc8wQyhctS_ncOq_7SSCdp74s-GGK4ElaLJYG-nH0hWfAAvOKdqDdxkcEDmlg">
+</div>
+<!-- Header -->
+<div class="text-center mb-space-8">
+<h1 class="font-h2 text-h2 text-primary mb-space-2">Masuk Ke Akun</h1>
+<p class="font-body text-on-surface-variant">Sistem Manajemen Keuangan Terpadu<br>Pondok Pesantren Al-Basyariyyah</p>
+</div>
+<!-- Form -->
+<form class="w-full flex flex-col gap-space-4">
+<!-- Username -->
+<div class="flex flex-col gap-space-1">
+<label class="font-body text-on-surface text-sm font-medium" for="username">Username</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">person</span>
+<input class="w-full h-12 pl-10 pr-4 rounded-full bg-surface border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body text-on-surface" id="username" placeholder="Masukkan username admin" type="text">
+</div>
+</div>
+<!-- Password -->
+<div class="flex flex-col gap-space-1">
+<label class="font-body text-on-surface text-sm font-medium" for="password">Kata Sandi</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">lock</span>
+<input class="w-full h-12 pl-10 pr-4 rounded-full bg-surface border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body text-on-surface" id="password" placeholder="••••••••" type="password">
+</div>
+</div>
+<!-- Forgot Password -->
+<div class="flex justify-end">
+<a class="font-body text-sm font-medium text-primary hover:opacity-80 transition-opacity" href="#">Lupa Kata Sandi?</a>
+</div>
+<!-- Submit Button -->
+<button class="mt-space-4 w-full h-12 bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-on-primary font-h3 rounded-full flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98]" type="submit">
+<span class="material-symbols-outlined">login</span>
+            Masuk
+        </button>
+</form>
+<!-- Footer -->
+<div class="mt-space-8 text-center font-body text-sm text-on-surface-variant">
+<p>© 2024 Yayasan Bumi Jannah Iliyyin.</p>
+<p class="opacity-70">Amanah • Wadhah • Kifayah</p>
+</div>
+</div></main>
+<style>
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</body></html>
