@@ -13,6 +13,9 @@ html, body {
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Mobile full-bleed support */
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -24,5 +27,10 @@ body {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  /* Ensure main content area is full width on mobile */
+  .mobile-full-width {
+    width: 100%;
+    max-width: 100%;
   }
 }

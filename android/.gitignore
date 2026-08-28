@@ -16,3 +16,7 @@ build/
 .idea/
 .DS_Store
 **/build/
+
+# Keystore / signing config (contains secrets)
+keystore.properties
+*.keystore

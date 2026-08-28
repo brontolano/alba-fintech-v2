@@ -20,6 +20,18 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.plugin.compose)
 }
 
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.readLines().mapNotNull { line ->
+        line.substringBefore("=").takeIf { it.isNotBlank() }?.let { key ->
+            key to line.substringAfter("=", "").trim()
+        }
+    }.toMap()
+} else {
+    emptyMap()
+}
+val releaseKeystoreFile = project.file(keystoreProperties["storeFile"] ?: "")
+
 android {
     namespace = "com.brontolano.albafintech"
     compileSdk = 37
@@ -39,10 +51,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("release.keystore")
-            storePassword = "password123"
-            keyAlias = "alba-key"
-            keyPassword = "password123"
+            storeFile = releaseKeystoreFile
+            storePassword = keystoreProperties["storePassword"] ?: ""
+            keyAlias = keystoreProperties["keyAlias"] ?: ""
+            keyPassword = keystoreProperties["keyPassword"] ?: ""
         }
     }
 
