@@ -57,7 +57,9 @@ export default async function DashboardLayout({
       </main>
 
       {/* Mobile bottom nav – hidden for SuperAdmin (desktop only) */}
-      {!isSuperAdmin && <MobileBottomNav role={session.user.role} />}
+      {!isSuperAdmin && (
+        <MobileBottomNav role={session.user.role} unitId={session.user.unitId} />
+      )}
     </div>
   );
 }
