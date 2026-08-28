@@ -35,6 +35,7 @@ interface CreateForm {
   reference: string;
   unitId: string;
   photoUrl: string;
+  photoFile: File | null;
 }
 
 export default function TransactionsPage() {
@@ -50,6 +51,7 @@ export default function TransactionsPage() {
     reference: '',
     unitId: '',
     photoUrl: '',
+    photoFile: null,
   });
   const [submitting, setSubmitting] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('STAFF');
@@ -119,17 +121,19 @@ export default function TransactionsPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const formData = new FormData();
+      formData.append('type', form.type);
+      formData.append('amount', parseFloat(form.amount).toString());
+      formData.append('description', form.description);
+      formData.append('reference', form.reference || '');
+      formData.append('unitId', userRole === 'SUPERADMIN' || userRole === 'PIMPINAN' ? form.unitId : '');
+      if (form.photoFile) {
+        formData.append('photo', form.photoFile);
+      }
+
       const res = await fetch('/api/transactions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: form.type,
-          amount: parseFloat(form.amount),
-          description: form.description,
-          reference: form.reference || undefined,
-          photoUrl: form.photoUrl || undefined,
-          unitId: userRole === 'SUPERADMIN' || userRole === 'PIMPINAN' ? form.unitId : undefined,
-        }),
+        body: formData,
       });
       if (!res.ok) {
         const err = await res.json();
@@ -139,7 +143,7 @@ export default function TransactionsPage() {
       toast.success('Transaksi berhasil dibuat');
       setTransactions([result.data, ...transactions]);
       setShowModal(false);
-      setForm({ type: 'INCOME', amount: '', description: '', reference: '', unitId: '', photoUrl: '' });
+      setForm({ type: 'INCOME', amount: '', description: '', reference: '', unitId: '', photoUrl: '', photoFile: null });
     } catch (err: any) {
       toast.error(err.message || 'Gagal membuat transaksi');
     } finally {
@@ -339,17 +343,25 @@ export default function TransactionsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Foto Nota (URL)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Foto Nota</label>
             <input
-              type="url"
-              value={form.photoUrl}
-              onChange={(e) => setForm({ ...form, photoUrl: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
-              placeholder="https://.../nota.jpg (tempelkan link gambar bukti transaksi)"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setForm({ ...form, photoFile: file, photoUrl: '' });
+              }}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
             />
             <p className="text-xs text-slate-400 mt-1">
-              Pastikan gambar sudah di-upload (mis. postimages.org, imgbb.com) lalu tempelkan URL-nya di sini.
+              Buka kamera atau pilih dari galeri untuk ambil foto nota transaksi.
             </p>
+            {form.photoFile && (
+              <p className="text-xs text-slate-500 mt-1">
+                File terpilih: {form.photoFile.name} ({(form.photoFile.size / 1024).toFixed(0)} KB)
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

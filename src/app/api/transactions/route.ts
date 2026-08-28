@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth';
 import { z } from 'zod';
+import { promises as fs } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 // Validation schemas
 const createTransactionSchema = z.object({
@@ -93,6 +96,7 @@ export async function GET(request: Request) {
 
 // POST /api/transactions
 // Create new transaction (status: PENDING — siap untuk approval)
+// Accepts either JSON body or FormData (for photo upload via camera/gallery)
 // Role access: all authenticated users
 export async function POST(request: Request) {
   const session = await getServerSession(authConfig);
@@ -104,23 +108,67 @@ export async function POST(request: Request) {
     const role = session.user.role;
     const userUnitId = session.user.unitId;
     const userId = session.user.id;
+    const contentType = request.headers.get('content-type') || '';
 
-    const body = await request.json();
-    
-    // Validate input
-    const parsed = createTransactionSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: parsed.error.errors },
-        { status: 400 }
-      );
+    let unitId: string | undefined;
+    let type: 'INCOME' | 'EXPENSE';
+    let amount: number;
+    let description: string;
+    let reference: string | undefined;
+    let accountId: string | undefined;
+    let photoUrl: string | undefined;
+    let photoFilePath: string | null = null;
+
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData — photo upload from camera/gallery
+      const formData = await request.formData();
+      type = formData.get('type') as 'INCOME' | 'EXPENSE';
+      amount = parseFloat(formData.get('amount') as string);
+      description = formData.get('description') as string;
+      reference = (formData.get('reference') as string) || undefined;
+      unitId = (formData.get('unitId') as string) || undefined;
+      const photo = formData.get('photo') as File | null;
+      if (photo && photo.size > 0) {
+        const tempDir = join(tmpdir(), 'alba-tx-uploads');
+        await fs.mkdir(tempDir, { recursive: true });
+        const buffer = Buffer.from(await photo.arrayBuffer());
+        photoFilePath = join(tempDir, `${Date.now()}_${photo.name}`);
+        await fs.writeFile(photoFilePath, buffer);
+        photoUrl = `/uploads/transactions/${Date.now()}_${photo.name}`;
+      }
+    } else {
+      // Handle JSON body (backward compatible)
+      const body = await request.json();
+      const parsed = createTransactionSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: 'Validation failed', details: parsed.error.errors },
+          { status: 400 }
+        );
+      }
+      unitId = parsed.data.unitId;
+      type = parsed.data.type;
+      amount = parsed.data.amount;
+      description = parsed.data.description;
+      reference = parsed.data.reference;
+      accountId = parsed.data.accountId;
+      photoUrl = parsed.data.photoUrl;
     }
 
-    const { unitId, type, amount, description, reference, accountId, photoUrl } = parsed.data;
+    // Validate required fields
+    if (!type || !['INCOME', 'EXPENSE'].includes(type)) {
+      return NextResponse.json({ error: 'type wajib diisi (INCOME atau EXPENSE)' }, { status: 400 });
+    }
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return NextResponse.json({ error: 'amount harus lebih dari 0' }, { status: 400 });
+    }
+    if (!description || description.trim().length < 3) {
+      return NextResponse.json({ error: 'description minimal 3 karakter' }, { status: 400 });
+    }
 
     // RBAC: Staff hanya bisa buat transaksi untuk unit-nya
-    const finalUnitId = role === 'SUPERADMIN' || role === 'PIMPINAN' 
-      ? unitId 
+    const finalUnitId = role === 'SUPERADMIN' || role === 'PIMPINAN'
+      ? unitId
       : userUnitId;
 
     if (!finalUnitId) {

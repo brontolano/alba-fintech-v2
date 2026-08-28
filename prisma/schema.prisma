@@ -22,13 +22,14 @@ model Lembaga {
 
 model Unit {
   id           String        @id @default(cuid())
-  name         String        @unique
-  code         String        @unique
-  description  String?
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  lembagaId    String?       @map("lembaga_id")
+  name          String   @unique
+  code          String   @unique
+  description   String?
+  isActive      Boolean  @default(true)
+  isRetail      Boolean  @default(false) @map("is_retail") // Enable POS & Inventory pages
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lembagaId     String?  @map("lembaga_id")
   lembaga      Lembaga?       @relation(fields: [lembagaId], references: [id])
   transactions Transaction[]
   users        User[]

@@ -13,9 +13,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useUnitInfo } from '@/lib/useUnitInfo';
 
 interface MobileBottomNavProps {
   role?: string;
+  unitId?: string | null;
 }
 
 /**
@@ -27,13 +29,14 @@ interface MobileBottomNavProps {
  * Menu assignment by role:
  *   STAFF    → [Dashboard] [Transaksi] [POS Hero] [Inventaris] [AI Assistant]
  *   MANAGER  → [Dashboard] [Transaksi] [POS Hero] [Inventaris] [AI Assistant]
- *   PIMPINAN → [Dashboard] [Transaksi] [POS Hero] [Approval] [AI Assistant]
+ *   PIMPINAN → [Dashboard] [Transaksi] [Approval] [Reports]  [AI Assistant]
  *   SUPERADMIN → not rendered (desktop-only)
  *
+ * POS & Inventory only shown when unit.isRetail === true.
  * Menu not featured in the 5-icon nav (e.g. Audit Log) are accessible
  * via the Quick Menu grid on each dashboard page.
  */
-export default function MobileBottomNav({ role }: MobileBottomNavProps) {
+export default function MobileBottomNav({ role, unitId }: MobileBottomNavProps) {
   const [pathname, setPathname] = useState('');
   const currentPath = usePathname();
 
@@ -57,26 +60,43 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
   const isPimpinan = role === 'PIMPINAN';
   const rolePrefix = role ? role.toLowerCase() : 'staff';
 
+  // Fetch unit info to determine if POS/Inventory should show
+  const { unit: unitInfo, loading: unitLoading } = useUnitInfo(unitId);
+  const isRetailUnit = unitInfo?.isRetail ?? false;
+
   // Role-based 5-item layout (index 2 is always the "hero" button).
-  //   Staff/Manager → Dashboard | Transaksi | POS Hero | Inventaris | AI Assistant
   //   Pimpinan      → Dashboard | Transaksi | Approval | Reports  | AI Assistant
-  // (SUPERADMIN never sees this nav — handled in sidebar via forceMobile.)
-  const mainNav: { href: string; label: string; icon: React.ElementType; hero?: boolean }[] =
-    isPimpinan
-      ? [
-          { href: '/dashboard', label: 'Dashboard', icon: Home },
-          { href: `/dashboard/${rolePrefix}/transactions`, label: 'Transaksi', icon: FileText },
-          { href: `/dashboard/${rolePrefix}/approvals`, label: 'Approval', icon: ClipboardList, hero: true },
-          { href: `/dashboard/${rolePrefix}/reports`, label: 'Laporan', icon: BarChart3 },
-          { href: `/dashboard/${rolePrefix}/ai-assistant`, label: 'AI', icon: Bot },
-        ]
-      : [
-          { href: '/dashboard', label: 'Dashboard', icon: Home },
-          { href: `/dashboard/${rolePrefix}/transactions`, label: 'Transaksi', icon: FileText },
-          { href: `/dashboard/${rolePrefix}/pos`, label: 'POS', icon: ShoppingCart, hero: true },
-          { href: `/dashboard/${rolePrefix}/inventory`, label: 'Inventaris', icon: Package },
-          { href: `/dashboard/${rolePrefix}/ai-assistant`, label: 'AI', icon: Bot },
-        ];
+  //   Staff/Manager → Dashboard | Transaksi | POS Hero | Inventaris | AI Assistant  (if retail unit)
+  //   Staff/Manager (non-retail) → Dashboard | Transaksi | Rekonsiliasi | ... | AI Assistant
+  let mainNav: { href: string; label: string; icon: React.ElementType; hero?: boolean }[];
+
+  if (isPimpinan) {
+    mainNav = [
+      { href: '/dashboard', label: 'Dashboard', icon: Home },
+      { href: `/dashboard/${rolePrefix}/transactions`, label: 'Transaksi', icon: FileText },
+      { href: `/dashboard/${rolePrefix}/approvals`, label: 'Approval', icon: ClipboardList, hero: true },
+      { href: `/dashboard/${rolePrefix}/reports`, label: 'Laporan', icon: BarChart3 },
+      { href: `/dashboard/${rolePrefix}/ai-assistant`, label: 'AI', icon: Bot },
+    ];
+  } else if (isRetailUnit) {
+    // Retail unit — show POS & Inventory
+    mainNav = [
+      { href: '/dashboard', label: 'Dashboard', icon: Home },
+      { href: `/dashboard/${rolePrefix}/transactions`, label: 'Transaksi', icon: FileText },
+      { href: `/dashboard/${rolePrefix}/pos`, label: 'POS', icon: ShoppingCart, hero: true },
+      { href: `/dashboard/${rolePrefix}/inventory`, label: 'Inventaris', icon: Package },
+      { href: `/dashboard/${rolePrefix}/ai-assistant`, label: 'AI', icon: Bot },
+    ];
+  } else {
+    // Non-retail unit — replace POS with Rekonsiliasi, Inventory stays accessible via dashboard quick menu
+    mainNav = [
+      { href: '/dashboard', label: 'Dashboard', icon: Home },
+      { href: `/dashboard/${rolePrefix}/transactions`, label: 'Transaksi', icon: FileText },
+      { href: `/dashboard/${rolePrefix}/rekonsiliasi`, label: 'Rekon', icon: FileText, hero: true },
+      { href: `/dashboard/${rolePrefix}/ai-assistant`, label: 'AI', icon: Bot },
+      { href: '/dashboard', label: 'Menu', icon: BarChart3 }, // placeholder quick menu
+    ];
+  }
 
   return (
     <nav

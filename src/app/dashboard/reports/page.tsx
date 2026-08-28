@@ -49,11 +49,16 @@ export default async function ReportsPage() {
   }
 
   // Always ensure we have fresh data if cache miss or Redis unavailable
-  if (!summary) {
-    summary = await prisma.transaction.groupBy({
-      by: ['status'],
-      _count: { _all: true },
-    });
+  try {
+    if (!summary) {
+      summary = await prisma.transaction.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      });
+    }
+  } catch (dbError) {
+    console.error('[Reports] DB groupBy failed:', dbError);
+    summary = [];
   }
 
   // --- Revenue trend per day (last 30 days) ---
@@ -79,12 +84,22 @@ export default async function ReportsPage() {
     LIMIT 30
   `;
 
-  const trendData = (recentTransactions || []).map((r) => ({
-    name: new Date(r.name).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-    income: Number(r.income),
-    expense: Number(r.expense),
-    net: Number(r.net),
-  }));
+  const trendData = (recentTransactions || []).map((r) => {
+    // Handle null/undefined date gracefully — avoid Invalid Date crash
+    let dateLabel = 'Tak diketahui';
+    if (r.name && !isNaN(Date.parse(r.name))) {
+      const d = new Date(r.name);
+      if (!isNaN(d.getTime())) {
+        dateLabel = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+      }
+    }
+    return {
+      name: dateLabel,
+      income: Number(r.income) || 0,
+      expense: Number(r.expense) || 0,
+      net: Number(r.net) || 0,
+    };
+  });
 
   const totalIncome = trendData.reduce((sum, d) => sum + d.income, 0);
   const totalExpense = trendData.reduce((sum, d) => sum + d.expense, 0);
@@ -92,8 +107,8 @@ export default async function ReportsPage() {
 
   // Status summary as bar chart data
   const statusChartData = (summary || []).map((s) => ({
-    name: s.status.charAt(0) + s.status.slice(1).toLowerCase(),
-    count: s._count._all,
+    name: s.status ? s.status.charAt(0) + s.status.slice(1).toLowerCase() : 'Tidak diketahui',
+    count: s._count && s._count._all ? s._count._all : 0,
   }));
 
   const statCards: Array<{ title: string; value: number; icon: React.ReactNode; color: string }> = [
