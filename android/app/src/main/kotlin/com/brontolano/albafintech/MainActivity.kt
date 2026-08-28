@@ -39,7 +39,9 @@ fun WebViewScreen(url: String) {
                 settings.loadsImagesAutomatically = true
                 settings.useWideViewPort = true
                 settings.loadWithOverviewMode = true
-                settings.cacheMode = WebSettings.LOAD_DEFAULT
+                // Force no-cache so APK WebView always loads latest web changes
+                settings.cacheMode = WebSettings.LOAD_NO_CACHE
+                settings.setSupportMultipleWindows(true)
                 webViewClient = WebViewClient()
                 webChromeClient = WebChromeClient()
                 loadUrl(url)
