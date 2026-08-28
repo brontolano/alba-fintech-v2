@@ -15,9 +15,25 @@ export default function AIAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Load persisted chat dari localStorage
+    const saved = localStorage.getItem('ai-chat-history');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+          return;
+        }
+      } catch {
+        // Ignore corrupted data — fall to default greeting
+      }
+    }
+    // Default greeting jika tidak ada riwayat
     setMessages([
       {
         id: '1',
@@ -28,32 +44,58 @@ export default function AIAssistantPage() {
     ]);
   }, []);
 
+  // Persist ke localStorage setiap kali messages berubah
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('ai-chat-history', JSON.stringify(messages));
+    }
+  }, [messages]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollTo({ top: messagesEndRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+    if (!inputMessage.trim() && !uploadedFile || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: inputMessage,
+      content: uploadedFile 
+        ? `${inputMessage}\n📎 File terlampir: ${uploadedFile.name}` 
+        : inputMessage,
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInputMessage('');
+    setUploadedFile(null);
     setIsLoading(true);
 
     const history = messages.map((m) => ({ role: m.role, content: m.content }));
 
     try {
-      const res = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: inputMessage, history }),
-      });
+      let res: Response;
+
+      if (uploadedFile) {
+        // Kirim multipart/form-data dengan file
+        const formData = new FormData();
+        formData.append('message', inputMessage);
+        formData.append('history', JSON.stringify(history));
+        formData.append('file', uploadedFile);
+
+        res = await fetch('/api/ai/chat', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // Kirim JSON biasa
+        res = await fetch('/api/ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: inputMessage, history }),
+        });
+      }
 
       if (!res.ok) {
         const err = await res.json();

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import https from 'https';
 import { URL } from 'url';
+import { writeFile, writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 const bodySchema = z.object({
   message: z.string().min(1),
@@ -13,16 +16,44 @@ const bodySchema = z.object({
   ).optional(),
 });
 
+// Accept either JSON or FormData (for file uploads)
 export async function POST(request: NextRequest) {
   try {
-    const json = await request.json();
-    const parsed = bodySchema.safeParse(json);
+    const contentType = request.headers.get('content-type') || '';
+    let message = '';
+    let history: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+    let uploadedFilePath: string | null = null;
 
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData untuk file upload
+      const formData = await request.formData();
+      message = formData.get('message') as string || '';
+      const historyStr = formData.get('history') as string || '[]';
+      try {
+        history = JSON.parse(historyStr);
+      } catch {
+        history = [];
+      }
+
+      const file = formData.get('file') as File | null;
+      if (file) {
+        // Simpan file ke temp dir
+        const tempDir = join(tmpdir(), 'alba-ai-uploads');
+        mkdirSync(tempDir, { recursive: true });
+        const buffer = Buffer.from(await file.arrayBuffer());
+        uploadedFilePath = join(tempDir, `${Date.now()}_${file.name}`);
+        writeFileSync(uploadedFilePath, buffer);
+        message += `\n📎 File: ${file.name}`;
+      }
+    } else {
+      const json = await request.json();
+      const parsed = bodySchema.safeParse(json);
+      if (!parsed.success) {
+        return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+      }
+      message = parsed.data.message;
+      history = parsed.data.history || [];
     }
-
-    const { message, history = [] } = parsed.data;
 
     const providerURL = process.env.AI_PROVIDER_URL;
     const apiKey = process.env.AI_PROVIDER_KEY;
