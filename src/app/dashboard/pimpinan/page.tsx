@@ -19,9 +19,10 @@ export default async function PimpinanDashboard() {
     prisma.transaction.count({ where: { status: 'APPROVED' } }),
   ]);
 
-  // Quick Menu: items NOT in mobile bottom nav (5 icons: Dashboard, Transaksi, POS, Approval, AI)
+  // Quick Menu: items NOT featured in mobile bottom nav
+  // Mobile nav for Pimpinan: Dashboard | Transaksi | Approval | Reports | AI Assistant
   const quickMenus = [
-    { href: '/dashboard/pimpinan/transactions', label: 'Transaksi', icon: FileText, color: 'bg-blue-50 text-blue-600' },
+    { href: '/dashboard/pimpinan/reports', label: 'Laporan', icon: BarChart3, color: 'bg-indigo-50 text-indigo-600' },
     { href: '/dashboard/pimpinan/ai-assistant', label: 'AI Assistant', icon: Bot, color: 'bg-purple-50 text-purple-600' },
   ];
 

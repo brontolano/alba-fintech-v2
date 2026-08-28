@@ -57,17 +57,26 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
   const isPimpinan = role === 'PIMPINAN';
   const rolePrefix = role ? role.toLowerCase() : 'staff';
 
-  // Role-based 5-item layout (index 2 is always the hero button)
-  // Uses role-prefixed routes to match Sidebar navigation
-  const mainNav: { href: string; label: string; icon: React.ElementType; hero?: boolean }[] = [
-    { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: `/dashboard/${rolePrefix}/transactions`, label: 'Transaksi', icon: FileText },
-    { href: `/dashboard/${rolePrefix}/pos`, label: 'POS', icon: ShoppingCart, hero: true },
+  // Role-based 5-item layout (index 2 is always the "hero" button).
+  //   Staff/Manager → Dashboard | Transaksi | POS Hero | Inventaris | AI Assistant
+  //   Pimpinan      → Dashboard | Transaksi | Approval | Reports  | AI Assistant
+  // (SUPERADMIN never sees this nav — handled in sidebar via forceMobile.)
+  const mainNav: { href: string; label: string; icon: React.ElementType; hero?: boolean }[] =
     isPimpinan
-      ? { href: `/dashboard/${rolePrefix}/approvals`, label: 'Approval', icon: ClipboardList }
-      : { href: `/dashboard/${rolePrefix}/inventory`, label: 'Inventaris', icon: Package },
-    { href: `/dashboard/${rolePrefix}/ai-assistant`, label: 'AI', icon: Bot },
-  ];
+      ? [
+          { href: '/dashboard', label: 'Dashboard', icon: Home },
+          { href: `/dashboard/${rolePrefix}/transactions`, label: 'Transaksi', icon: FileText },
+          { href: `/dashboard/${rolePrefix}/approvals`, label: 'Approval', icon: ClipboardList, hero: true },
+          { href: `/dashboard/${rolePrefix}/reports`, label: 'Laporan', icon: BarChart3 },
+          { href: `/dashboard/${rolePrefix}/ai-assistant`, label: 'AI', icon: Bot },
+        ]
+      : [
+          { href: '/dashboard', label: 'Dashboard', icon: Home },
+          { href: `/dashboard/${rolePrefix}/transactions`, label: 'Transaksi', icon: FileText },
+          { href: `/dashboard/${rolePrefix}/pos`, label: 'POS', icon: ShoppingCart, hero: true },
+          { href: `/dashboard/${rolePrefix}/inventory`, label: 'Inventaris', icon: Package },
+          { href: `/dashboard/${rolePrefix}/ai-assistant`, label: 'AI', icon: Bot },
+        ];
 
   return (
     <nav

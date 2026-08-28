@@ -15,6 +15,8 @@ import {
   LogOut,
   ChevronRight,
   FileText,
+  User,
+  BarChart3,
 } from 'lucide-react';
 
 type UserRole = 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF';
@@ -50,8 +52,10 @@ const NAV: NavItem[] = [
   { label: 'Approval', href: '/approvals', icon: CheckSquare, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'], badge: 'Pending', badgeVariant: 'warning' },
   { label: 'Rekonsiliasi', href: '/dashboard/rekonsiliasi', icon: FileText, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'], isAbsolute: true },
   { label: 'Inventory / POS', href: '/inventory', icon: Package, roles: ['SUPERADMIN', 'MANAGER', 'STAFF'] },
+  { label: 'Laporan', href: '/dashboard/reports', icon: BarChart3, roles: ['PIMPINAN'] },
   { label: 'AI Assistant', href: '/ai-assistant', icon: Bot, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'], badge: 'Beta', badgeVariant: 'info' },
   { label: 'Audit Log', href: '/audit', icon: ScrollText, roles: ['SUPERADMIN'] },
+  { label: 'Akun', href: '/dashboard/account', icon: User, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
 ];
 
 const ROLE_LABEL: Record<UserRole, string> = {
