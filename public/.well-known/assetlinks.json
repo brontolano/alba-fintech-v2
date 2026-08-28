@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/self:sh1:cert"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.brontolano.albafintech",
+      "sha256_cert_fingerprints": [
+        "YOUR_RELEASE_KEYSTORE_SHA256_FINGERPRINT"
+      ]
+    }
+  }
+]
