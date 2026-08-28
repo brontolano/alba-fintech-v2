@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.brontolano.albafintech.AlbaFintechApp
 import com.brontolano.albafintech.data.local.SessionManager
 import com.brontolano.albafintech.data.models.User
+import com.brontolano.albafintech.data.remote.ApiClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -18,18 +19,31 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<AuthUiState> = _uiState
 
     init {
+        // Register 401 callback so expired sessions are detected across all API calls
+        ApiClient.setSessionExpiredCallback {
+            logoutFromExpiredSession()
+        }
         checkLoginState()
     }
 
-    private fun checkLoginState() {
+    /** Public so the UI layer (e.g. session-expiry callback) can trigger a re-check */
+    fun checkLoginState() {
         viewModelScope.launch {
             if (sessionManager.isLoggedIn()) {
+                val user = sessionManager.getUser()
                 val role = sessionManager.getRole() ?: ""
-                _uiState.value = AuthUiState(
-                    isLoggedIn = true,
-                    role = role,
-                    isLoading = false
-                )
+                if (user != null && role.isNotEmpty()) {
+                    _uiState.value = AuthUiState(
+                        isLoggedIn = true,
+                        role = role,
+                        user = user,
+                        isLoading = false
+                    )
+                } else {
+                    // Session data corrupted, clear it
+                    sessionManager.clearSession()
+                    _uiState.value = AuthUiState(isLoading = false)
+                }
             } else {
                 _uiState.value = AuthUiState(isLoading = false)
             }
@@ -38,25 +52,20 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
-            _uiState.value = AuthUiState(isLoading = true)
+            _uiState.value = AuthUiState(isLoading = true, error = null)
             try {
-                // Calls the NextAuth-compatible web endpoint
-                val api = com.brontolano.albafintech.data.remote.ApiClient.getClient(getApplication())
+                val api = ApiClient.getClient(getApplication())
                 val response = api.login(
-                    mapOf(
-                        "email" to email,
-                        "password" to password,
-                        "redirect" to "false",
-                        "callbackUrl" to "https://alba.brontolano.com/dashboard"
+                    com.brontolano.albafintech.data.models.LoginRequest(
+                        email = email.trim(),
+                        password = password
                     )
                 )
 
                 if (response.user != null && !response.accessToken.isNullOrEmpty()) {
-                    sessionManager.saveSession(
+                    sessionManager.saveSessionWithUser(
                         accessToken = response.accessToken,
-                        refreshToken = response.refreshToken,
-                        userId = response.user.id,
-                        role = response.user.role
+                        user = response.user
                     )
                     _uiState.value = AuthUiState(
                         isLoggedIn = true,
@@ -67,7 +76,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.value = AuthUiState(error = response.error ?: "Login gagal")
                 }
             } catch (e: Exception) {
-                _uiState.value = AuthUiState(error = e.message ?: "Terjadi kesalahan")
+                _uiState.value = AuthUiState(error = e.message ?: "Tidak dapat terhubung ke server")
             }
         }
     }
@@ -75,20 +84,33 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun logout() {
         viewModelScope.launch {
             try {
-                val api = com.brontolano.albafintech.data.remote.ApiClient.getClient(getApplication())
-                sessionManager.getAccessToken()?.let { api.logout(it) }
-            } catch (_: Exception) { } finally {
+                val api = ApiClient.getClient(getApplication())
+                api.logout()
+            } catch (_: Exception) {
+                // Ignore network errors during logout
+            } finally {
                 sessionManager.clearSession()
                 _uiState.value = AuthUiState(isLoading = false)
             }
         }
     }
-}
 
-data class AuthUiState(
-    val isLoading: Boolean = false,
-    val isLoggedIn: Boolean = false,
-    val role: String = "",
-    val user: User? = null,
-    val error: String? = null
-)
+    private fun logoutFromExpiredSession() {
+        viewModelScope.launch {
+            sessionManager.clearSession()
+            _uiState.value = AuthUiState(isLoading = false)
+        }
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    data class AuthUiState(
+        val isLoading: Boolean = false,
+        val isLoggedIn: Boolean = false,
+        val role: String = "",
+        val user: User? = null,
+        val error: String? = null
+    )
+}

@@ -15,15 +15,15 @@ export default function RootLayout({
   return (
     <html lang="id">
 <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#0284c7" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
-        <link rel="apple-touch-icon" href="/icons/icon-512x512.svg" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="alternate icon" href="/favicon.svg" />
-        <link rel="mask-icon" href="/favicon.svg" />
+        <link rel="apple-touch-icon" href="/logo-baru.png" />
+        <link rel="icon" href="/logo-baru.png" />
+        <link rel="alternate icon" href="/logo-baru.png" />
+        <link rel="mask-icon" href="/logo-baru.png" />
       </head>
       <body>
         <Providers>{children}</Providers>

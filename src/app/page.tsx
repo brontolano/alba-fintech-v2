@@ -39,9 +39,7 @@ export default function HomePage() {
       <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center">
-              <LayoutDashboard size={20} className="text-white" />
-            </div>
+            <img src="/logo-baru.png" alt="ALBA Finance" className="h-9 w-auto object-contain" />
             <span className="text-lg font-bold text-slate-800">ALBA Finance</span>
           </div>
           <Link

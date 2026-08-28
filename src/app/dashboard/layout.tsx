@@ -35,7 +35,7 @@ export default async function DashboardLayout({
           isSuperAdmin ? 'lg:ml-0' : 'lg:ml-64'
         } pb-16 lg:pb-0`}
       >
-        <header className="bg-white border-b border-slate-200 px-6 py-4">
+        <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-slate-500">Selamat datang kembali</p>
@@ -53,7 +53,7 @@ export default async function DashboardLayout({
             </div>
           </div>
         </header>
-        <div className="p-6">{children}</div>
+        <div className="p-4 sm:p-6">{children}</div>
       </main>
 
       {/* Mobile bottom nav – hidden for SuperAdmin (desktop only) */}

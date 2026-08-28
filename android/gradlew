@@ -1,0 +1,31 @@
+#!/bin/sh
+
+#
+# Copyright 2015 the original author or authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+DEFAULT_JVM_OPTS=${DEFAULT_JVM_OPTS}
+DEFAULT_JVM_OPTS="$DEFAULT_JVM_OPTS -Xmx512m"
+APP_HOME=$(cd "$(dirname "$0")" && pwd)
+
+# Load the wrapper jar
+CLASSPATH="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+
+# Check if java is available
+if ! command -v java >/dev/null 2>&1; then
+    echo "java not found in PATH"
+    exit 1
+fi
+
+java -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"

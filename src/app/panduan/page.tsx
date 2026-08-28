@@ -15,7 +15,6 @@ import {
   LogIn,
   Clock,
   FileCheck,
-  ChevronLeft,
   Building,
 } from 'lucide-react';
 
@@ -151,20 +150,6 @@ const sections = [
 export default function PanduanPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-brand-50">
-      {/* Nav */}
-      <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <ChevronLeft size={20} className="text-slate-500" />
-            <span className="text-slate-700 font-medium">Kembali ke Beranda</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <BookOpen size={20} className="text-brand-600" />
-            <span className="text-lg font-bold text-slate-800">Panduan Penggunaan</span>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero */}
       <section className="max-w-4xl mx-auto px-6 py-16">
         <div className="text-center">

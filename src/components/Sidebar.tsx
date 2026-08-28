@@ -79,7 +79,7 @@ export default function Sidebar({
   // forceMobile → always show sidebar (including mobile). Otherwise, hidden on mobile.
   const sidebarClass = forceMobile
     ? 'w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 z-50'
-    : 'w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 hidden lg:flex';
+    : 'w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 hidden lg:flex lg:translate-x-0';
 
   // Determine full href: isAbsolute items use href directly; others get role prefix
   const buildHref = (item: NavItem): string => {
@@ -96,9 +96,7 @@ export default function Sidebar({
     <aside className={sidebarClass}>
       <div className="px-6 py-5 border-b border-slate-200">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
-            <LayoutDashboard size={20} className="text-white" />
-          </div>
+          <img src="/logo-baru.png" alt="ALBA Finance" className="h-8 w-auto object-contain" />
           <span className="text-xl font-bold text-brand-700">ALBA Finance</span>
         </Link>
         <p className="text-xs text-slate-500 mt-2">{roleLabel}</p>

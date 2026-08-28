@@ -70,7 +70,10 @@ export default function MobileBottomNav({ role }: MobileBottomNavProps) {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-[100] bg-white border-t border-slate-200 shadow-lg">
+    <nav
+      className="lg:hidden fixed bottom-0 inset-x-0 z-[100] bg-white border-t border-slate-200 shadow-lg"
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
+    >
       <div className="grid grid-cols-5 items-center h-16 px-2 max-w-screen-xl mx-auto relative">
         {mainNav.map((item, idx) => {
           const Icon = item.icon;

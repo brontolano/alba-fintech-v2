@@ -3,8 +3,7 @@
 
 const CACHE_NAME = 'alba-finance-v2';
 const ASSETS = [
-  '/icons/icon-192x192.svg',
-  '/icons/icon-512x512.svg',
+  '/logo-baru.png',
   '/favicon.svg',
   '/offline.html',
   '/manifest.json'
