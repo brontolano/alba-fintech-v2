@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Input } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { AlertCircle, Eye, EyeOff, Mail } from 'lucide-react';
@@ -63,7 +64,7 @@ export default function LoginForm() {
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 mb-6">
-              <img src="/logo-baru.png" alt="ALBA Finance" className="h-10 w-auto object-contain" />
+              <Image src="/logo-baru.png" alt="ALBA Finance" width={40} height={40} className="h-10 w-auto object-contain" />
               <span className="text-2xl font-bold text-brand-700">ALBA Finance</span>
             </Link>
             <h1 className="text-2xl font-semibold text-slate-900 mb-1">Selamat Datang</h1>

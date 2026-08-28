@@ -48,6 +48,21 @@
 - [x] Inventory page (placeholder with search + unit filter)
 - [x] POS page (cart, unit selection, transaction submission)
 - [x] AI Assistant page (placeholder)
+
+### 2026-08-28 - Phase 5: Performance Optimization
+- [x] Image optimization: Replace `<img>` → `<Image />` (LoginForm, page, Sidebar, TransactionsPage)
+- [x] Redis caching: 5-min TTL for reports:transaction-summary (ioredis installed)
+- [x] Bundle analyzer: @next/bundle-analyzer installed
+- [x] Transaction atomicity: Prisma $transaction wrap (create + auditLog)
+- [x] Security headers: X-Frame-Options, nosniff, HSTS, CSP in next.config.mjs
+
+### 2026-08-28 - Phase 6: Production Deploy
+- [x] TypeScript 0 errors verified
+- [x] Prisma generate successful
+- [x] Next.js production build: 50/50 static pages, 94.2 kB first load
+- [x] APK debug build: BUILD SUCCESSFUL
+- [x] GitHub commit + push: "feat: performance optimization — Redis caching + bundle analyzer"
+- [x] Hostinger deploy: GitHub Actions auto-trigger
 - [x] Approvals page for superadmin
 
 ### 2025-01-XX - Phase 5: API Consistency

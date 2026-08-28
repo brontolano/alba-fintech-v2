@@ -164,42 +164,45 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create transaction with PENDING status (siap untuk approval)
-    const transaction = await prisma.transaction.create({
-      data: {
-        unitId: finalUnitId,
-        type,
-        amount,
-        description: description.trim(),
-        reference: reference ? reference.trim() : undefined,
-        photoUrl: photoUrl || undefined,
-        accountId: accountId || undefined,
-        status: 'PENDING',
-        createdById: userId,
-      },
-      select: {
-        id: true,
-        unitId: true,
-        type: true,
-        amount: true,
-        description: true,
-        status: true,
-        reference: true,
-        photoUrl: true,
-        accountId: true,
-        createdAt: true,
-      },
-    });
+    // Atomic: create transaction + audit log together
+    const [transaction, audit] = await prisma.$transaction(async (tx) => {
+      const created = await tx.transaction.create({
+        data: {
+          unitId: finalUnitId,
+          type,
+          amount,
+          description: description.trim(),
+          reference: reference ? reference.trim() : undefined,
+          photoUrl: photoUrl || undefined,
+          accountId: accountId || undefined,
+          status: 'PENDING',
+          createdById: userId,
+        },
+        select: {
+          id: true,
+          unitId: true,
+          type: true,
+          amount: true,
+          description: true,
+          status: true,
+          reference: true,
+          photoUrl: true,
+          accountId: true,
+          createdAt: true,
+        },
+      });
 
-    // Audit log
-    await prisma.auditLog.create({
-      data: {
-        userId: userId,
-        action: 'CREATE',
-        entity: 'transaction',
-        entityId: transaction.id,
-        newData: JSON.stringify(transaction),
-      },
+      const auditEntry = await tx.auditLog.create({
+        data: {
+          userId: userId,
+          action: 'CREATE',
+          entity: 'transaction',
+          entityId: created.id,
+          newData: JSON.stringify(created),
+        },
+      });
+
+      return [created, auditEntry];
     });
 
     return NextResponse.json(
