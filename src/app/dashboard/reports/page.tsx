@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
-import { BarChart3, TrendingUp, Wallet, DollarSign, Calendar } from 'lucide-react';
+import { BarChart3, TrendingUp, Wallet, DollarSign, Calendar, Download } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import Redis from 'ioredis';
 import { StatusBarChart, TrendLineChart } from '@/components/analytics/Charts';
@@ -162,6 +162,29 @@ export default async function ReportsPage() {
           ) : (
             <p className="text-sm text-slate-500">Belum ada data transaksi.</p>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Export Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Download className="w-4 h-4" /> Export Laporan
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          <a
+            href="/api/reports/export?format=csv"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition"
+          >
+            <Download size={16} /> Unduh CSV
+          </a>
+          <a
+            href="/api/reports/export?format=json"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition"
+          >
+            <Download size={16} /> Unduh JSON
+          </a>
         </CardContent>
       </Card>
     </div>
