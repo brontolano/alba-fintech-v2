@@ -236,6 +236,8 @@ export default function TransactionsPage() {
                             src={tx.photoUrl}
                             alt="Nota"
                             className="mt-1 max-w-20 max-h-20 rounded border border-slate-200 object-cover"
+                            loading="lazy"
+                            decoding="async"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                           />
                         )}

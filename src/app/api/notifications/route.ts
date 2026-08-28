@@ -113,3 +113,37 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+// ========================================
+// PUSH NOTIFICATION SUBSCRIPTION ENDPOINT
+// ========================================
+
+export async function PUT(request: Request) {
+  const session = await getServerSession(authConfig);
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const subscription = await request.json();
+    // Simpan subscription ke database
+    await prisma.pushSubscription.upsert({
+      where: { endpoint: subscription.endpoint },
+      update: {
+        userId: session.user.id,
+        keys: subscription.keys,
+        expiresAt: new Date(subscription.expiryTime),
+      },
+      create: {
+        userId: session.user.id,
+        endpoint: subscription.endpoint,
+        keys: subscription.keys,
+        expiresAt: new Date(subscription.expiryTime),
+      },
+    });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[PUT /api/notifications/subscribe]', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import https from 'https';
 import { URL } from 'url';
-import { writeFile, writeFileSync, mkdirSync } from 'fs';
+import { promises as fs } from 'fs';  // Gunakan async fs
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
 
       const file = formData.get('file') as File | null;
       if (file) {
-        // Simpan file ke temp dir
+        // Simpan file ke temp dir — gunakan async fs agar tidak blocking
         const tempDir = join(tmpdir(), 'alba-ai-uploads');
-        mkdirSync(tempDir, { recursive: true });
+        await fs.mkdir(tempDir, { recursive: true });
         const buffer = Buffer.from(await file.arrayBuffer());
         uploadedFilePath = join(tempDir, `${Date.now()}_${file.name}`);
-        writeFileSync(uploadedFilePath, buffer);
+        await fs.writeFile(uploadedFilePath, buffer);
         message += `\n📎 File: ${file.name}`;
       }
     } else {

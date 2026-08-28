@@ -52,6 +52,7 @@ model User {
   approvals            Approval[]
   auditLogs            AuditLog[]
   notifications        Notification[]
+  pushSubscriptions    PushSubscription[]
   transactionsApproved Transaction[]  @relation("TransactionApprover")
   transactionsCreated  Transaction[]  @relation("TransactionCreator")
   unit                 Unit?          @relation(fields: [unitId], references: [id])
@@ -204,10 +205,25 @@ enum ApprovalStatus {
 }
 
 enum NotificationType {
+enums
   INFO
   SUCCESS
   WARNING
   ERROR
 
   @@map("notification_type")
+}
+
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  endpoint   String   @unique @map("endpoint") @db.VarChar(512)
+  keys       Json     @db.Json
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }

@@ -2,9 +2,11 @@ import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
-import { BarChart3, TrendingUp, Wallet } from 'lucide-react';
+import { BarChart3, TrendingUp, Wallet, DollarSign, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import Redis from 'ioredis';
+import { StatusBarChart, TrendLineChart } from '@/components/analytics/Charts';
+import { Suspense } from 'react';
 
 const CACHE_TTL = 300; // 5 minutes
 
@@ -54,30 +56,112 @@ export default async function ReportsPage() {
     });
   }
 
+  // --- Revenue trend per day (last 30 days) ---
+  // Fetch all transactions from last 30 days via Prisma, then aggregate client-side
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const recentTransactions = await prisma.$queryRaw<
+    Array<{
+      name: string;
+      income: number;
+      expense: number;
+      net: number;
+    }>
+  >`
+    SELECT 
+      DATE_FORMAT(\`createdAt\`, '%Y-%m-%d') AS name,
+      SUM(CASE WHEN \`type\` = 'INCOME' THEN \`amount\` ELSE 0 END) AS income,
+      SUM(CASE WHEN \`type\` = 'EXPENSE' THEN \`amount\` ELSE 0 END) AS expense,
+      SUM(CASE WHEN \`type\` = 'INCOME' THEN \`amount\` ELSE -\`amount\` END) AS net
+    FROM \`Transaction\`
+    WHERE \`createdAt\` >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+    GROUP BY DATE_FORMAT(\`createdAt\`, '%Y-%m-%d')
+    ORDER BY \`name\` ASC
+    LIMIT 30
+  `;
+
+  const trendData = (recentTransactions || []).map((r) => ({
+    name: new Date(r.name).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+    income: Number(r.income),
+    expense: Number(r.expense),
+    net: Number(r.net),
+  }));
+
+  const totalIncome = trendData.reduce((sum, d) => sum + d.income, 0);
+  const totalExpense = trendData.reduce((sum, d) => sum + d.expense, 0);
+  const netTotal = totalIncome - totalExpense;
+
+  // Status summary as bar chart data
+  const statusChartData = (summary || []).map((s) => ({
+    name: s.status.charAt(0) + s.status.slice(1).toLowerCase(),
+    count: s._count._all,
+  }));
+
+  const statCards: Array<{ title: string; value: number; icon: React.ReactNode; color: string }> = [
+    { title: 'Total Pemasukan', value: totalIncome, icon: <DollarSign className="w-5 h-5" />, color: 'text-green-600' },
+    { title: 'Total Pengeluaran', value: totalExpense, icon: <Wallet className="w-5 h-5" />, color: 'text-red-600' },
+    { title: 'Net (Pemasukan - Pengeluaran)', value: netTotal, icon: <TrendingUp className="w-5 h-5" />, color: netTotal >= 0 ? 'text-blue-600' : 'text-red-600' },
+  ];
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-800">Laporan Keuangan</h2>
-      <p className="text-slate-500 text-sm">Ikhtisar transaksi berdasarkan status.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Laporan Keuangan</h2>
+          <p className="text-slate-500 text-sm">Ikhtisar transaksi berdasarkan status &amp; tren harian (30 hari terakhir).</p>
+        </div>
+        <div className="text-right">
+          <span className="text-xs text-slate-400">{(new Date()).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        </div>
+      </div>
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {summary?.map((s) => (
-          <Card key={s.status}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <BarChart3 className="w-4 h-4" /> {s.status}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-slate-700">{s._count._all}</p>
+        {statCards.map((card) => (
+          <Card key={card.title}>
+            <CardContent className="pt-6 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-500 text-sm">{card.title}</p>
+                  <p className={`text-2xl font-bold ${card.color}`}>
+                    {card.value >= 0 ? 'Rp ' : '-Rp '}{Math.abs(card.value).toLocaleString('id-ID')}
+                  </p>
+                </div>
+                <div className={`p-2 rounded-full bg-slate-50 ${card.color}`}>{card.icon}</div>
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
+      {/* Transaction count per status — Bar Chart */}
       <Card>
-        <CardHeader><CardTitle>Data lengkap belum tersedia</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <BarChart3 className="w-4 h-4" /> Jumlah Transaksi per Status
+          </CardTitle>
+        </CardHeader>
         <CardContent>
-          <p className="text-sm text-slate-500">Export dan visualisasi lanjutan akan ditambahkan di iterasi berikutnya.</p>
+          {statusChartData.length > 0 ? (
+            <StatusBarChart data={statusChartData} dataKey="count" />
+          ) : (
+            <p className="text-sm text-slate-500">Belum ada data transaksi.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Daily trend — Line Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <TrendingUp className="w-4 h-4" /> Tren Keuangan 30 Hari Terakhir
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {trendData.length > 0 ? (
+            <TrendLineChart data={trendData} />
+          ) : (
+            <p className="text-sm text-slate-500">Belum ada data transaksi.</p>
+          )}
         </CardContent>
       </Card>
     </div>
