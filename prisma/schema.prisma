@@ -87,6 +87,9 @@ model Transaction {
   @@index([createdById])
   @@index([accountId], map: "transactions_account_id_fkey")
   @@index([approvedById], map: "transactions_approved_by_id_fkey")
+  @@index([status, createdAt]) // For laporan per status + tanggal
+  @@index([unitId, createdAt]) // For rekonsiliasi per unit + tanggal
+  @@index([type, createdAt])   // For tren pemasukan/pengeluaran per tanggal
   @@map("transactions")
 }
 
