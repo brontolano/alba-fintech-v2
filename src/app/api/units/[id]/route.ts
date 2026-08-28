@@ -9,6 +9,7 @@ const updateUnitSchema = z.object({
   code: z.string().min(1, 'Kode unit wajib diisi').max(20).toUpperCase().optional(),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
+  isRetail: z.boolean().optional(),
   lembagaId: z.string().optional(),
 });
 
@@ -38,6 +39,7 @@ export async function GET(request: Request) {
         code: true,
         description: true,
         isActive: true,
+        isRetail: true,
         lembagaId: true,
         createdAt: true,
         updatedAt: true,

@@ -1,5 +1,8 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { join } from 'path';
+
+export const uploadDir = join(process.cwd(), 'public', 'uploads', 'transactions');
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

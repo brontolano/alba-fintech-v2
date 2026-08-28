@@ -12,6 +12,7 @@ const updateTransactionSchema = z.object({
   reference: z.string().optional(),
   status: z.enum(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED']).optional(),
   accountId: z.string().optional().nullable(),
+  photoUrl: z.string().optional().nullable(),
 });
 
 // GET /api/transactions/:id
@@ -65,6 +66,7 @@ export async function GET(request: Request) {
         },
         approvedBy: { select: { name: true, email: true, role: true } },
         account: { select: { name: true, code: true } },
+        photoUrl: true,
       },
     });
 
@@ -130,7 +132,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const { type, amount, description, reference, status, accountId } = parsed.data;
+    const { type, amount, description, reference, status, accountId, photoUrl } = parsed.data;
 
     // Fetch existing transaction
     const existing = await prisma.transaction.findUnique({
@@ -200,6 +202,7 @@ export async function PATCH(request: Request) {
         ...(reference !== undefined && { reference: reference ? reference.trim() : undefined }),
         ...(status && { status }),
         ...(accountId !== undefined && { accountId }),
+        ...(photoUrl !== undefined && { photoUrl }),
       },
       select: {
         id: true,
@@ -210,6 +213,7 @@ export async function PATCH(request: Request) {
         status: true,
         reference: true,
         accountId: true,
+        photoUrl: true,
         updatedAt: true,
       },
     });

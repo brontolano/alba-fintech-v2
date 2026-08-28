@@ -126,19 +126,23 @@ export async function PUT(request: Request) {
 
   try {
     const subscription = await request.json();
-    // Simpan subscription ke database
+    // Expiry time bisa null (subscription takkan kadaluarsa) — handle gracefully
+    const expiresAt = subscription.expiryTime
+      ? new Date(subscription.expiryTime)
+      : null;
+
     await prisma.pushSubscription.upsert({
       where: { endpoint: subscription.endpoint },
       update: {
         userId: session.user.id,
         keys: subscription.keys,
-        expiresAt: new Date(subscription.expiryTime),
+        expiresAt: expiresAt,
       },
       create: {
         userId: session.user.id,
         endpoint: subscription.endpoint,
         keys: subscription.keys,
-        expiresAt: new Date(subscription.expiryTime),
+        expiresAt: expiresAt,
       },
     });
     return NextResponse.json({ success: true });

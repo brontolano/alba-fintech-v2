@@ -157,6 +157,52 @@ async function main() {
     skipDuplicates: true,
   });
 
+  // --- Chart of Accounts (untuk fitur akuntansi / laporan keuangan) ---
+  const kasUnit = await prisma.account.upsert({
+    where: { code: '1-101-00' },
+    update: { isActive: true },
+    create: {
+      name: 'Kas Unit',
+      code: '1-101-00',
+      type: 'ASSET',
+      description: 'Uang tunai di masing-masing unit',
+    },
+  });
+
+  const modalSendiri = await prisma.account.upsert({
+    where: { code: '3-301-00' },
+    update: { isActive: true },
+    create: {
+      name: 'Modal Sendiri',
+      code: '3-301-00',
+      type: 'EQUITY',
+      description: 'Ekuitas pemilik',
+    },
+  });
+
+  const pendapatanJualan = await prisma.account.upsert({
+    where: { code: '4-401-00' },
+    update: { isActive: true },
+    create: {
+      name: 'Pendapatan Penjualan',
+      code: '4-401-00',
+      type: 'INCOME',
+      description: 'Pendapatan utama dari penjualan produk/jasa',
+    },
+  });
+
+  const bebanBiaya = await prisma.account.upsert({
+    where: { code: '5-501-00' },
+    update: { isActive: true },
+    create: {
+      name: 'Beban Usaha',
+      code: '5-501-00',
+      type: 'EXPENSE',
+      description: 'Biaya operasional dan pokok penjualan',
+      parentId: kasUnit.id,
+    },
+  });
+
   console.log('✅ Seed complete.');
   console.log('');
   console.log('Default credentials (password: bismillah):');
@@ -167,6 +213,7 @@ async function main() {
   console.log('  Staff KOPBUKU : staff1@alba.test');
   console.log('');
   console.log('Unit info: KPAK & Kantin Umi = retail (POS/Inv aktif); Kantin Baru & Koperasi Buku = non-retail');
+  console.log('Akun buku besar: 4 akun (Kas Unit, Modal Sendiri, Pendapatan Jualan, Beban Usaha)');
   console.log('⚠️  Segera ganti password setelah login pertama!');
 }
 

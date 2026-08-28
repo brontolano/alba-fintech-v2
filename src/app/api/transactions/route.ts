@@ -5,7 +5,7 @@ import { authConfig } from '@/lib/auth';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { tmpdir } from 'os';
+import { uploadDir } from '@/lib/utils';
 
 // Validation schemas
 const createTransactionSchema = z.object({
@@ -72,6 +72,8 @@ export async function GET(request: Request) {
         createdAt: true,
         updatedAt: true,
         accountId: true,
+        // Include photo URL for frontend display
+        photoUrl: true,
         // Include names for display
         unit: { select: { name: true, code: true } },
         createdBy: { select: { name: true, email: true, role: true } },
@@ -117,7 +119,6 @@ export async function POST(request: Request) {
     let reference: string | undefined;
     let accountId: string | undefined;
     let photoUrl: string | undefined;
-    let photoFilePath: string | null = null;
 
     if (contentType.includes('multipart/form-data')) {
       // Handle FormData — photo upload from camera/gallery
@@ -129,12 +130,13 @@ export async function POST(request: Request) {
       unitId = (formData.get('unitId') as string) || undefined;
       const photo = formData.get('photo') as File | null;
       if (photo && photo.size > 0) {
-        const tempDir = join(tmpdir(), 'alba-tx-uploads');
-        await fs.mkdir(tempDir, { recursive: true });
+        // Pastikan direktori upload ada
+        await fs.mkdir(uploadDir, { recursive: true });
+        const filename = `${Date.now()}_${photo.name}`;
+        const filePath = join(uploadDir, filename);
         const buffer = Buffer.from(await photo.arrayBuffer());
-        photoFilePath = join(tempDir, `${Date.now()}_${photo.name}`);
-        await fs.writeFile(photoFilePath, buffer);
-        photoUrl = `/uploads/transactions/${Date.now()}_${photo.name}`;
+        await fs.writeFile(filePath, buffer);
+        photoUrl = `/uploads/transactions/${filename}`;
       }
     } else {
       // Handle JSON body (backward compatible)

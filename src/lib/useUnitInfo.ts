@@ -22,7 +22,8 @@ export function useUnitInfo(unitId: string | null | undefined): { unit: UnitInfo
       .then((r) => r.json())
       .then((data) => {
         if (!aborted) {
-          setUnit(data);
+          // API mengembalikan { data: {...}, _count: {...} } — gunakan data.data
+          setUnit(data?.data ?? null);
           setLoading(false);
         }
       })
