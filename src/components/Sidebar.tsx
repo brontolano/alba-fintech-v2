@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -100,7 +101,7 @@ export default function Sidebar({
     <aside className={sidebarClass}>
       <div className="px-6 py-5 border-b border-slate-200">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <img src="/logo-baru.png" alt="ALBA Finance" className="h-8 w-auto object-contain" />
+          <Image src="/logo-baru.png" alt="ALBA Finance" width={32} height={32} className="h-8 w-auto object-contain" />
           <span className="text-xl font-bold text-brand-700">ALBA Finance</span>
         </Link>
         <p className="text-xs text-slate-500 mt-2">{roleLabel}</p>

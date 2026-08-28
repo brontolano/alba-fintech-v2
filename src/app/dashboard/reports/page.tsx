@@ -6,8 +6,17 @@ import { BarChart3, TrendingUp, Wallet } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import Redis from 'ioredis';
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const CACHE_TTL = 300; // 5 minutes
+
+// Lazy Redis init — only connects when env var exists and runtime is available
+function getRedis() {
+  if (!process.env.REDIS_URL) return null;
+  try {
+    return new Redis(process.env.REDIS_URL);
+  } catch {
+    return null;
+  }
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -17,21 +26,28 @@ export default async function ReportsPage() {
 
   // Cache report query for 5 minutes — reduces DB load for frequent pimpinan checks
   const cacheKey = 'reports:transaction-summary';
+  const redis = getRedis();
   let summary: any[] | null = null;
 
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      summary = JSON.parse(cached);
-    } else {
-      summary = await prisma.transaction.groupBy({
-        by: ['status'],
-        _count: { _all: true },
-      });
-      await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(summary));
+  if (redis) {
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        summary = JSON.parse(cached);
+      } else {
+        summary = await prisma.transaction.groupBy({
+          by: ['status'],
+          _count: { _all: true },
+        });
+        await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(summary));
+      }
+    } catch (cacheError) {
+      console.warn('[Redis Cache] Fallback to direct query:', cacheError);
     }
-  } catch (cacheError) {
-    console.warn('[Redis Cache] Fallback to direct query:', cacheError);
+  }
+
+  // Always ensure we have fresh data if cache miss or Redis unavailable
+  if (!summary) {
     summary = await prisma.transaction.groupBy({
       by: ['status'],
       _count: { _all: true },
