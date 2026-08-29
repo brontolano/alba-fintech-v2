@@ -1,6 +1,6 @@
 'use client';
 
-import { Bot, Send, Loader2 } from 'lucide-react';
+import { Bot, Send, Loader2, Bell, BellPlus, Sparkles, X } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
@@ -9,6 +9,22 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  metadata?: {
+    suggestedBroadcast?: {
+      title: string;
+      message: string;
+      type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
+      priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+    };
+  };
+}
+
+// Broadcast composer state
+interface BroadcastDraft {
+  title: string;
+  message: string;
+  type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
 }
 
 export default function AIAssistantPage() {
@@ -18,6 +34,9 @@ export default function AIAssistantPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showBroadcastComposer, setShowBroadcastComposer] = useState(false);
+  const [broadcastDraft, setBroadcastDraft] = useState<BroadcastDraft | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     // Load persisted chat dari localStorage
@@ -108,7 +127,15 @@ export default function AIAssistantPage() {
         role: 'assistant',
         content: data.message || 'Tidak ada respons dari AI.',
         timestamp: new Date(),
+        metadata: data.suggestedBroadcast ? { suggestedBroadcast: data.suggestedBroadcast } : undefined,
       };
+
+      // If AI suggests a broadcast draft, show the composer
+      if (data.suggestedBroadcast) {
+        setBroadcastDraft(data.suggestedBroadcast);
+        setShowBroadcastComposer(true);
+      }
+
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
       console.error('[AI Assistant] Error:', error);
@@ -199,6 +226,149 @@ export default function AIAssistantPage() {
           </div>
         </div>
       </div>
+
+      {/* Broadcast Composer Modal */}
+      {showBroadcastComposer && broadcastDraft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden animate-slide-up">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-brand-100 flex items-center justify-center">
+                  <BellPlus size={20} className="text-brand-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Draft Broadcast</h2>
+                  <p className="text-xs text-slate-500">Dibuat oleh AI — silakan edit sebelum mengirim</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowBroadcastComposer(false); setBroadcastDraft(null); }}
+                className="p-2 rounded-lg hover:bg-slate-200 transition text-slate-500"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!broadcastDraft || isSending) return;
+
+              setIsSending(true);
+              try {
+                const draftRes = await fetch('/api/broadcasts', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    title: broadcastDraft.title,
+                    message: broadcastDraft.message,
+                    type: broadcastDraft.type,
+                    priority: broadcastDraft.priority,
+                  }),
+                });
+
+                if (!draftRes.ok) throw new Error('Gagal membuat draft broadcast');
+                const draftData = await draftRes.json();
+                const broadcastId = draftData.data.id;
+
+                const sendRes = await fetch('/api/broadcasts', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'send', broadcastId }),
+                });
+
+                if (!sendRes.ok) throw new Error('Gagal mengirim broadcast');
+
+                toast.success('Broadcast berhasil dikirim ke semua pengguna!');
+                setShowBroadcastComposer(false);
+                setBroadcastDraft(null);
+              } catch (error: any) {
+                toast.error('Gagal mengirim broadcast', { description: error.message });
+              } finally {
+                setIsSending(false);
+              }
+            }} className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Judul</label>
+                <input
+                  type="text"
+                  value={broadcastDraft.title}
+                  onChange={(e) => setBroadcastDraft({ ...broadcastDraft, title: e.target.value })}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Pesan</label>
+                <textarea
+                  value={broadcastDraft.message}
+                  onChange={(e) => setBroadcastDraft({ ...broadcastDraft, message: e.target.value })}
+                  rows={4}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Tipe</label>
+                  <select
+                    value={broadcastDraft.type}
+                    onChange={(e) => setBroadcastDraft({ ...broadcastDraft, type: e.target.value as any })}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  >
+                    <option value="INFO">Info</option>
+                    <option value="SUCCESS">Sukses</option>
+                    <option value="WARNING">Peringatan</option>
+                    <option value="ERROR">Error</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Prioritas</label>
+                  <select
+                    value={broadcastDraft.priority}
+                    onChange={(e) => setBroadcastDraft({ ...broadcastDraft, priority: e.target.value as any })}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  >
+                    <option value="LOW">Rendah</option>
+                    <option value="NORMAL">Normal</option>
+                    <option value="HIGH">Tinggi</option>
+                    <option value="URGENT">Mendesak</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => { setShowBroadcastComposer(false); setBroadcastDraft(null); }}
+                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSending}
+                  className="px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSending ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Mengirim...
+                    </>
+                  ) : (
+                    <>
+                      <Bell size={16} />
+                      Kirim ke Semua Pengguna
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

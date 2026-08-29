@@ -75,7 +75,7 @@ export default function MobileBottomNav({ role, unitId }: MobileBottomNavProps) 
       { href: '/dashboard', label: 'Dashboard', icon: Home },
       { href: `/dashboard/${rolePrefix}/transactions`, label: 'Transaksi', icon: FileText },
       { href: `/dashboard/${rolePrefix}/approvals`, label: 'Approval', icon: ClipboardList, hero: true },
-      { href: `/dashboard/${rolePrefix}/reports`, label: 'Laporan', icon: BarChart3 },
+      { href: `/dashboard/${rolePrefix}/financial-notes`, label: 'Keuangan', icon: FileText },
       { href: `/dashboard/${rolePrefix}/ai-assistant`, label: 'AI', icon: Bot },
     ];
   } else if (isRetailUnit) {

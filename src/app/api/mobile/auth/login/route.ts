@@ -42,6 +42,7 @@ export async function POST(request: Request) {
         passwordHash: true,
         role: true,
         unitId: true,
+        lembagaId: true,
         isActive: true,
       },
     });
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
         id: user.id,
         role: user.role,
         unitId: user.unitId,
+        lembagaId: user.lembagaId,
       },
       secret,
       maxAge: 30 * 24 * 60 * 60, // 30 days

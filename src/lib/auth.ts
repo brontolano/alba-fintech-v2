@@ -11,12 +11,14 @@ declare module 'next-auth' {
       id: string;
       role: UserRole;
       unitId: string | null;
+      lembagaId: string | null;
     } & DefaultSession['user'];
   }
 
   interface User {
     role: UserRole;
     unitId: string | null;
+    lembagaId: string | null;
   }
 }
 
@@ -25,6 +27,7 @@ declare module 'next-auth/jwt' {
     id: string;
     role: UserRole;
     unitId: string | null;
+    lembagaId: string | null;
   }
 }
 
@@ -56,6 +59,7 @@ export const authConfig: AuthOptions = {
           name: user.name,
           role: user.role,
           unitId: user.unitId,
+          lembagaId: user.lembagaId,
         };
       },
     }),
@@ -66,6 +70,7 @@ export const authConfig: AuthOptions = {
         token.id = user.id;
         token.role = user.role;
         token.unitId = user.unitId;
+        token.lembagaId = user.lembagaId;
       }
       return token;
     },
@@ -74,6 +79,7 @@ export const authConfig: AuthOptions = {
         session.user.id = token.id;
         session.user.role = token.role;
         session.user.unitId = token.unitId;
+        session.user.lembagaId = token.lembagaId;
       }
       return session;
     },

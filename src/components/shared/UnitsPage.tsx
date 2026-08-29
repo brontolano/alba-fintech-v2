@@ -12,6 +12,7 @@ interface Unit {
   description?: string;
   isActive: boolean;
   lembagaId?: string;
+  isRetail?: boolean;
   _count?: { users: number; transactions: number };
   createdAt: string;
 }
@@ -22,6 +23,7 @@ interface CreateForm {
   description: string;
   isActive: boolean;
   lembagaId?: string;
+  isRetail: boolean;
 }
 
 interface Lembaga {
@@ -43,6 +45,7 @@ export default function UnitsPage() {
     description: '',
     isActive: true,
     lembagaId: '',
+    isRetail: false,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -85,7 +88,7 @@ export default function UnitsPage() {
 
   const openCreateModal = () => {
     setEditingUnit(null);
-    setForm({ name: '', code: '', description: '', isActive: true, lembagaId: '' });
+    setForm({ name: '', code: '', description: '', isActive: true, lembagaId: '', isRetail: false });
     setShowModal(true);
   };
 
@@ -97,6 +100,7 @@ export default function UnitsPage() {
       description: unit.description ?? '',
       isActive: unit.isActive,
       lembagaId: unit.lembagaId ?? '',
+      isRetail: unit.isRetail ?? false,
     });
     setShowModal(true);
   };
@@ -202,6 +206,7 @@ export default function UnitsPage() {
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Nama</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Lembaga</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Kode</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Tipe</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Status</th>
                   <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">User</th>
                   <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Aksi</th>
@@ -213,6 +218,11 @@ export default function UnitsPage() {
                     <td className="py-3 px-4 font-medium text-slate-800">{u.name}</td>
                     <td className="py-3 px-4 text-sm text-slate-600">{u.lembagaId ? lembagas.find((l) => l.id === u.lembagaId)?.name ?? '-' : '-'}</td>
                     <td className="py-3 px-4 text-sm text-slate-600 font-mono">{u.code}</td>
+                    <td className="py-3 px-4">
+                      <Badge variant={u.isRetail ? 'success' : 'outline'}>
+                        {u.isRetail ? 'Retail (POS+Inventory)' : 'Sederhana'}
+                      </Badge>
+                    </td>
                     <td className="py-3 px-4"><Badge variant={u.isActive ? 'success' : 'outline'}>{u.isActive ? 'Aktif' : 'Non-aktif'}</Badge></td>
                     <td className="py-3 px-4 text-right text-sm text-slate-600">{u._count?.users ?? 0}</td>
                     <td className="py-3 px-4 text-right">
@@ -293,6 +303,33 @@ export default function UnitsPage() {
               placeholder="Deskripsi unit"
               rows={3}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Tipe Unit</label>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="unitType"
+                  checked={!form.isRetail}
+                  onChange={() => setForm({ ...form, isRetail: false })}
+                />
+                <span>Sederhana (Laporan Keuangan)</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="unitType"
+                  checked={form.isRetail}
+                  onChange={() => setForm({ ...form, isRetail: true })}
+                />
+                <span>Retail (Laporan Keuangan + Inventory + POS)</span>
+              </label>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              {form.isRetail ? 'Unit retail memiliki akses ke modul Inventory dan POS' : 'Unit sederhana hanya memiliki laporan keuangan dasar'}
+            </p>
           </div>
 
           <div className="flex items-center gap-2">

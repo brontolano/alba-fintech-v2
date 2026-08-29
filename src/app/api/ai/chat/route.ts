@@ -124,7 +124,82 @@ export async function POST(request: NextRequest) {
       req.end();
     });
 
-    return NextResponse.json({ message: assistantMessage });
+    // Check if assistant response mentions broadcast/notification — suggest a draft
+    const lowerResponse = assistantMessage.toLowerCase();
+    const lowerMessage = message.toLowerCase();
+    const isBroadcastContext = lowerResponse.includes('broadcast') || lowerMessage.includes('broadcast') || lowerMessage.includes('notifikasi') || lowerMessage.includes('kirim');
+
+    let suggestedBroadcast = null;
+    if (isBroadcastContext) {
+      // Generate broadcast draft based on conversation
+      const broadcastDraft = await new Promise<string>((resolve) => {
+        if (!providerURL || !apiKey) {
+          resolve(null as any);
+          return;
+        }
+        const broadcastPrompt = JSON.stringify({
+          model,
+          messages: [
+            ...history.slice(-5).map((h) => ({ role: h.role, content: h.content })),
+            {
+              role: 'user' as const,
+              content: `Berikut adalah percakapan dengan pengguna. Tolong rancangkan 2-3 varian judul dan pesan broadcast yang sesuai untuk dikirim ke seluruh pengguna aplikasi keuangan. Fokus pada ${isBroadcastContext ? 'notifikasi penting dari pimpinan' : 'informasi umum'}. Kembalikan dalam format JSON: {"title": "...", "message": "...", "type": "INFO|SUCCESS|WARNING|ERROR", "priority": "LOW|NORMAL|HIGH|URGENT"}`,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 500,
+        });
+
+        const req = https.request({
+          hostname: parsedUrl.hostname,
+          port: parsedUrl.port,
+          path,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Length': Buffer.byteLength(broadcastPrompt),
+          },
+        }, (res2) => {
+          let body2 = '';
+          res2.on('data', (chunk) => { body2 += chunk; });
+          res2.on('end', () => {
+            try {
+              const data = JSON.parse(body2);
+              resolve(data.choices?.[0]?.message?.content ?? '');
+            } catch {
+              resolve('');
+            }
+          });
+        });
+        req.on('error', () => resolve(''));
+        req.write(broadcastPrompt);
+        req.end();
+      });
+
+      if (broadcastDraft) {
+        try {
+          suggestedBroadcast = JSON.parse(broadcastDraft);
+        } catch {
+          // If AI didn't return valid JSON, create a default draft
+          suggestedBroadcast = {
+            title: 'Pemberitahuan dari Pimpinan',
+            message: 'Assalamu\'alaikum warahmatullahi wabarakatuh. Berikut pesan dari pimpinan untuk seluruh pengguna.',
+            type: 'INFO',
+            priority: 'NORMAL',
+          };
+        }
+      }
+    }
+
+    return NextResponse.json({
+      message: assistantMessage,
+      suggestedBroadcast: suggestedBroadcast,
+      usage: {
+        prompt_tokens: Math.ceil(message.length / 4),
+        completion_tokens: Math.ceil(assistantMessage.length / 4),
+      },
+    });
   } catch (error: any) {
     console.error('[API AI] Error:', error.message);
     return NextResponse.json(

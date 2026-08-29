@@ -8,14 +8,16 @@ datasource db {
 }
 
 model Lembaga {
-  id           String        @id @default(cuid())
-  name         String        @unique
-  code         String?       @unique
-  description  String?
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  units        Unit[]
+  id                   String                   @id @default(cuid())
+  name                 String                   @unique
+  code                 String?                  @unique
+  description          String?
+  isActive             Boolean                  @default(true)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  units                Unit[]
+  users                User[]
+  pimpinanFinancialNotes PimpinanFinancialNote[]
 
   @@map("lembarga")
 }
@@ -33,6 +35,7 @@ model Unit {
   lembaga      Lembaga?       @relation(fields: [lembagaId], references: [id])
   transactions Transaction[]
   users        User[]
+  pimpinanFinancialNotes PimpinanFinancialNote[]
 
   @@index([lembagaId], map: "units_lembaga_id_fkey")
   @@map("units")
@@ -54,11 +57,17 @@ model User {
   auditLogs            AuditLog[]
   notifications        Notification[]
   pushSubscriptions    PushSubscription[]
+  pimpinanFinancialNotes PimpinanFinancialNote[]
+  broadcastMessages    BroadcastMessage[]
+  broadcastRecipients  BroadcastRecipient[]
   transactionsApproved Transaction[]  @relation("TransactionApprover")
   transactionsCreated  Transaction[]  @relation("TransactionCreator")
   unit                 Unit?          @relation(fields: [unitId], references: [id])
+  lembagaId            String?        @map("lembaga_id")
+  lembaga              Lembaga?       @relation(fields: [lembagaId], references: [id])
 
   @@index([unitId], map: "users_unit_id_fkey")
+  @@index([lembagaId], map: "users_lembaga_id_fkey")
   @@map("users")
 }
 
@@ -209,13 +218,105 @@ enum ApprovalStatus {
 }
 
 enum NotificationType {
-enums
   INFO
   SUCCESS
   WARNING
   ERROR
 
   @@map("notification_type")
+}
+
+// ========================================
+// MODEL BARU: PimpinanFinancialNote
+// Catatan keuangan sederhana dari rekonsiliasi Manager → Pimpinan
+// ========================================
+model PimpinanFinancialNote {
+  id            String        @id @default(cuid())
+  unitId        String?       @map("unit_id")
+  lembagaId     String?       @map("lembaga_id")
+  title         String
+  description   String?
+  amount        Float
+  type          FinancialNoteType @default(PEMASUKAN)
+  noteDate      DateTime      @map("note_date")
+  reference     String?
+  isSummary     Boolean       @default(false) @map("is_summary")
+  createdById   String        @map("created_by_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  unit          Unit?         @relation(fields: [unitId], references: [id])
+  lembaga       Lembaga?      @relation(fields: [lembagaId], references: [id])
+  createdBy     User          @relation(fields: [createdById], references: [id])
+
+  @@index([unitId], map: "pfn_unit_id_idx")
+  @@index([lembagaId], map: "pfn_lembaga_id_idx")
+  @@index([noteDate], map: "pfn_note_date_idx")
+  @@index([type, noteDate], map: "pfn_type_date_idx")
+  @@index([isSummary], map: "pfn_is_summary_idx")
+  @@index([createdById], map: "pfn_created_by_idx")
+  @@map("pimpinan_financial_notes")
+}
+
+// ========================================
+// MODEL BARU: BroadcastMessage + BroadcastRecipient
+// Sistem broadcast/push notifikasi dari Pimpinan (dengan bantuan AI)
+// ========================================
+model BroadcastMessage {
+  id                String              @id @default(cuid())
+  title             String
+  message           String
+  type              NotificationType
+  priority          BroadcastPriority   @default(NORMAL)
+  isDraft           Boolean           @default(false) @map("is_draft")
+  isSent            Boolean           @default(false) @map("is_sent")
+  sentAt            DateTime?         @map("sent_at")
+  deliveredTo       Int?              @map("delivered_to")
+  senderId          String            @map("sender_id")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  sender            User              @relation(fields: [senderId], references: [id])
+  broadcastRecipients BroadcastRecipient[]
+
+  @@index([isSent], map: "bm_is_sent_idx")
+  @@index([createdAt], map: "bm_created_at_idx")
+  @@index([senderId], map: "bm_sender_id_idx")
+  @@map("broadcast_messages")
+}
+
+model BroadcastRecipient {
+  id            String        @id @default(cuid())
+  broadcastId   String        @map("broadcast_id")
+  userId        String        @map("user_id")
+  isRead        Boolean       @default(false) @map("is_read")
+  readAt        DateTime?     @map("read_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  broadcast     BroadcastMessage @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id])
+
+  @@unique([broadcastId, userId])
+  @@index([userId])
+  @@index([isRead])
+  @@map("broadcast_recipients")
+}
+
+enum FinancialNoteType {
+  PEMASUKAN
+  PENGELUARAN
+  REKONSILIASI
+
+  @@map("financial_note_type")
+}
+
+enum BroadcastPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+
+  @@map("broadcast_priority")
 }
 
 model PushSubscription {

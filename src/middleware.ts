@@ -13,6 +13,7 @@ const ROLE_HOMES: Record<UserRole, string> = {
 // Path di bawah /dashboard yang bisa diakses semua role yang terautentikasi
 const SHARED_DASHBOARD_PATHS = [
   '/dashboard/rekonsiliasi',
+  '/dashboard/financial-notes',  // Catatan keuangan — akses PIMPINAN (auth check di page)
   '/dashboard/reports',   // Laporan keuangan — akses PIMPINAN (auth check di page)
   '/dashboard/account',   // Halaman akun user — semua role
 ];

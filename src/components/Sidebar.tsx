@@ -52,6 +52,7 @@ const NAV: NavItem[] = [
   { label: 'Transaksi', href: '/transactions', icon: Wallet, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'], badge: 'Core', badgeVariant: 'success' },
   { label: 'Approval', href: '/approvals', icon: CheckSquare, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'], badge: 'Pending', badgeVariant: 'warning' },
   { label: 'Rekonsiliasi', href: '/dashboard/rekonsiliasi', icon: FileText, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'], isAbsolute: true },
+  { label: 'Catatan Keuangan', href: '/dashboard/financial-notes', icon: FileText, roles: ['PIMPINAN', 'MANAGER'], badge: 'BARU', badgeVariant: 'success' },
   { label: 'Inventory / POS', href: '/inventory', icon: Package, roles: ['SUPERADMIN', 'MANAGER', 'STAFF'] },
   { label: 'Laporan', href: '/dashboard/reports', icon: BarChart3, roles: ['PIMPINAN'] },
   { label: 'AI Assistant', href: '/ai-assistant', icon: Bot, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'], badge: 'Beta', badgeVariant: 'info' },

@@ -11,6 +11,7 @@ const createUnitSchema = z.object({
   description: z.string().optional(),
   isActive: z.boolean().optional().default(true),
   lembagaId: z.string().optional(),
+  isRetail: z.boolean().optional().default(false),
 });
 
 const updateUnitSchema = z.object({
@@ -19,6 +20,7 @@ const updateUnitSchema = z.object({
   description: z.string().optional(),
   isActive: z.boolean().optional(),
   lembagaId: z.string().optional(),
+  isRetail: z.boolean().optional(),
 });
 
 // GET /api/units
@@ -42,6 +44,7 @@ export async function GET(request: Request) {
           description: true,
           isActive: true,
           lembagaId: true,
+          isRetail: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -111,7 +114,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, code, description, lembagaId } = parsed.data;
+    const { name, code, description, lembagaId, isRetail } = parsed.data;
 
     // Check for duplicate
     const existing = await prisma.unit.findUnique({
@@ -139,6 +142,7 @@ export async function POST(request: Request) {
         code: code.toUpperCase(),
         description: description || null,
         lembagaId: lembagaId || null,
+        isRetail: isRetail || false,
       },
       select: {
         id: true,
@@ -146,6 +150,7 @@ export async function POST(request: Request) {
         code: true,
         description: true,
         isActive: true,
+        isRetail: true,
         createdAt: true,
         updatedAt: true,
       },
