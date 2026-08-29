@@ -4,8 +4,10 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14.2.18-black?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-6.19.3-2D2743?style=flat-square&logo=prisma)](https://prisma.io/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4472C4?style=flat-square&logo=mysql)](https://mysql.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org/)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square)](https://github.com/brontolano/alba-fintech-v2/actions)
 
-> **ALBA Finance v2** adalah sistem manajemen keuangan berbasis web yang dirancang khusus untuk pesantren dan organisasi non-profit. Sistem ini mendukung pencatatan transaksi, pencatatan buku besar, manajemen unit, persetujuan transaksi (approval workflow), dan laporan keuangan.
+> **ALBA Finance v2** adalah sistem manajemen keuangan berbasis web yang dirancang khusus untuk pesantren dan organisasi non-profit. Sistem ini mendukung pencatatan transaksi, pencatatan buku besar, manajemen unit, persetujuan transaksi (approval workflow), pencatatan keuangan pimpinan, dan broadcast/push notification.
 
 ---
 
@@ -43,21 +45,34 @@
 
 ### Manajemen Unit & User
 - Multi-unit organizational structure
+- Hierarki Lembaga → Unit (Lembaga = induk dari Unit)
+- Unit type: Sederhana (laporan keuangan) dan Retail (laporan keuangan + Inventory + POS)
 - Role-based access control (SUPERADMIN, PIMPINAN, MANAGER, STAFF)
 - User management dengan status aktif/non-aktif
+- Pimpinan dapat melihat laporan keseluruhan berdasarkan unit, tanggal, jenis
+- User terhubung ke lembaga untuk akses scope yang tepat
+
+### Pencatatan Keuangan Pimpinan
+- Pimpinan dapat mencatat pemasukan/pengeluaran langsung
+- Manager dapat melakukan rekonsiliasi laporan menjadi catatan keuangan pimpinan
+- Filtering berdasarkan unit, tanggal, dan jenis catatan
+- Ringkasan (summary cards) untuk total pemasukan, pengeluaran, dan net
+
+### Sistem Broadcast/Push Notification
+- Pimpinan dapat mengirim notifikasi ke seluruh pengguna
+- AI Assistant dapat membantu membuat draft broadcast
+- Dukungan prioritas: LOW, NORMAL, HIGH, URGENT
+- Tracking penerimaan notifikasi per user
 
 ### Point of Sale (POS)
 - Interfeis kasir modern
 - Keranjang belanja (cart) dengan manajemen kuantitas
 - Pemilihan unit dan catatan transaksi
 
-### PWA (Progressive Web App)
-- Instalable di perangkat pengguna
-- Offline support dengan service worker
-- Manifest untuk homescreen installation
-
-### Validasi API
-- Semua API endpoint dilindungi dengan Zod validation
+### Asisten AI
+- Chat berbasis AI untuk bantuan keuangan
+- Deteksi kata kunci broadcast dan generasi draft otomatis
+- Komposer broadcast dengan modal konfirmasi sebelum kirim
 - Response yang konsisten dan terstandardisasi
 - Error handling yang jelas
 
@@ -243,6 +258,23 @@ npm start
 |--------|----------|-------------|------|
 | GET | `/api/accounts` | List chart of accounts | All authenticated users |
 | POST | `/api/accounts` | Create account | SUPERADMIN |
+
+### Financial Notes
+| Method | Endpoint | Description | Role |
+|--------|----------|-------------|------|
+| GET | `/api/financial-notes` | List financial notes (filtered by role) | PIMPINAN, MANAGER |
+| POST | `/api/financial-notes` | Create financial note | PIMPINAN, MANAGER |
+
+### Broadcasts
+| Method | Endpoint | Description | Role |
+|--------|----------|-------------|------|
+| GET | `/api/broadcasts` | List broadcast messages | All authenticated users |
+| POST | `/api/broadcasts` | Create draft or send broadcast | PIMPINAN (send), all roles (draft) |
+
+### AI
+| Method | Endpoint | Description | Role |
+|--------|----------|-------------|------|
+| POST | `/api/ai/chat` | AI chat with broadcast draft suggestion | PIMPINAN, MANAGER |
 
 ---
 
