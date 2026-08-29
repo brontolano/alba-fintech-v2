@@ -49,6 +49,43 @@
 - [x] POS page (cart, unit selection, transaction submission)
 - [x] AI Assistant page (placeholder)
 
+## 2025-08-30 - Phase 5: Lembaga → Unit Hierarchy Restructure
+
+### Schema (Prisma)
+- [x] Tambah field `lembagaId` + inverse relation `lembaga` ke model `User`
+- [x] Tambah inverse relation `users` ke model `Lembaga`
+- [x] Tambah model `PimpinanFinancialNote` (lembaga/unit level, type: PEMASUKAN/PENGELUARAN/REKONSILIASI, isSummary)
+- [x] Tambah model `BroadcastMessage` (draft, send, priority, type)
+- [x] Tambah model `BroadcastRecipient` (pivot broadcast → user)
+- [x] Tambah enum `FinancialNoteType`, `BroadcastPriority`
+- [x] Field `isRetail` di Unit (mengganti konsep unitType — radio button SIMPLE/RETAIL)
+- [x] `prisma generate` berhasil
+
+### Auth & Session
+- [x] Session augmentation: `lembagaId` di `Session.user`, `User`, `JWT` interfaces
+- [x] JWT callback & session callback mengikat `lembagaId`
+- [x] Mobile login API: token dan query include `lembagaId`
+
+### API Endpoints
+- [x] `/api/financial-notes` — GET (filtered by role: PIMPINAN lihat by lembaga, MANAGER lihat by unit), POST (RBAC PIMPINAN/MANAGER)
+- [x] `/api/broadcasts` — GET (role-based views), POST (draft creation + send action)
+- [x] `/api/units` — `isRetail` di Zod schema + handlers (unitType dihapus, pakai boolean sederhana)
+- [x] `/api/ai/chat` — broadcast keyword detection, draft suggestion generation
+
+### UI Components
+- [x] `AIAssistantPage.tsx` — broadcast composer modal (create → send flow)
+- [x] `UnitsPage.tsx` — radio button isRetail, form default fixed
+- [x] `Sidebar.tsx` — link "Catatan Keuangan" → `/dashboard/financial-notes`
+- [x] `MobileBottomNav.tsx` — "Financial Notes" mengganti "Reports" untuk PIMPINAN
+- [x] `src/app/dashboard/pimpinan/financial-notes/page.tsx` — halaman lengkap (filter, summary cards, modal create)
+
+### Middleware & RBAC
+- [x] Middleware: path `/dashboard/financial-notes` ditambahkan ke SHARED_DASHBOARD_PATHS
+
+### Build Verification
+- [x] `npx tsc --noEmit` — **0 error**
+- [x] `npx next build` — **berhasil**
+
 ### 2026-08-28 - Phase 5: Performance Optimization
 - [x] Image optimization: Replace `<img>` → `<Image />` (LoginForm, page, Sidebar, TransactionsPage)
 - [x] Redis caching: 5-min TTL for reports:transaction-summary (ioredis installed)
