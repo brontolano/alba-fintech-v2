@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Package, Plus, Search, Edit, Trash2, Upload, Download, RefreshCw } from 'lucide-react';
+import { Package, Plus, Search, Edit, Trash2, Upload, Download, RefreshCw, X, Save, ChevronDown, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 
@@ -21,6 +21,16 @@ interface InventoryItem {
   createdAt: string;
 }
 
+interface AddItemForm {
+  name: string;
+  sku: string;
+  unitId: string;
+  currentStock: number;
+  minStock: number;
+  unitPrice?: number;
+  category?: string;
+}
+
 export default function InventoryPage() {
   const { data: session, status } = useSession({ required: true });
   const role = session?.user?.role as string | undefined;
@@ -35,7 +45,28 @@ export default function InventoryPage() {
   const [sortKey, setSortKey] = useState<'name' | 'category' | 'currentStock' | 'unitPrice'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
+  // Selection state for bulk actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemsToDelete, setItemsToDelete] = useState<InventoryItem[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Add item form state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addItemForm, setAddItemForm] = useState<AddItemForm>({
+    name: '',
+    sku: '',
+    unitId: '',
+    currentStock: 0,
+    minStock: 0,
+    unitPrice: undefined,
+    category: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const isSuperadmin = role === 'SUPERADMIN';
+  const hasSelectedItems = selectedIds.size > 0;
+  const selectedCount = hasSelectedItems ? selectedIds.size : 0;
 
   // Load lembaga list (superadmin only, for dropdown)
   const fetchLembagas = useCallback(async () => {
@@ -113,6 +144,100 @@ export default function InventoryPage() {
     }
   };
 
+  // Selection handlers
+  const toggleSelectItem = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (hasSelectedItems) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((i) => i.id)));
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    const selectedItems = filtered.filter((i) => selectedIds.has(i.id));
+    if (selectedItems.length === 0) return;
+
+    setItemsToDelete(selectedItems);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const promises = Array.from(selectedIds).map((id) => {
+        return fetch(`/api/inventory/${id}`, {
+          method: 'DELETE',
+        });
+      });
+
+      await Promise.all(promises);
+      toast.success(`Berhasil menghapus ${selectedIds.size} item`);
+      setSelectedIds(new Set());
+      setItemsToDelete([]);
+      setShowDeleteConfirm(false);
+      fetchItems();
+    } catch (err: any) {
+      toast.error('Gagal menghapus item: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setItemsToDelete([]);
+    setShowDeleteConfirm(false);
+  };
+
+  // Handle add item submit
+  const handleAddItem = async () => {
+    if (!addItemForm.name || !addItemForm.sku || !addItemForm.unitId) {
+      toast.error('Nama, SKU, dan Unit harus diisi');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(addItemForm),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal menambahkan item');
+      }
+
+      toast.success('Item inventaris berhasil ditambahkan');
+      setShowAddModal(false);
+      setAddItemForm({
+        name: '',
+        sku: '',
+        unitId: lembagaFilter ? units.find(u => u.lembagaId === lembagaFilter)?.id || '' : units[0]?.id || '',
+        currentStock: 0,
+        minStock: 0,
+        unitPrice: undefined,
+        category: '',
+      });
+      fetchItems(); // Refresh items list
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal menambahkan item inventaris');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const filtered = useMemo(() => {
     const searched = search
       ? items.filter((i) =>
@@ -139,7 +264,7 @@ export default function InventoryPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
+      {/* Header with Bulk Actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Package size={24} className="text-brand-600" />
@@ -150,7 +275,7 @@ export default function InventoryPage() {
         </div>
         {isSuperadmin && (
           <button
-            onClick={() => toast.info('Fitur tambah barang akan tersedia di versi mendatang')}
+            onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition flex items-center gap-2"
           >
             <Plus size={16} />
@@ -161,7 +286,7 @@ export default function InventoryPage() {
 
       {/* Filter Row: Lembaga + Unit Search */}
       {isSuperadmin && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Lembaga</label>
             <select
@@ -182,7 +307,7 @@ export default function InventoryPage() {
               onChange={(e) => setUnitFilter(e.target.value)}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
             >
-            <option value="">Semua Unit</option>
+              <option value="">Semua Unit</option>
               {units
                 .filter((u) => !lembagaFilter || u.lembagaId === lembagaFilter)
                 .map((u) => (
@@ -215,6 +340,212 @@ export default function InventoryPage() {
         </div>
       )}
 
+      {/* Bulk Action Bar */}
+      {hasSelectedItems && (
+        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <span className="text-sm font-medium text-blue-800">
+            {selectedCount} item{selectedCount > 1 ? 's' : ''} dipilih
+          </span>
+          <button
+            onClick={handleDeleteSelected}
+            className="px-3 py-1.5 text-sm text-white bg-red-600 rounded hover:bg-red-700 transition flex items-center gap-1"
+          >
+            <Trash2 size={14} />
+            Hapus
+          </button>
+          <button
+            onClick={() => {
+              toast.info('Fitur edit massal akan tersedia segera');
+              setSelectedIds(new Set());
+            }}
+            className="px-3 py-1.5 text-sm text-slate-700 bg-white border border-slate-200 rounded hover:bg-slate-50 transition flex items-center gap-1"
+          >
+            <Edit size={14} />
+            Edit
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="ml-auto px-3 py-1.5 text-sm text-slate-600 border border-slate-200 rounded hover:bg-slate-50 transition"
+          >
+            Batal Pilih
+          </button>
+        </div>
+      )}
+
+      {/* Add Item Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <h2 className="text-xl font-semibold text-slate-900">Tambah Barang Inventaris</h2>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-2 hover:bg-slate-100 rounded-full transition"
+              >
+                <X size={20} className="text-slate-600" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* Row 1: Name and SKU */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Nama Barang *</label>
+                  <input
+                    type="text"
+                    placeholder="Masukkan nama barang"
+                    value={addItemForm.name}
+                    onChange={(e) => setAddItemForm({ ...addItemForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">SKU *</label>
+                  <input
+                    type="text"
+                    placeholder="Masukkan SKU"
+                    value={addItemForm.sku}
+                    onChange={(e) => setAddItemForm({ ...addItemForm, sku: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Row 2: Unit Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Unit *</label>
+                <select
+                  value={addItemForm.unitId}
+                  onChange={(e) => setAddItemForm({ ...addItemForm, unitId: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+                >
+                  <option value="">Pilih Unit</option>
+                  {units.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.code})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Row 3: Stock and Price */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Stok Awal</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={addItemForm.currentStock}
+                    onChange={(e) => setAddItemForm({ ...addItemForm, currentStock: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Harga Satuan</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={addItemForm.unitPrice ?? ''}
+                    onChange={(e) => setAddItemForm({ ...addItemForm, unitPrice: parseFloat(e.target.value) || undefined })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Row 4: Min Stock and Category */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Min Stok</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={addItemForm.minStock}
+                    onChange={(e) => setAddItemForm({ ...addItemForm, minStock: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Kategori</label>
+                  <input
+                    type="text"
+                    placeholder="Misal: Makanan, Minuman, Perlengkapan"
+                    value={addItemForm.category ?? ''}
+                    onChange={(e) => setAddItemForm({ ...addItemForm, category: e.target.value || undefined })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 p-6 border-t border-slate-200">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleAddItem}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Simpan
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Konfirmasi Hapus</h3>
+              <p className="text-sm text-slate-600 mb-4">
+                Anda yakin ingin menghapus {itemsToDelete.length} item{itemsToDelete.length > 1 ? 's' : ''} ini?
+                Tindakan ini tidak dapat dibatalkan.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={cancelDelete}
+                  className="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Menghapus...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={16} />
+                      Ya, Hapus
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <div className="space-y-3">
@@ -233,6 +564,14 @@ export default function InventoryPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
+                <th className="w-8 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={hasSelectedItems && filtered.length > 0}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border border-slate-300 focus:ring-2 focus:ring-brand-500"
+                  />
+                </th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs cursor-pointer" onClick={() => handleSort('name')}>
                   Nama Barang {sortKey === 'name' && (sortDir === 'desc' ? '↓' : '↑')}
                 </th>
@@ -249,13 +588,23 @@ export default function InventoryPage() {
                   Kategori {sortKey === 'category' && (sortDir === 'desc' ? '↓' : '↑')}
                 </th>
                 <th className="text-center py-3 px-4 font-medium text-slate-500 uppercase text-xs">Status</th>
+                <th className="w-8 px-3 py-3"></th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((item) => {
                 const st = getStatus(item);
+                const isSelected = selectedIds.has(item.id);
                 return (
-                  <tr key={item.id} className="border-b border-slate-50 hover:bg-slate-50">
+                  <tr key={item.id} className={`border-b border-slate-50 hover:bg-slate-50 ${isSelected ? 'bg-blue-50' : ''}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectItem(item.id)}
+                        className="w-4 h-4 rounded border border-slate-300 focus:ring-2 focus:ring-brand-500"
+                      />
+                    </td>
                     <td className="py-3 px-4 font-medium text-slate-800">{item.name}</td>
                     <td className="py-3 px-4 text-sm text-slate-600">{item.sku ?? '—'}</td>
                     <td className="py-3 px-4 text-sm text-slate-600">{item.unit.name} ({item.unit.code})</td>
@@ -265,6 +614,16 @@ export default function InventoryPage() {
                     <td className="py-3 px-4 text-sm text-slate-600">{item.category ?? '—'}</td>
                     <td className="py-3 px-4 text-center">
                       <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${st.cls}`}>{st.label}</span>
+                    </td>
+                    <td className="py-3 px-3">
+                      {isSuperadmin && (
+                        <button
+                          onClick={() => toast.info('Fitur edit akan tersedia sebentar')}
+                          className="p-1 hover:bg-slate-100 rounded transition"
+                        >
+                          <Edit size={16} className="text-slate-600" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
