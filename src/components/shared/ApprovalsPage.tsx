@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { CheckSquare, RefreshCw, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
+import { CheckSquare, RefreshCw, AlertCircle, Trash2, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, Badge, Modal, Button } from '@/components/ui';
 
 type SortKey = 'createdAt' | 'amount' | 'status';
 type SortDir = 'asc' | 'desc';
@@ -31,6 +31,12 @@ export default function ApprovalsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  
+  // Bulk action state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [itemsToDelete, setItemsToDelete] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchApprovals = async () => {
@@ -80,9 +86,64 @@ export default function ApprovalsPage() {
           a.id === id ? { ...a, status: action === 'approve' ? 'APPROVED' : 'REJECTED' } : a
         )
       );
+      setSelectedIds((prev) => prev.filter((itemId) => itemId !== id));
     } finally {
       setActionLoading(null);
     }
+  };
+
+  // Bulk action handlers
+  const toggleSelectItem = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === sortedApprovals.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(sortedApprovals.map((a) => a.id));
+    }
+  };
+
+  const handleBulkAction = async (action: 'approve' | 'reject') => {
+    if (selectedIds.length === 0) return;
+    
+    setIsDeleting(true);
+    try {
+      await Promise.all(
+        selectedIds.map((id) =>
+          fetch('/api/approvals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transactionId: id, action }),
+          })
+        )
+      );
+      setApprovals((prev) =>
+        prev.filter((a) => !selectedIds.includes(a.id))
+      );
+      setSelectedIds([]);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const confirmBulkAction = (action: 'approve' | 'reject') => {
+    setItemsToDelete(selectedIds);
+    setShowBulkDeleteConfirm(true);
+  };
+
+  const executeBulkAction = (action: 'approve' | 'reject') => {
+    handleBulkAction(action);
+    setShowBulkDeleteConfirm(false);
+    setItemsToDelete([]);
+  };
+
+  const cancelDelete = () => {
+    setShowBulkDeleteConfirm(false);
+    setItemsToDelete([]);
   };
 
   const formatCurrency = (amount: number) =>
@@ -116,41 +177,123 @@ export default function ApprovalsPage() {
             <CardTitle className="text-lg">Permintaan Persetujuan ({sortedApprovals.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-slate-100">
-              {sortedApprovals.map((app) => (
-                <div key={app.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <Badge variant="warning">{app.status}</Badge>
-                      <span className="font-medium text-slate-800">{app.transaction.description}</span>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-sm text-slate-600">
-                      <div><span className="text-slate-400">Jumlah:</span> {formatCurrency(app.transaction.amount)}</div>
-                      <div><span className="text-slate-400">Unit:</span> {app.transaction.unit?.code ?? '-'}</div>
-                      <div><span className="text-slate-400">Oleh:</span> {app.transaction.createdBy?.name ?? app.transaction.createdBy?.email ?? '-'}</div>
-                      <div><span className="text-slate-400">Tanggal:</span> {new Date(app.createdAt).toLocaleDateString('id-ID')}</div>
-                    </div>
-                  </div>
-                  <div className="ml-4 flex gap-2">
-                    <button
-                      onClick={() => handleAction(app.id, 'reject')}
-                      disabled={actionLoading === app.id}
-                      className="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50"
-                    >
-                      Tolak
-                    </button>
-                    <button
-                      onClick={() => handleAction(app.id, 'approve')}
-                      disabled={actionLoading === app.id}
-                      className="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50"
-                    >
-                      Setujui
-                    </button>
-                  </div>
+            {/* Bulk Action Bar */}
+            {selectedIds.length > 0 && (
+              <div className="flex items-center justify-between p-4 bg-slate-50 border-b border-slate-200">
+                <span className="text-sm text-slate-600">
+                  {selectedIds.length} item{selectedIds.length > 1 ? 's' : ''} dipilih
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => confirmBulkAction('reject')}
+                    disabled={isDeleting}
+                  >
+                    Tolak Semua
+                  </Button>
+                  <Button
+                    variant="success"
+                    size="sm"
+                    onClick={() => confirmBulkAction('approve')}
+                    disabled={isDeleting}
+                  >
+                    Setujui Semua
+                  </Button>
                 </div>
-              ))}
+              </div>
+            )}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-2 text-xs text-slate-500 text-center">
+                      <button
+                        onClick={toggleSelectAll}
+                        className="flex items-center gap-1 hover:text-slate-700"
+                      >
+                        {selectedIds.length === sortedApprovals.length ? (
+                          <CheckSquare className="w-4 h-4" />
+                        ) : (
+                          <div className="w-4 h-4 border-2 border-slate-300 rounded" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-4 py-2 text-xs text-slate-500">Deskripsi</th>
+                    <th className="px-4 py-2 text-xs text-slate-500 text-right">Jumlah</th>
+                    <th className="px-4 py-2 text-xs text-slate-500">Unit</th>
+                    <th className="px-4 py-2 text-xs text-slate-500">Tanggal</th>
+                    <th className="px-4 py-2 text-xs text-slate-500 text-center">Status</th>
+                    <th className="px-4 py-2 text-xs text-slate-500">Tindakan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {sortedApprovals.map((app) => (
+                    <tr key={app.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(app.id)}
+                          onChange={() => toggleSelectItem(app.id)}
+                          className="w-4 h-4 rounded border-slate-300"
+                        />
+                      </td>
+                      <td className="px-4 py-2">{app.transaction.description}</td>
+                      <td className="px-4 py-2 text-right font-medium">{formatCurrency(app.transaction.amount)}</td>
+                      <td className="px-4 py-2">{app.transaction.unit?.code ?? '-'}</td>
+                      <td className="px-4 py-2">{new Date(app.createdAt).toLocaleDateString('id-ID')}</td>
+                      <td className="px-4 py-2 text-center">
+                        <Badge variant="warning">{app.status}</Badge>
+                      </td>
+                      <td className="px-4 py-2">
+                        {actionLoading === app.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleAction(app.id, 'reject')}
+                              className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+                            >
+                              Tolak
+                            </button>
+                            <button
+                              onClick={() => handleAction(app.id, 'approve')}
+                              className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
+                            >
+                              Setujui
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </CardContent>
+          
+          {/* Delete Confirmation Modal */}
+          <Modal
+            open={showBulkDeleteConfirm}
+            onOpenChange={setShowBulkDeleteConfirm}
+            title="Konfirmasi Bulk Action"
+            description={`Anda yakin ingin menolak ${itemsToDelete.length} transaksi yang dipilih?`}
+          >
+            <div className="flex gap-3 justify-end mt-4">
+              <Button variant="outline" onClick={cancelDelete}>
+                Batal
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => executeBulkAction('reject')}
+                disabled={isDeleting}
+              >
+                {isDeleting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Tolak Semua
+              </Button>
+            </div>
+          </Modal>
         </Card>
       )}
     </div>

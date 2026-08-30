@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Building, Plus, Search, Edit, Trash2, Users } from 'lucide-react';
+import { Building, Plus, Search, Edit, Trash2, Users, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Modal, Button } from '@/components/ui';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -46,6 +46,12 @@ export default function LembagaPage() {
     isActive: true,
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Selection state for bulk actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemsToDelete, setItemsToDelete] = useState<Lembaga[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -194,9 +200,60 @@ export default function LembagaPage() {
       }
       toast.success('Lembaga berhasil dihapus');
       setLembagas(lembagas.filter((l) => l.id !== lembaga.id));
+      setSelectedIds(new Set());
     } catch (err: any) {
       toast.error(err.message || 'Gagal menghapus lembaga');
     }
+  };
+
+  const toggleSelectItem = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((l) => l.id)));
+    }
+  };
+
+  const hasSelectedItems = selectedIds.size > 0;
+
+  const handleBulkDelete = () => {
+    if (filtered.length === 0) return;
+    setItemsToDelete(filtered);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const promises = Array.from(selectedIds).map((id) => {
+        return fetch(`/api/lembaga/${id}`, { method: 'DELETE' });
+      });
+      await Promise.all(promises);
+      toast.success(`Berhasil menghapus ${selectedIds.size} lembaga`);
+      setLembagas(lembagas.filter((l) => !selectedIds.has(l.id)));
+      setSelectedIds(new Set());
+      setItemsToDelete([]);
+      setShowDeleteConfirm(false);
+    } catch (err: any) {
+      toast.error('Gagal menghapus beberapa lembaga');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setItemsToDelete([]);
+    setShowDeleteConfirm(false);
   };
 
   return (
@@ -238,6 +295,31 @@ export default function LembagaPage() {
         </Card>
       ) : (
         <Card>
+          {/* Bulk Action Bar */}
+          {hasSelectedItems && (
+            <div className="flex items-center justify-between bg-amber-50 border-b border-amber-100 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={hasSelectedItems}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
+                />
+                <span className="text-sm font-medium text-amber-900">
+                  {selectedIds.size} dipilih
+                </span>
+              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Hapus yang Dipilih
+              </Button>
+            </div>
+          )}
           <CardHeader>
             <CardTitle className="text-lg">Daftar Lembaga ({filtered.length})</CardTitle>
           </CardHeader>
@@ -245,6 +327,14 @@ export default function LembagaPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
+                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">
+                  <input
+                    type="checkbox"
+                    checked={hasSelectedItems}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
+                  />
+                </th>
                 <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('name')}>
                   Nama Lembaga <SortIcon dir={sortDir === 'desc' && sortKey === 'name' ? 'desc' : 'asc'} />
                 </th>
@@ -267,6 +357,14 @@ export default function LembagaPage() {
                   const totalUsers = lembagaUnits.reduce((sum, u) => sum + (u.userCount ?? 0), 0);
                   return (
                     <tr key={l.id} className="border-b border-slate-50 hover:bg-slate-50">
+                      <td className="py-3 px-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(l.id)}
+                          onChange={() => toggleSelectItem(l.id)}
+                          className="h-4 w-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
+                        />
+                      </td>
                       <td className="py-3 px-4 font-medium text-slate-800">{l.name}</td>
                       <td className="py-3 px-4 text-sm text-slate-600 font-mono">{l.code ?? '-'}</td>
                       <td className="py-3 px-4"><Badge variant={l.isActive ? 'success' : 'outline'}>{l.isActive ? 'Aktif' : 'Non-aktif'}</Badge></td>
@@ -369,6 +467,41 @@ export default function LembagaPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Bulk Delete Confirmation Modal */}
+      <Modal open={showDeleteConfirm} onClose={cancelDelete} title="Konfirmasi Hapus Bulk">
+        <div className="space-y-4">
+          <p className="text-slate-600">
+            Anda yakin ingin menghapus <strong>{itemsToDelete.length}</strong> lembaga yang dipilih?
+            <br />
+            <span className="text-sm text-slate-500">Tindakan ini tidak dapat dibatalkan.</span>
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={cancelDelete}
+              className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition"
+              disabled={isDeleting}
+            >
+              Batal
+            </button>
+            <Button
+              variant="destructive"
+              loading={isDeleting}
+              disabled={isDeleting}
+              onClick={confirmBulkDelete}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Menghapus...
+                </>
+              ) : (
+                'Hapus Semua'
+              )}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

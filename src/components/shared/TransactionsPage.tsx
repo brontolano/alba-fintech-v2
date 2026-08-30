@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 
-import { Wallet, Plus, Search, Eye, Trash2 } from 'lucide-react';
+import { Wallet, Plus, Search, Eye, Trash2, ChevronDown, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Modal, Button, Badge, Select, TransactionStatusBadge, TransactionTypeBadge } from '@/components/ui';
 import { toast } from 'sonner';
 
@@ -66,6 +66,12 @@ export default function TransactionsPage() {
   const [lembagas, setLembagas] = useState<{ id: string; name: string }[]>([]);
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  // Selection state for bulk actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemsToDelete, setItemsToDelete] = useState<Transaction[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -224,10 +230,62 @@ export default function TransactionsPage() {
       }
       toast.success('Transaksi dihapus');
       setTransactions(transactions.filter((t) => t.id !== tx.id));
+      setSelectedIds(new Set());
     } catch (err: any) {
       toast.error(err.message || 'Gagal menghapus transaksi');
     }
   };
+
+  // Bulk action handlers
+  const toggleSelectItem = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((t) => t.id)));
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (filtered.length === 0) return;
+    setItemsToDelete(filtered);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteSelected = async () => {
+    setIsDeleting(true);
+    try {
+      const promises = Array.from(selectedIds).map((id) => {
+        return fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+      });
+      await Promise.all(promises);
+      toast.success(`Berhasil menghapus ${selectedIds.size} transaksi`);
+      setTransactions(transactions.filter((t) => !selectedIds.has(t.id)));
+      setSelectedIds(new Set());
+      setItemsToDelete([]);
+      setShowDeleteConfirm(false);
+    } catch (err: any) {
+      toast.error('Gagal menghapus beberapa transaksi');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setItemsToDelete([]);
+    setShowDeleteConfirm(false);
+  };
+
+  const hasSelectedItems = selectedIds.size > 0;
 
   const handleView = (tx: Transaction) => {
     toast.info(`${tx.type} - ${tx.description}`, {
@@ -290,6 +348,31 @@ export default function TransactionsPage() {
         </Card>
       ) : (
         <Card>
+          {/* Bulk Action Bar */}
+          {hasSelectedItems && (
+            <div className="flex items-center justify-between bg-blue-50 border-b border-blue-100 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={hasSelectedItems}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-blue-900">
+                  {selectedIds.size} dipilih
+                </span>
+              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteSelected}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Hapus yang Dipilih
+              </Button>
+            </div>
+          )}
           <CardHeader>
             <CardTitle className="text-lg">Daftar Transaksi</CardTitle>
           </CardHeader>
@@ -298,6 +381,14 @@ export default function TransactionsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-100">
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">
+                      <input
+                        type="checkbox"
+                        checked={hasSelectedItems}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                      />
+                    </th>
                     <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">No</th>
                     <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('description')}>
                       Deskripsi {sortKey === 'description' && (sortDir === 'desc' ? '↓' : '↑')}
@@ -321,6 +412,14 @@ export default function TransactionsPage() {
                 <tbody>
                   {filtered.map((tx, idx) => (
                     <tr key={tx.id} className="border-b border-slate-50 hover:bg-slate-50">
+                      <td className="py-3 px-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(tx.id)}
+                          onChange={() => toggleSelectItem(tx.id)}
+                          className="h-4 w-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                        />
+                      </td>
                       <td className="py-3 px-4 text-sm text-slate-500">{idx + 1}</td>
                       <td className="py-3 px-4">
                         <p className="font-medium text-slate-800">{tx.description}</p>
@@ -470,6 +569,46 @@ export default function TransactionsPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Konfirmasi Hapus</h3>
+              <p className="text-sm text-slate-600 mb-4">
+                Anda yakin ingin menghapus {itemsToDelete.length} transaksi{itemsToDelete.length > 1 ? 's' : ''} ini?
+                Tindakan ini tidak dapat dibatalkan.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={cancelDelete}
+                  className="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmDeleteSelected}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Menghapus...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={16} />
+                      Ya, Hapus
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
