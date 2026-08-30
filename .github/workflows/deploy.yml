@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Clean build cache
+        run: rm -rf .next node_modules/.cache
+
       - name: Generate Prisma client
         run: npx prisma generate
 
