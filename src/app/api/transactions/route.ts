@@ -45,6 +45,10 @@ export async function GET(request: Request) {
     const userUnitId = session.user.unitId;
     const userId = session.user.id;
 
+    const url = new URL(request.url);
+    const lembagaFilter = url.searchParams.get('lembagaId');
+    const unitFilter = url.searchParams.get('unitId');
+
     let where: any = {};
 
     if (role === 'STAFF') {
@@ -55,6 +59,14 @@ export async function GET(request: Request) {
       where = { unitId: userUnitId };
     }
     // SUPERADMIN + PIMPINAN: semua (no where filter)
+
+    // Superadmin can filter by lembaga via query param
+    if (role === 'SUPERADMIN' && lembagaFilter) {
+      where.unit = { lembagaId: lembagaFilter };
+    }
+    if (unitFilter) {
+      where.unitId = unitFilter;
+    }
 
     const transactions = await prisma.transaction.findMany({
       where,

@@ -18,6 +18,7 @@ import {
   FileText,
   User,
   BarChart3,
+  Megaphone,
 } from 'lucide-react';
 
 type UserRole = 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF';
@@ -50,13 +51,14 @@ const NAV: NavItem[] = [
   { label: 'Manajemen Lembaga', href: '/lembaga', icon: Building, roles: ['SUPERADMIN'], badge: 'Admin', badgeVariant: 'info' },
   { label: 'Manajemen Unit', href: '/units', icon: Building2, roles: ['SUPERADMIN'], badge: 'Admin', badgeVariant: 'info' },
   { label: 'Transaksi', href: '/transactions', icon: Wallet, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'], badge: 'Core', badgeVariant: 'success' },
-  { label: 'Approval', href: '/approvals', icon: CheckSquare, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'], badge: 'Pending', badgeVariant: 'warning' },
+  { label: 'Approval', href: '/approvals', icon: CheckSquare, roles: ['PIMPINAN', 'MANAGER'], badge: 'Pending', badgeVariant: 'warning' },
   { label: 'Rekonsiliasi', href: '/dashboard/rekonsiliasi', icon: FileText, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'], isAbsolute: true },
   { label: 'Catatan Keuangan', href: '/dashboard/financial-notes', icon: FileText, roles: ['PIMPINAN', 'MANAGER'], badge: 'BARU', badgeVariant: 'success' },
   { label: 'Inventory / POS', href: '/inventory', icon: Package, roles: ['SUPERADMIN', 'MANAGER', 'STAFF'] },
   { label: 'Laporan', href: '/dashboard/reports', icon: BarChart3, roles: ['PIMPINAN'] },
   { label: 'AI Assistant', href: '/ai-assistant', icon: Bot, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'], badge: 'Beta', badgeVariant: 'info' },
   { label: 'Audit Log', href: '/audit', icon: ScrollText, roles: ['SUPERADMIN'] },
+  { label: 'Broadcast', href: '/dashboard/superadmin/broadcasts', icon: Megaphone, roles: ['SUPERADMIN', 'PIMPINAN'], isAbsolute: true },
   { label: 'Akun', href: '/dashboard/account', icon: User, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
 ];
 

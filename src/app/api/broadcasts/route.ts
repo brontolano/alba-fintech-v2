@@ -17,12 +17,13 @@ const listQuerySchema = z.object({
 });
 
 // POST /api/broadcasts
-// Buat draft broadcast baru (dari Pimpinan melalui AI Assistant)
+// Buat draft broadcast baru (dari Pimpinan melalui AI Assistant atau Superadmin)
 const createSchema = z.object({
   title: z.string().min(1, 'Judul wajib diisi').max(200),
   message: z.string().min(1, 'Pesan wajib diisi'),
   type: z.enum(['INFO', 'SUCCESS', 'WARNING', 'ERROR']).default('INFO'),
   priority: z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']).default('NORMAL'),
+  lembagaId: z.string().optional(), // Superadmin can scope to a lembaga
 });
 
 // PATCH /api/broadcasts
@@ -158,9 +159,9 @@ export async function POST(request: NextRequest) {
 
   const role = session.user.role;
 
-  // Only PIMPINAN can create broadcast messages
-  if (role !== 'PIMPINAN') {
-    return NextResponse.json({ error: 'Forbidden — Hanya Pimpinan yang dapat mengirim broadcast' }, { status: 403 });
+  // PIMPINAN or SUPERADMIN can create broadcast messages
+  if (role !== 'PIMPINAN' && role !== 'SUPERADMIN') {
+    return NextResponse.json({ error: 'Forbidden — Hanya Pimpinan atau Superadmin yang dapat mengirim broadcast' }, { status: 403 });
   }
 
   try {
@@ -185,9 +186,14 @@ export async function POST(request: NextRequest) {
 
       const broadcastId = rawBroadcastId;
 
-      // Get all active users
+      // Get all active users, optionally scoped to a lembaga
+      const userWhere: any = { isActive: true };
+      if (broadcast.lembagaId) {
+        userWhere.lembagaId = broadcast.lembagaId;
+      }
+
       const users = await prisma.user.findMany({
-        where: { isActive: true },
+        where: userWhere,
         select: { id: true },
       });
 
@@ -268,7 +274,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Validation failed', details: parsed.error.errors }, { status: 400 });
     }
 
-    const { title, message, type, priority } = parsed.data;
+    const { title, message, type, priority, lembagaId } = parsed.data;
 
     const draft = await prisma.broadcastMessage.create({
       data: {
@@ -279,6 +285,7 @@ export async function POST(request: NextRequest) {
         isDraft: true,
         isSent: false,
         senderId: session.user.id,
+        ...(lembagaId ? { lembagaId } : {}),
       },
     });
 

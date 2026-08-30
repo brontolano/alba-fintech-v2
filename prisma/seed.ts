@@ -46,6 +46,13 @@ async function main() {
     console.log(`  Unit: ${u.name} (${u.retail ? 'retail' : 'non-retail'})`);
   }
 
+  // Set KBARU as child unit of KPAK (parent relationship)
+  await prisma.unit.update({
+    where: { id: createdUnits['KBARU'] },
+    data: { parentId: createdUnits['KPAK'] },
+  });
+  console.log('  Unit: KBARU -> parent KPAK (hierarchy set)');
+
   // --- Users ---
   const pimpinan = await prisma.user.upsert({
     where: { email: 'pimpinan@alba.test' },
@@ -205,15 +212,86 @@ async function main() {
 
   console.log('✅ Seed complete.');
   console.log('');
+
+  // --- Sample Broadcast (draft untuk superadmin, akan dikirim ke semua unit) ---
+  await prisma.broadcastMessage.upsert({
+    where: { id: 'seed-broadcast-welcome' },
+    update: {},
+    create: {
+      id: 'seed-broadcast-welcome',
+      title: 'Selamat Datang di ALBA Finance v2',
+      message: 'Sistem keuangan terbaru siap digunakan. Silakan cek dashboard unit masing-masing.',
+      type: 'INFO' as any,
+      priority: 'NORMAL' as any,
+      isDraft: true,
+      isSent: false,
+      senderId: pimpinan.id,
+      lembagaId: lembaga.id,
+      isActive: true,
+    },
+  });
+  console.log('  Broadcast: draft sambutan (DRAFT, pimpinan)');
+
+  // --- Sample Admin settings for units ---
+  // (placeholder untuk pengaturan unit yang akan dikelola lewat UI superadmin)
+  await prisma.unitSetting.upsert({
+    where: { unitId: createdUnits['KPAK'] },
+    update: {
+      posEnabled: true,
+      inventoryEnabled: true,
+      autoApproval: false,
+    },
+    create: {
+      unitId: createdUnits['KPAK'],
+      posEnabled: true,
+      inventoryEnabled: true,
+      autoApproval: false,
+    },
+  });
+  console.log('  UnitSetting: KPAK (POS+Inventory aktif, auto-approval off)');
+
+  // --- Sample Inventory Item per unit ---
+  await prisma.inventoryItem.createMany({
+    data: [
+      {
+        unitId: createdUnits['UMI'],
+        name: 'Kopi Hitam',
+        sku: 'KOP-001',
+        currentStock: 50,
+        minStock: 10,
+        unitPrice: 5000,
+        category: 'Minuman',
+        isActive: true,
+      },
+      {
+        unitId: createdUnits['KOPBUKU'],
+        name: 'Buku Tulis',
+        sku: 'BK-001',
+        currentStock: 100,
+        minStock: 20,
+        unitPrice: 8000,
+        category: 'Perlengkapan',
+        isActive: true,
+      },
+    ],
+    skipDuplicates: true,
+  });
+  console.log('  Inventory: 2 sample items (UMI kopi, KOPBUKU buku)');
+
+  console.log('✅ Seed complete.');
+  console.log('');
   console.log('Default credentials (password: bismillah):');
-  console.log('  Pimpinan   : pimpinan@alba.test');
+  console.log('  Pimpinan     : pimpinan@alba.test');
   console.log('  Manager KPAK : manager1@alba.test');
   console.log('  Manager UMI  : manager2@alba.test');
   console.log('  Manager KBARU : manager3@alba.test');
   console.log('  Staff KOPBUKU : staff1@alba.test');
   console.log('');
   console.log('Unit info: KPAK & Kantin Umi = retail (POS/Inv aktif); Kantin Baru & Koperasi Buku = non-retail');
+  console.log('Hierarchy: KBARU parent = KPAK');
   console.log('Akun buku besar: 4 akun (Kas Unit, Modal Sendiri, Pendapatan Jualan, Beban Usaha)');
+  console.log('Broadcast: 1 draft info dari pimpinan');
+  console.log('Inventory: 2 sample items di UMI + KOPBUKU');
   console.log('⚠️  Segera ganti password setelah login pertama!');
 }
 
