@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Package, Plus, Search, Edit, Trash2, Upload, Download, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
@@ -32,6 +32,8 @@ export default function InventoryPage() {
   const [unitFilter, setUnitFilter] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [sortKey, setSortKey] = useState<'name' | 'category' | 'currentStock' | 'unitPrice'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const isSuperadmin = role === 'SUPERADMIN';
 
@@ -103,12 +105,32 @@ export default function InventoryPage() {
     }
   };
 
-  const filtered = search
-    ? items.filter((i) =>
-        i.name.toLowerCase().includes(search.toLowerCase()) ||
-        (i.sku ?? '').toLowerCase().includes(search.toLowerCase()),
-      )
-    : items;
+  const handleSort = (key: typeof sortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const filtered = useMemo(() => {
+    const searched = search
+      ? items.filter((i) =>
+          i.name.toLowerCase().includes(search.toLowerCase()) ||
+          (i.sku ?? '').toLowerCase().includes(search.toLowerCase()),
+        )
+      : items;
+    const sorted = [...searched];
+    sorted.sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      if (sortKey === 'name') return dir * a.name.localeCompare(b.name);
+      if (sortKey === 'category') return dir * ((a.category ?? '').localeCompare(b.category ?? ''));
+      if (sortKey === 'currentStock') return dir * (a.currentStock - b.currentStock);
+      return dir * ((a.unitPrice ?? 0) - (b.unitPrice ?? 0));
+    });
+    return sorted;
+  }, [items, search, sortKey, sortDir]);
 
   const getStatus = (item: InventoryItem) => {
     if (item.currentStock === 0) return { label: 'Habis', cls: 'bg-red-100 text-red-700' };
@@ -212,13 +234,21 @@ export default function InventoryPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs">Nama Barang</th>
+                <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs cursor-pointer" onClick={() => handleSort('name')}>
+                  Nama Barang {sortKey === 'name' && (sortDir === 'desc' ? '↓' : '↑')}
+                </th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs">SKU</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs">Unit</th>
-                <th className="text-right py-3 px-4 font-medium text-slate-500 uppercase text-xs">Stok</th>
+                <th className="text-right py-3 px-4 font-medium text-slate-500 uppercase text-xs cursor-pointer" onClick={() => handleSort('currentStock')}>
+                  Stok {sortKey === 'currentStock' && (sortDir === 'desc' ? '↓' : '↑')}
+                </th>
                 <th className="text-right py-3 px-4 font-medium text-slate-500 uppercase text-xs">Min Stok</th>
-                <th className="text-right py-3 px-4 font-medium text-slate-500 uppercase text-xs">Harga</th>
-                <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs">Kategori</th>
+                <th className="text-right py-3 px-4 font-medium text-slate-500 uppercase text-xs cursor-pointer" onClick={() => handleSort('unitPrice')}>
+                  Harga {sortKey === 'unitPrice' && (sortDir === 'desc' ? '↓' : '↑')}
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs cursor-pointer" onClick={() => handleSort('category')}>
+                  Kategori {sortKey === 'category' && (sortDir === 'desc' ? '↓' : '↑')}
+                </th>
                 <th className="text-center py-3 px-4 font-medium text-slate-500 uppercase text-xs">Status</th>
               </tr>
             </thead>

@@ -76,6 +76,12 @@
 - Response yang konsisten dan terstandardisasi
 - Error handling yang jelas
 
+### Pengaturan Sistem (SuperAdmin)
+- **Reset Data** — Hapus semua data kecuali user SUPERADMIN (dengan password konfirmasi)
+- **Export Data** — Unduh seluruh data aplikasi (lembaga, unit, user, transaksi, inventory, broadcast, setting) sebagai file JSON
+- **Import Data** — Upload file JSON backup untuk restore data; mendukung `skipDuplicates` untuk aman
+- Akses melalui menu **Pengaturan** di sidebar SuperAdmin
+
 ---
 
 ## 🛠️ Tech Stack

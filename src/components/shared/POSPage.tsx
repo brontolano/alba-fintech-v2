@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { ShoppingCart, Package, TrendingUp, TrendingDown, Download, RefreshCw, Calendar } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+
+type SortKey = 'description' | 'amount' | 'type' | 'createdAt';
+type SortDir = 'asc' | 'desc';
 
 interface Lembaga { id: string; name: string }
 interface Unit { id: string; name: string; code: string; lembagaId?: string }
@@ -30,6 +33,29 @@ export default function POSPage() {
   const [unitFilter, setUnitFilter] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  const sortedTransactions = useMemo(() => {
+    const sorted = [...transactions];
+    sorted.sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      if (sortKey === 'description') return dir * a.description.localeCompare(b.description);
+      if (sortKey === 'amount') return dir * (a.amount - b.amount);
+      if (sortKey === 'type') return dir * a.type.localeCompare(b.type);
+      return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    });
+    return sorted;
+  }, [transactions, sortKey, sortDir]);
 
   const fetchLembagas = async () => {
     if (!isSuperadmin) return;
@@ -241,16 +267,24 @@ export default function POSPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs">Tanggal</th>
-                <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs">Deskripsi</th>
+                <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs cursor-pointer" onClick={() => handleSort('createdAt')}>
+                  Tanggal {sortKey === 'createdAt' && (sortDir === 'desc' ? '↓' : '↑')}
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs cursor-pointer" onClick={() => handleSort('description')}>
+                  Deskripsi {sortKey === 'description' && (sortDir === 'desc' ? '↓' : '↑')}
+                </th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs">Unit</th>
-                <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs">Tipe</th>
-                <th className="text-right py-3 px-4 font-medium text-slate-500 uppercase text-xs">Jumlah</th>
+                <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs cursor-pointer" onClick={() => handleSort('type')}>
+                  Tipe {sortKey === 'type' && (sortDir === 'desc' ? '↓' : '↑')}
+                </th>
+                <th className="text-right py-3 px-4 font-medium text-slate-500 uppercase text-xs cursor-pointer" onClick={() => handleSort('amount')}>
+                  Jumlah {sortKey === 'amount' && (sortDir === 'desc' ? '↓' : '↑')}
+                </th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500 uppercase text-xs">Status</th>
               </tr>
             </thead>
             <tbody>
-              {transactions.slice(0, 15).map((t) => (
+                {sortedTransactions.slice(0, 15).map((t) => (
                 <tr key={t.id} className="border-b border-slate-50 hover:bg-slate-50">
                   <td className="py-3 px-4 text-sm text-slate-600">{new Date(t.createdAt).toLocaleDateString('id-ID')}</td>
                   <td className="py-3 px-4 font-medium text-slate-800">{t.description}</td>

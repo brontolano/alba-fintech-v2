@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { ScrollText, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
 
@@ -14,10 +14,15 @@ interface AuditLog {
   createdAt: string;
 }
 
+type SortKey = 'action' | 'entity' | 'createdAt';
+type SortDir = 'asc' | 'desc';
+
 export default function AuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -34,13 +39,31 @@ export default function AuditPage() {
     fetchLogs();
   }, []);
 
-  const filtered = search
-    ? logs.filter((l) =>
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  const filteredAndSorted = useMemo(() => {
+    let data = logs;
+    if (search) {
+      data = data.filter((l) =>
         (l.action ?? '').toLowerCase().includes(search.toLowerCase()) ||
         (l.entity ?? '').toLowerCase().includes(search.toLowerCase()) ||
         (l.details ?? '').toLowerCase().includes(search.toLowerCase())
-      )
-    : logs;
+      );
+    }
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...data].sort((a, b) => {
+      if (sortKey === 'action') return dir * a.action.localeCompare(b.action);
+      if (sortKey === 'entity') return dir * a.entity.localeCompare(b.entity);
+      return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    });
+  }, [logs, search, sortKey, sortDir]);
 
   return (
     <div className="space-y-6">
@@ -68,7 +91,7 @@ export default function AuditPage() {
             <div key={i} className="h-12 bg-slate-100 rounded-lg animate-pulse" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : filteredAndSorted.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <ScrollText size={48} className="text-slate-300 mx-auto mb-3" />
@@ -78,20 +101,26 @@ export default function AuditPage() {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Riwayat ({filtered.length})</CardTitle>
+            <CardTitle className="text-lg">Riwayat ({filteredAndSorted.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Aksi</th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Entitas</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('action')}>
+                    Aksi {sortKey === 'action' && (sortDir === 'desc' ? '↓' : '↑')}
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('entity')}>
+                    Entitas {sortKey === 'entity' && (sortDir === 'desc' ? '↓' : '↑')}
+                  </th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Detail</th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Tanggal</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('createdAt')}>
+                    Tanggal {sortKey === 'createdAt' && (sortDir === 'desc' ? '↓' : '↑')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((log) => (
+                {filteredAndSorted.map((log) => (
                   <tr key={log.id} className="border-b border-slate-50">
                     <td className="py-3 px-4"><Badge variant="info">{log.action}</Badge></td>
                     <td className="py-3 px-4 text-sm text-slate-600">{log.entity}</td>

@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Wallet, Plus, Search, Eye, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Modal, Button, Badge, Select, TransactionStatusBadge, TransactionTypeBadge } from '@/components/ui';
 import { toast } from 'sonner';
 
 type UserRole = 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF';
+
+type SortKey = 'description' | 'amount' | 'status' | 'type' | 'createdAt';
+type SortDir = 'asc' | 'desc';
 
 interface Transaction {
   id: string;
@@ -55,6 +58,20 @@ export default function TransactionsPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('STAFF');
+  const [lembagaFilter, setLembagaFilter] = useState('');
+  const [unitFilter, setUnitFilter] = useState('');
+  const [lembagas, setLembagas] = useState<{ id: string; name: string }[]>([]);
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -82,6 +99,16 @@ export default function TransactionsPage() {
     }
   };
 
+  const fetchLembagas = async () => {
+    try {
+      const res = await fetch('/api/lembaga');
+      const data = await res.json();
+      setLembagas(data.data ?? []);
+    } catch (err) {
+      console.error('Error fetching lembaga:', err);
+    }
+  };
+
   const fetchUserRole = async () => {
     try {
       const res = await fetch('/api/auth/session');
@@ -95,6 +122,7 @@ export default function TransactionsPage() {
   useEffect(() => {
     fetchTransactions();
     fetchUserRole();
+    fetchLembagas();
   }, []);
 
   useEffect(() => {
@@ -103,12 +131,27 @@ export default function TransactionsPage() {
     }
   }, [userRole]);
 
-  const filtered = search
-    ? transactions.filter((t) =>
-        t.description.toLowerCase().includes(search.toLowerCase()) ||
-        (t.reference ?? '').toLowerCase().includes(search.toLowerCase())
-      )
-    : transactions;
+  const filtered = useMemo(() => {
+    const byUnit = unitFilter
+      ? transactions.filter((t) => t.unitId === unitFilter)
+      : transactions;
+    const searched = search
+      ? byUnit.filter((t) =>
+          t.description.toLowerCase().includes(search.toLowerCase()) ||
+          (t.reference ?? '').toLowerCase().includes(search.toLowerCase())
+        )
+      : byUnit;
+    const sorted = [...searched];
+    sorted.sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      if (sortKey === 'description') return dir * a.description.localeCompare(b.description);
+      if (sortKey === 'amount') return dir * (a.amount - b.amount);
+      if (sortKey === 'status') return dir * a.status.localeCompare(b.status);
+      if (sortKey === 'type') return dir * a.type.localeCompare(b.type);
+      return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    });
+    return sorted;
+  }, [transactions, search, unitFilter, sortKey, sortDir]);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('id-ID', {
@@ -186,15 +229,31 @@ export default function TransactionsPage() {
         </Button>
       </div>
 
-      <div className="relative max-w-md mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Cari transaksi..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
-        />
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+        <div className="relative max-w-md flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Cari transaksi..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+          />
+        </div>
+        {(userRole === 'SUPERADMIN' || userRole === 'PIMPINAN') && units.length > 0 && (
+          <div className="w-full sm:w-48">
+            <select
+              value={unitFilter}
+              onChange={(e) => setUnitFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+            >
+              <option value="">Semua Unit</option>
+              {units.map((u) => (
+                <option key={u.id} value={u.id}>{u.name} ({u.code})</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -220,11 +279,22 @@ export default function TransactionsPage() {
                 <thead>
                   <tr className="border-b border-slate-100">
                     <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">No</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Deskripsi</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Jenis</th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Jumlah</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Status</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('description')}>
+                      Deskripsi {sortKey === 'description' && (sortDir === 'desc' ? '↓' : '↑')}
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('type')}>
+                      Jenis {sortKey === 'type' && (sortDir === 'desc' ? '↓' : '↑')}
+                    </th>
+                    <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('amount')}>
+                      Jumlah {sortKey === 'amount' && (sortDir === 'desc' ? '↓' : '↑')}
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('status')}>
+                      Status {sortKey === 'status' && (sortDir === 'desc' ? '↓' : '↑')}
+                    </th>
                     <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Unit</th>
+                    <th className="text-center py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('createdAt')}>
+                      Dibuat {sortKey === 'createdAt' && (sortDir === 'desc' ? '↓' : '↑')}
+                    </th>
                     <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Aksi</th>
                   </tr>
                 </thead>

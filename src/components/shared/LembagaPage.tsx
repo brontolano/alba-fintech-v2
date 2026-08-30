@@ -23,11 +23,20 @@ interface CreateForm {
   isActive: boolean;
 }
 
+type SortKey = 'name' | 'code' | 'unitCount' | 'userCount' | 'createdAt';
+type SortDir = 'asc' | 'desc';
+
+function SortIcon({ dir }: { dir: SortDir }) {
+  return <span className="ml-1">{dir === 'asc' ? '↑' : '↓'}</span>;
+}
+
 export default function LembagaPage() {
   const [lembagas, setLembagas] = useState<Lembaga[]>([]);
   const [unitsByLembaga, setUnitsByLembaga] = useState<Record<string, { id: string; name: string; code: string; userCount: number }[]>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showModal, setShowModal] = useState(false);
   const [editingLembaga, setEditingLembaga] = useState<Lembaga | null>(null);
   const [form, setForm] = useState<CreateForm>({
@@ -38,22 +47,46 @@ export default function LembagaPage() {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
   const fetchLembagas = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/lembaga', { headers: { 'Content-Type': 'application/json' } });
+      const [res, usersRes] = await Promise.all([
+        fetch('/api/lembaga', { headers: { 'Content-Type': 'application/json' } }),
+        fetch('/api/users'),
+      ]);
       const data = await res.json();
-      setLembagas(data.data ?? []);
+      const fetchedLembagas = data.data ?? [];
+      const usersData = await usersRes.json();
+      const allUsers = usersData.data ?? [];
 
-      // Fetch units for each lembaga
+      // Fetch units and count users per unit
       const unitsRes = await fetch('/api/units');
       const unitsData = await unitsRes.json();
       const allUnits = unitsData.data ?? [];
 
       const unitMap: Record<string, { id: string; name: string; code: string; userCount: number }[]> = {};
-      lembagas.forEach((l) => {
-        unitMap[l.id] = allUnits.filter((u: any) => u.lembagaId === l.id);
+      fetchedLembagas.forEach((l: any) => {
+        const unitsForLembaga = allUnits
+          .filter((u: any) => u.lembagaId === l.id)
+          .map((u: any) => ({
+            id: u.id,
+            name: u.name,
+            code: u.code ?? '',
+            userCount: allUsers.filter((usr: any) => String(usr.unitId) === String(u.id)).length,
+          }));
+        unitMap[l.id] = unitsForLembaga;
       });
+
+      setLembagas(fetchedLembagas);
       setUnitsByLembaga(unitMap);
     } catch (err) {
       console.error('Error fetching lembaga:', err);
@@ -67,12 +100,35 @@ export default function LembagaPage() {
     fetchLembagas();
   }, []);
 
-  const filtered = search
+  const filtered = (search
     ? lembagas.filter((l) =>
         l.name.toLowerCase().includes(search.toLowerCase()) ||
         (l.code && l.code.toLowerCase().includes(search.toLowerCase()))
       )
-    : lembagas;
+    : lembagas
+  ).sort((a, b) => {
+    let aVal: any, bVal: any;
+    if (sortKey === 'unitCount') {
+      aVal = unitsByLembaga[a.id]?.length ?? 0;
+      bVal = unitsByLembaga[b.id]?.length ?? 0;
+    } else if (sortKey === 'userCount') {
+      aVal = unitsByLembaga[a.id]?.reduce((sum, u) => sum + (u.userCount ?? 0), 0) ?? 0;
+      bVal = unitsByLembaga[b.id]?.reduce((sum, u) => sum + (u.userCount ?? 0), 0) ?? 0;
+    } else if (sortKey === 'name') {
+      aVal = a.name.toLowerCase();
+      bVal = b.name.toLowerCase();
+    } else if (sortKey === 'code') {
+      aVal = (a.code ?? '').toLowerCase();
+      bVal = (b.code ?? '').toLowerCase();
+    } else {
+      aVal = a.createdAt;
+      bVal = b.createdAt;
+    }
+    if (typeof aVal === 'string') {
+      return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
+    return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+  });
 
   const openCreateModal = () => {
     setEditingLembaga(null);
@@ -189,12 +245,20 @@ export default function LembagaPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Nama Lembaga</th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Kode</th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Status</th>
-                  <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Unit</th>
-                  <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">User</th>
-                  <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Aksi</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('name')}>
+                  Nama Lembaga <SortIcon dir={sortDir === 'desc' && sortKey === 'name' ? 'desc' : 'asc'} />
+                </th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('code')}>
+                  Kode
+                </th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Status</th>
+                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('unitCount')}>
+                  Unit <SortIcon dir={sortDir === 'desc' && sortKey === 'unitCount' ? 'desc' : 'asc'} />
+                </th>
+                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('userCount')}>
+                  User <SortIcon dir={sortDir === 'desc' && sortKey === 'userCount' ? 'desc' : 'asc'} />
+                </th>
+                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Aksi</th>
                 </tr>
               </thead>
               <tbody>

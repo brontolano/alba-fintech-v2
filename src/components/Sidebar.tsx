@@ -19,6 +19,7 @@ import {
   User,
   BarChart3,
   Megaphone,
+  Settings,
 } from 'lucide-react';
 
 type UserRole = 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF';
@@ -58,6 +59,7 @@ const NAV: NavItem[] = [
   { label: 'Laporan', href: '/dashboard/reports', icon: BarChart3, roles: ['PIMPINAN'] },
   { label: 'AI Assistant', href: '/ai-assistant', icon: Bot, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'], badge: 'Beta', badgeVariant: 'info' },
   { label: 'Audit Log', href: '/audit', icon: ScrollText, roles: ['SUPERADMIN'] },
+  { label: 'Pengaturan', href: '/dashboard/superadmin/settings', icon: Settings, roles: ['SUPERADMIN'], isAbsolute: true },
   { label: 'Broadcast', href: '/dashboard/superadmin/broadcasts', icon: Megaphone, roles: ['SUPERADMIN', 'PIMPINAN'], isAbsolute: true },
   { label: 'Akun', href: '/dashboard/account', icon: User, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
 ];

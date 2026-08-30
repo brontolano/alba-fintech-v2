@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Building2, Plus, Search, Edit, Trash2, Building } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Modal, Button } from '@/components/ui';
 import { toast } from 'sonner';
+
+type SortKey = 'name' | 'code' | 'lembaga' | 'isRetail';
+type SortDir = 'asc' | 'desc';
 
 interface Unit {
   id: string;
@@ -41,6 +44,9 @@ export default function UnitsPage() {
   const [lembagas, setLembagas] = useState<Lembaga[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [lembagaFilter, setLembagaFilter] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showModal, setShowModal] = useState(false);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   const [form, setForm] = useState<CreateForm>({
@@ -83,13 +89,46 @@ export default function UnitsPage() {
     }
   };
 
-  const filtered = search
-    ? units.filter((u) =>
+  // Filter by lembaga
+  const lembagaFiltered = lembagaFilter
+    ? units.filter((u) => u.lembagaId === lembagaFilter)
+    : units;
+
+  // Search filter
+  const searched = search
+    ? lembagaFiltered.filter((u) =>
         u.name.toLowerCase().includes(search.toLowerCase()) ||
         u.code.toLowerCase().includes(search.toLowerCase()) ||
         (u.lembagaId && lembagas.find((l) => l.id === u.lembagaId)?.name?.toLowerCase().includes(search.toLowerCase()))
       )
-    : units;
+    : lembagaFiltered;
+
+  // Sort
+  const filtered = useMemo(() => {
+    const sorted = [...searched];
+    sorted.sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      if (sortKey === 'name') return dir * a.name.localeCompare(b.name);
+      if (sortKey === 'code') return dir * a.code.localeCompare(b.code);
+      if (sortKey === 'lembaga') {
+        const aName = lembagas.find((l) => l.id === a.lembagaId)?.name ?? '';
+        const bName = lembagas.find((l) => l.id === b.lembagaId)?.name ?? '';
+        return dir * aName.localeCompare(bName);
+      }
+      if (sortKey === 'isRetail') return dir * ((a.isRetail ? 1 : 0) - (b.isRetail ? 1 : 0));
+      return 0;
+    });
+    return sorted;
+  }, [searched, sortKey, sortDir, lembagas]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   const openCreateModal = () => {
     setEditingUnit(null);
@@ -176,15 +215,29 @@ export default function UnitsPage() {
         </Button>
       </div>
 
-      <div className="relative max-w-md mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Cari unit..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
-        />
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+        <div className="relative max-w-md flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Cari unit..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+          />
+        </div>
+        <div className="w-full sm:w-48">
+          <select
+            value={lembagaFilter}
+            onChange={(e) => setLembagaFilter(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+          >
+            <option value="">Semua Lembaga</option>
+            {lembagas.map((l) => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {loading ? (
@@ -209,11 +262,17 @@ export default function UnitsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Nama</th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Lembaga</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('name')}>
+                    Nama {sortKey === 'name' && (sortDir === 'desc' ? '↓' : '↑')}
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('lembaga')}>
+                    Lembaga {sortKey === 'lembaga' && (sortDir === 'desc' ? '↓' : '↑')}
+                  </th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Unit Induk</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Kode</th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Tipe</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('isRetail')}>
+                    Tipe {sortKey === 'isRetail' && (sortDir === 'desc' ? '↓' : '↑')}
+                  </th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Status</th>
                   <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">User</th>
                   <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Aksi</th>

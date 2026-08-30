@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Users, Plus, Search, Edit, Trash2, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Modal, Button, Select } from '@/components/ui';
 import { toast } from 'sonner';
+
+type SortKey = 'name' | 'email' | 'role' | 'createdAt';
+type SortDir = 'asc' | 'desc';
 
 type UserRole = 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF';
 
@@ -60,6 +63,9 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [lembagaFilter, setLembagaFilter] = useState('');
+  const [unitFilter, setUnitFilter] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -117,23 +123,40 @@ export default function UsersPage() {
     fetchUnits();
   }, []);
 
-  const filtered = search
-    ? users.filter((u) =>
-        (u.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
-        (u.email ?? '').toLowerCase().includes(search.toLowerCase())
-      )
-    : users;
+  // Combine filters and search, then sort
+  const filteredAndSearched = useMemo(() => {
+    const byLembaga = lembagaFilter
+      ? users.filter((u) => u.lembagaId === lembagaFilter)
+      : users;
+    const byUnit = unitFilter
+      ? byLembaga.filter((u) => u.unitId === unitFilter)
+      : byLembaga;
+    const searched = search
+      ? byUnit.filter((u) =>
+          (u.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+          (u.email ?? '').toLowerCase().includes(search.toLowerCase())
+        )
+      : byUnit;
+    // Sort
+    const sorted = [...searched];
+    sorted.sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      if (sortKey === 'name') return dir * ((a.name ?? '').localeCompare(b.name ?? ''));
+      if (sortKey === 'email') return dir * a.email.localeCompare(b.email);
+      if (sortKey === 'role') return dir * a.role.localeCompare(b.role);
+      return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    });
+    return sorted;
+  }, [users, lembagaFilter, unitFilter, search, sortKey, sortDir]);
 
-  const filteredByLembaga = lembagaFilter
-    ? users.filter((u) => u.lembagaId === lembagaFilter)
-    : users;
-
-  const filteredAndSearched = search
-    ? filteredByLembaga.filter((u) =>
-        (u.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
-        (u.email ?? '').toLowerCase().includes(search.toLowerCase())
-      )
-    : filteredByLembaga;
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
 
   const openCreateModal = () => {
     setEditingUser(null);
@@ -232,13 +255,24 @@ export default function UsersPage() {
       </div>
 
       {lembagas.length > 0 && (
-        <div className="mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <Select value={lembagaFilter} onValueChange={setLembagaFilter}>
             <option value="">Semua Lembaga</option>
             {lembagas.map((l) => (
               <option key={l.id} value={l.id}>{l.name}</option>
             ))}
           </Select>
+          {lembagaFilter && (
+            <Select value={unitFilter} onValueChange={setUnitFilter}>
+              <option value="">Semua Unit</option>
+              {units
+                .filter((u) => u.lembagaId === lembagaFilter)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))
+              }
+            </Select>
+          )}
         </div>
       )}
 
@@ -264,11 +298,20 @@ export default function UsersPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Nama</th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Email</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('name')}>
+                    Nama {sortKey === 'name' && (sortDir === 'desc' ? '↓' : '↑')}
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('email')}>
+                    Email {sortKey === 'email' && (sortDir === 'desc' ? '↓' : '↑')}
+                  </th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Lembaga</th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Role</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('role')}>
+                    Role {sortKey === 'role' && (sortDir === 'desc' ? '↓' : '↑')}
+                  </th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Status</th>
+                  <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('createdAt')}>
+                    Dibuat {sortKey === 'createdAt' && (sortDir === 'desc' ? '↓' : '↑')}
+                  </th>
                   <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Aksi</th>
                 </tr>
               </thead>
