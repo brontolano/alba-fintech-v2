@@ -227,7 +227,6 @@ async function main() {
       isSent: false,
       senderId: pimpinan.id,
       lembagaId: lembaga.id,
-      isActive: true,
     },
   });
   console.log('  Broadcast: draft sambutan (DRAFT, pimpinan)');

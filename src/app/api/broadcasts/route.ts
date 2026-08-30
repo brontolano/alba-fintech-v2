@@ -82,9 +82,9 @@ export async function GET(request: NextRequest) {
             select: { id: true, name: true, email: true, role: true },
           },
           _count: {
-            select: { broadcastRecipients: true },
+            select: { recipients: true },
           },
-          broadcastRecipients: {
+          recipients: {
             where: { isRead: false },
             select: { userId: true },
           },
@@ -100,6 +100,7 @@ export async function GET(request: NextRequest) {
           message: b.message,
           type: b.type,
           priority: b.priority,
+          status: b.status,
           isDraft: b.isDraft,
           isSent: b.isSent,
           sentAt: b.sentAt,
@@ -107,8 +108,8 @@ export async function GET(request: NextRequest) {
           createdAt: b.createdAt,
           updatedAt: b.updatedAt,
           sender: b.sender,
-          recipientCount: b._count.broadcastRecipients,
-          unreadRecipients: b.broadcastRecipients.map(r => r.userId),
+          recipientCount: b._count.recipients,
+          unreadRecipients: b.recipients.map(r => r.userId),
         })),
       });
     } else {
@@ -137,9 +138,9 @@ export async function GET(request: NextRequest) {
           title: r.broadcast.title,
           message: r.broadcast.message,
           type: r.broadcast.type,
+          status: r.broadcast.status,
           priority: r.broadcast.priority,
           isRead: r.isRead,
-          readAt: r.readAt,
           createdAt: r.broadcast.createdAt,
           sender: r.broadcast.sender,
         })),
@@ -255,8 +256,7 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           title: broadcast.title,
           message: broadcast.message,
-          type: broadcast.type,
-          priority: broadcast.priority,
+          type: broadcast.type as any,
           isRead: false,
         })),
         skipDuplicates: true,
