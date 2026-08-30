@@ -74,7 +74,7 @@ export default async function StaffDashboard() {
             Transaksi besar akan otomatis membutuhkan approval dari Manager atau Pimpinan.
           </p>
           <Link
-            href="/dashboard/transactions"
+            href="/dashboard/staff/transactions"
             className="inline-flex items-center gap-1 mt-4 text-sm text-brand-600 hover:text-brand-700 font-medium"
           >
             Buka halaman Transaksi <ArrowRight size={14} />

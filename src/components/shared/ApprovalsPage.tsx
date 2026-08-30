@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { CheckSquare, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
+
+type SortKey = 'createdAt' | 'amount' | 'status';
+type SortDir = 'asc' | 'desc';
 
 interface Approval {
   id: string;
@@ -26,6 +29,8 @@ export default function ApprovalsPage() {
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   useEffect(() => {
     const fetchApprovals = async () => {
@@ -43,6 +48,24 @@ export default function ApprovalsPage() {
     };
     fetchApprovals();
   }, []);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  const sortedApprovals = useMemo(() => {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...approvals].sort((a, b) => {
+      if (sortKey === 'amount') return dir * (a.transaction.amount - b.transaction.amount);
+      if (sortKey === 'status') return dir * a.status.localeCompare(b.status);
+      return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    });
+  }, [approvals, sortKey, sortDir]);
 
   const handleAction = async (id: string, action: 'approve' | 'reject') => {
     setActionLoading(id);
@@ -80,7 +103,7 @@ export default function ApprovalsPage() {
             <div key={i} className="h-20 bg-slate-100 rounded-lg animate-pulse" />
           ))}
         </div>
-      ) : approvals.length === 0 ? (
+      ) : sortedApprovals.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <CheckSquare size={48} className="text-slate-300 mx-auto mb-3" />
@@ -90,11 +113,11 @@ export default function ApprovalsPage() {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Permintaan Persetujuan ({approvals.length})</CardTitle>
+            <CardTitle className="text-lg">Permintaan Persetujuan ({sortedApprovals.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-slate-100">
-              {approvals.map((app) => (
+              {sortedApprovals.map((app) => (
                 <div key={app.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
                   <div className="flex-1">
                     <div className="flex items-center gap-3">

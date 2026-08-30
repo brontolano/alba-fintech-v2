@@ -69,7 +69,7 @@ export default async function PimpinanDashboard() {
             Buka menu <strong className="text-slate-800">Approval</strong> di sidebar untuk melihat antrian transaksi yang menunggu persetujuan.
           </p>
           <Link
-            href="/dashboard/approvals"
+            href="/dashboard/pimpinan/approvals"
             className="inline-flex items-center gap-1 mt-4 text-sm text-brand-600 hover:text-brand-700 font-medium"
           >
             Buka halaman Approval <ArrowRight size={14} />
