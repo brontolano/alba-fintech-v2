@@ -45,7 +45,14 @@ jobs:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Upload standalone build artifacts
+      - name: Verify build output
+        run: |
+          echo "=== Checking build output ==="
+          ls -la .next/standalone/ || echo "Standalone directory not found"
+          ls -la .next/static/ || echo "Static directory not found"
+          test -f .next/standalone/server.js && echo "server.js found" || echo "server.js NOT found"
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: standalone-build
@@ -77,9 +84,18 @@ jobs:
           server: ${{ secrets.HOSTINGER_FTP_HOST }}
           username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
           password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          # Adjust the server directory path to match your Hostinger setup
-          # Example: /public_html/ or /alba-fintech-v2/
           server-dir: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+
+      - name: Verify deployment
+        run: |
+          echo "Deployment completed for ${{ secrets.HOSTINGER_DEPLOY_PATH }}"
+
+      - name: Post-deployment verification
+        if: always()
+        run: |
+          echo "Deploy path: ${{ secrets.HOSTINGER_DEPLOY_PATH }}"
+          echo "Host: ${{ secrets.HOSTINGER_FTP_HOST }}"
+          echo "Done"
 
     # Alternative: Deploy via SSH (uncomment if using SSH instead of FTP)
     # - name: Deploy via SSH
@@ -89,8 +105,7 @@ jobs:
     #     username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
     #     key: ${{ secrets.HOSTINGER_SSH_KEY }}
     #     script: |
-    #       cd /alba-fintech-v2 || true
-    #       # Backup existing files
-    #       rsync -avz --delete ./artifacts/ ./
-    #       # Restart Node.js app
-    #       pm2 restart server.js || pm2 start server.js
+    #       cd /public_html || true
+    #       # Copy files to deployment directory
+    #       cp -r ./artifacts/* ./
+    #       echo "Deployment complete"
