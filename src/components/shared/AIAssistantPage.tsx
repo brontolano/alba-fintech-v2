@@ -8,7 +8,7 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  timestamp: Date;
+  timestamp: Date | string;  // Date di memory, string di localStorage
   metadata?: {
     suggestedBroadcast?: {
       title: string;
@@ -17,6 +17,18 @@ interface Message {
       priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
     };
   };
+}
+
+// Helper: safely parse timestamp yang bisa jadi Date object, ISO string, atau format lain
+function safeParseTimestamp(ts: Date | string): Date {
+  if (ts instanceof Date) {
+    return isNaN(ts.getTime()) ? new Date() : ts;
+  }
+  if (typeof ts === 'string') {
+    const parsed = new Date(ts);
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
+  }
+  return new Date();
 }
 
 // Broadcast composer state
@@ -45,7 +57,12 @@ export default function AIAssistantPage() {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed);
+          // Convert timestamp string kembali ke Date dari localStorage
+          const normalized = parsed.map((m: any) => ({
+            ...m,
+            timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+          }));
+          setMessages(normalized);
           return;
         }
       } catch {
@@ -183,7 +200,7 @@ export default function AIAssistantPage() {
               >
                 <p className="text-sm leading-relaxed break-words">{message.content}</p>
                 <p className={`text-xs mt-1 opacity-70`}>
-                  {message.timestamp.toLocaleTimeString('id-ID', { 
+                  {safeParseTimestamp(message.timestamp).toLocaleTimeString('id-ID', { 
                     hour: '2-digit', 
                     minute: '2-digit' 
                   })}

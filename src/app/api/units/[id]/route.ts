@@ -11,6 +11,7 @@ const updateUnitSchema = z.object({
   isActive: z.boolean().optional(),
   isRetail: z.boolean().optional(),
   lembagaId: z.string().optional(),
+  parentId: z.string().optional().nullable(),
 });
 
 // GET /api/units/:id
@@ -118,6 +119,7 @@ export async function PATCH(request: Request) {
         code: true,
         description: true,
         isActive: true,
+        lembagaId: true,
       },
     });
 
@@ -147,15 +149,43 @@ export async function PATCH(request: Request) {
       }
     }
 
+    // Validate parentId if provided
+    let validatedParentId: string | null = null;
+    if (parsed.data.parentId !== undefined) {
+      if (parsed.data.parentId) {
+        const parentUnit = await prisma.unit.findUnique({ where: { id: parsed.data.parentId }, select: { id: true, lembagaId: true } });
+        if (!parentUnit) {
+          return NextResponse.json({ error: 'Unit induk tidak ditemukan' }, { status: 404 });
+        }
+        // Ensure parent shares the same lembaga
+        const targetLembagaId = parsed.data.lembagaId ?? existing.lembagaId;
+        if (targetLembagaId && parentUnit.lembagaId && parentUnit.lembagaId !== targetLembagaId) {
+          return NextResponse.json({ error: 'Unit induk harus berada di lembaga yang sama' }, { status: 400 });
+        }
+      }
+      validatedParentId = parsed.data.parentId;
+    }
+
+    // Prevent self-reference as parent
+    if (validatedParentId === id) {
+      return NextResponse.json({ error: 'Unit tidak bisa menjadi induk dirinya sendiri' }, { status: 400 });
+    }
+
+    const updateData: any = { ...parsed.data };
+    if (validatedParentId !== undefined) {
+      updateData.parentId = validatedParentId;
+    }
+
     const updated = await prisma.unit.update({
       where: { id },
-      data: parsed.data,
+      data: updateData,
       select: {
         id: true,
         name: true,
         code: true,
         description: true,
         isActive: true,
+        parentId: true,
         updatedAt: true,
       },
     });

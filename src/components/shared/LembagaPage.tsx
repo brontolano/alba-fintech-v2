@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Building, Plus, Search, Edit, Trash2, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Modal, Button } from '@/components/ui';
+import Link from 'next/link';
 import { toast } from 'sonner';
 
 interface Lembaga {
@@ -205,8 +206,16 @@ export default function LembagaPage() {
                       <td className="py-3 px-4 font-medium text-slate-800">{l.name}</td>
                       <td className="py-3 px-4 text-sm text-slate-600 font-mono">{l.code ?? '-'}</td>
                       <td className="py-3 px-4"><Badge variant={l.isActive ? 'success' : 'outline'}>{l.isActive ? 'Aktif' : 'Non-aktif'}</Badge></td>
-                      <td className="py-3 px-4 text-right text-sm text-slate-600">{lembagaUnits.length}</td>
-                      <td className="py-3 px-4 text-right text-sm text-slate-600">{totalUsers}</td>
+                    <td className="py-3 px-4 text-right text-sm text-slate-600">
+                      <Link href={`/dashboard/superadmin/lembaga/${l.id}`} className="hover:text-brand-600 font-medium">
+                        {lembagaUnits.length} unit
+                      </Link>
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm text-slate-600">
+                      <Link href={`/dashboard/superadmin/lembaga/${l.id}`} className="hover:text-brand-600 font-medium">
+                        {totalUsers} user
+                      </Link>
+                    </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex justify-end gap-1">
                           <button

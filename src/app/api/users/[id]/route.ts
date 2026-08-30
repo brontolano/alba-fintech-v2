@@ -11,6 +11,7 @@ const updateUserSchema = z.object({
   password: z.string().min(6, 'Password minimal 6 karakter').optional(),
   role: z.enum(['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF']).optional(),
   unitId: z.string().nullable().optional(),
+  lembagaId: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -110,6 +111,7 @@ export async function PATCH(request: Request) {
         email: true,
         role: true,
         unitId: true,
+        lembagaId: true,
         isActive: true,
       },
     });
@@ -165,12 +167,27 @@ export async function PATCH(request: Request) {
       }
     }
 
+    // Verify lembaga exists if being changed
+    if (parsed.data.lembagaId) {
+      const lembaga = await prisma.lembaga.findUnique({
+        where: { id: parsed.data.lembagaId },
+        select: { id: true, isActive: true },
+      });
+      if (!lembaga || !lembaga.isActive) {
+        return NextResponse.json(
+          { error: 'Lembaga tidak valid atau tidak aktif' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Build update data
     const updateData: any = {
       ...(parsed.data.name && { name: parsed.data.name }),
       ...(parsed.data.email && { email: parsed.data.email.toLowerCase() }),
       ...(parsed.data.role && { role: parsed.data.role }),
       ...(parsed.data.unitId !== undefined && { unitId: parsed.data.unitId }),
+      ...(parsed.data.lembagaId !== undefined && { lembagaId: parsed.data.lembagaId }),
       ...(parsed.data.isActive !== undefined && { isActive: parsed.data.isActive }),
     };
 
@@ -188,6 +205,7 @@ export async function PATCH(request: Request) {
         email: true,
         role: true,
         unitId: true,
+        lembagaId: true,
         isActive: true,
         updatedAt: true,
       },

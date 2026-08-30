@@ -17,10 +17,12 @@ import kotlinx.coroutines.launch
 
 /**
  * UI state for the Create Transaction screen.
- * Holds form values, validation errors, unit list, and creation state.
+ *
+ * Holds form values (amount, description, selected unit, photo URI, location),
+ * inline validation errors, unit list with loading state, and creation state.
  */
 data class CreateTransactionUiState(
-    // Unit selection
+    // Unit list (from GET /api/units or fallback defaults)
     val units: List<UnitModel> = emptyList(),
     val isLoadingUnits: Boolean = false,
     val selectedUnit: UnitModel? = null,
@@ -38,7 +40,7 @@ data class CreateTransactionUiState(
     // Photo
     val photoUri: Uri? = null,
 
-    // Location
+    // Location (optional, from GPS)
     val latitude: Double? = null,
     val longitude: Double? = null,
 
@@ -57,8 +59,13 @@ sealed class CreateTransactionEvent {
 
 /**
  * ViewModel for the Create Transaction screen.
- * Manages unit list loading (GET /api/units), form state, validation,
- * and transaction creation (POST /api/transactions).
+ *
+ * Responsibilities:
+ * - Load units from GET /api/units (with fallback to default units)
+ * - Hold and manage form state (amount, description, selectedUnit, photoUri, etc.)
+ * - Validate form fields with inline error messages
+ * - Create transaction via POST /api/transactions
+ * - Emit navigation and messaging events
  */
 class CreateTransactionViewModel(
     private val repository: TransactionRepository = AppContainer.getTransactionRepository()
@@ -73,16 +80,16 @@ class CreateTransactionViewModel(
     // ---- Unit Loading ----
 
     /**
-     * Loads units from GET /api/units.
+     * Loads units from the API (GET /api/units).
      * Falls back to a default list if the API call fails.
      */
     fun loadUnits() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingUnits = true, unitError = null) }
-            when (val result = repository.getUnits()) {
+            val result = repository.getUnits()
+            when (result) {
                 is Result.Success -> {
                     val units = if (result.data.isEmpty()) {
-                        // Fallback to default units if API returns empty list
                         defaultUnits()
                     } else {
                         result.data
@@ -90,18 +97,15 @@ class CreateTransactionViewModel(
                     _uiState.update {
                         it.copy(
                             units = units,
-                            isLoadingUnits = false,
-                            unitError = null
+                            isLoadingUnits = false
                         )
                     }
                 }
                 is Result.Error -> {
-                    // Fall back to default units on error
                     _uiState.update {
                         it.copy(
                             units = defaultUnits(),
-                            isLoadingUnits = false,
-                            unitError = null
+                            isLoadingUnits = false
                         )
                     }
                     _eventFlow.value = CreateTransactionEvent.ShowMessage(
@@ -121,7 +125,7 @@ class CreateTransactionViewModel(
         )
     }
 
-    // ---- Form State Mutators ----
+    // ---- Form Mutators ----
 
     fun selectUnit(unit: UnitModel) {
         _uiState.update { it.copy(selectedUnit = unit, unitError = null) }
@@ -163,10 +167,6 @@ class CreateTransactionViewModel(
         _uiState.update { it.copy(latitude = null, longitude = null) }
     }
 
-    fun clearCreationError() {
-        _uiState.update { it.copy(creationError = null) }
-    }
-
     fun clearEvent() {
         _eventFlow.value = null
     }
@@ -175,19 +175,19 @@ class CreateTransactionViewModel(
 
     /**
      * Validates all form fields and sets inline error messages.
-     * Returns true if all fields are valid.
+     * Returns true if all fields pass validation.
      */
     private fun validateForm(): Boolean {
         val state = _uiState.value
         var isValid = true
 
-        // Validate unit selection
+        // Unit must be selected
         if (state.selectedUnit == null) {
             _uiState.update { it.copy(unitError = "Pilih unit terlebih dahulu") }
             isValid = false
         }
 
-        // Validate amount (rejects <= 0)
+        // Amount must be > 0
         val amountDigits = state.amount.replace(Regex("[^\\d]"), "")
         val amountValue = amountDigits.toDoubleOrNull()
         if (amountValue == null || amountValue <= 0) {
@@ -195,7 +195,7 @@ class CreateTransactionViewModel(
             isValid = false
         }
 
-        // Validate description (non-empty)
+        // Description must not be empty
         if (state.description.isBlank()) {
             _uiState.update { it.copy(descriptionError = "Keterangan tidak boleh kosong") }
             isValid = false
@@ -208,13 +208,14 @@ class CreateTransactionViewModel(
 
     /**
      * Validates the form and creates a transaction via POST /api/transactions.
-     * On success, emits a NavigateBack event to return to the transaction list.
+     * On success, emits NavigateBack to return to the transaction list.
+     * On failure, emits ShowMessage with the error.
      */
     fun createTransaction() {
         // Clear any previous creation state
         _uiState.update { it.copy(creationError = null) }
 
-        // Validate form fields
+        // Validate form — inline errors will be set in the state
         if (!validateForm()) return
 
         val state = _uiState.value
@@ -234,8 +235,14 @@ class CreateTransactionViewModel(
         )
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isCreating = true, creationError = null) }
-            when (val result = repository.createTransaction(request)) {
+            _uiState.update {
+                it.copy(
+                    isCreating = true,
+                    creationError = null
+                )
+            }
+            val result = repository.createTransaction(request)
+            when (result) {
                 is Result.Success -> {
                     _uiState.update {
                         it.copy(
@@ -256,7 +263,7 @@ class CreateTransactionViewModel(
                         )
                     }
                     _eventFlow.value = CreateTransactionEvent.ShowMessage(
-                        "Gagal: ${result.message ?: "Unknown error"}"
+                        "Gagal membuat transaksi: ${result.message ?: "Unknown error"}"
                     )
                 }
                 is Result.Loading -> {}

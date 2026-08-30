@@ -46,30 +46,6 @@ import coil.compose.AsyncImage
 import com.brontolano.albafintech.data.model.User
 import com.brontolano.albafintech.data.model.UserRole
 import com.brontolano.albafintech.ui.navigation.AppViewModel
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -266,7 +242,7 @@ fun ProfileScreen(
                         },
                         modifier = androidx.compose.ui.Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(52.dp),
                         colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
                             containerColor = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer,
                             contentColor = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer
@@ -278,7 +254,7 @@ fun ProfileScreen(
                         )
                     }
 
-                    androidx.compose.material3.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
+                    androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
 
                     // Version info
                     androidx.compose.material3.Text(
@@ -336,7 +312,7 @@ fun ProfileMenuItem(
             ) {
                 androidx.compose.material3.Text(
                     text = "Informasi Akun",
-                    style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
                     color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
                 )

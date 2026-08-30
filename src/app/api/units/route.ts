@@ -11,6 +11,7 @@ const createUnitSchema = z.object({
   description: z.string().optional(),
   isActive: z.boolean().optional().default(true),
   lembagaId: z.string().optional(),
+  parentId: z.string().optional(),
   isRetail: z.boolean().optional().default(false),
 });
 
@@ -20,6 +21,7 @@ const updateUnitSchema = z.object({
   description: z.string().optional(),
   isActive: z.boolean().optional(),
   lembagaId: z.string().optional(),
+  parentId: z.string().optional().nullable(),
   isRetail: z.boolean().optional(),
 });
 
@@ -33,10 +35,15 @@ export async function GET(request: Request) {
 
   try {
     const role = session.user.role;
+    const url = new URL(request.url);
+    const lembagaFilter = url.searchParams.get('lembagaId');
     let units;
+    let whereClause: any = {};
 
     if (role === 'SUPERADMIN') {
+      if (lembagaFilter) whereClause.lembagaId = lembagaFilter;
       units = await prisma.unit.findMany({
+        where: whereClause,
         select: {
           id: true,
           name: true,
@@ -45,6 +52,8 @@ export async function GET(request: Request) {
           isActive: true,
           lembagaId: true,
           isRetail: true,
+          parentId: true,
+          parent: { select: { name: true, code: true } },
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -57,8 +66,10 @@ export async function GET(request: Request) {
         orderBy: { createdAt: 'desc' },
       });
     } else {
+      if (lembagaFilter) whereClause.lembagaId = lembagaFilter;
+      whereClause.isActive = true;
       units = await prisma.unit.findMany({
-        where: { isActive: true },
+        where: whereClause,
         select: { 
           id: true, 
           name: true, 
@@ -114,7 +125,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, code, description, lembagaId, isRetail } = parsed.data;
+    const { name, code, description, lembagaId, parentId, isRetail } = parsed.data;
 
     // Check for duplicate
     const existing = await prisma.unit.findUnique({
@@ -136,12 +147,26 @@ export async function POST(request: Request) {
       }
     }
 
+    // Validate parentId (parent must exist & share same lembaga)
+    let validatedParentId: string | null = null;
+    if (parentId) {
+      const parentUnit = await prisma.unit.findUnique({ where: { id: parentId }, select: { id: true, lembagaId: true } });
+      if (!parentUnit) {
+        return NextResponse.json({ error: 'Unit induk tidak ditemukan' }, { status: 404 });
+      }
+      if (lembagaId && parentUnit.lembagaId && parentUnit.lembagaId !== lembagaId) {
+        return NextResponse.json({ error: 'Unit induk harus berada di lembaga yang sama' }, { status: 400 });
+      }
+      validatedParentId = parentId;
+    }
+
     const unit = await prisma.unit.create({
       data: {
         name,
         code: code.toUpperCase(),
         description: description || null,
         lembagaId: lembagaId || null,
+        parentId: validatedParentId,
         isRetail: isRetail || false,
       },
       select: {
@@ -151,6 +176,7 @@ export async function POST(request: Request) {
         description: true,
         isActive: true,
         isRetail: true,
+        parentId: true,
         createdAt: true,
         updatedAt: true,
       },

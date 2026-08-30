@@ -13,7 +13,10 @@ interface Unit {
   isActive: boolean;
   lembagaId?: string;
   isRetail?: boolean;
+  parentId?: string | null;
+  parent?: { name: string; code: string };
   _count?: { users: number; transactions: number };
+  children?: Unit[];
   createdAt: string;
 }
 
@@ -23,6 +26,7 @@ interface CreateForm {
   description: string;
   isActive: boolean;
   lembagaId?: string;
+  parentId?: string;
   isRetail: boolean;
 }
 
@@ -45,6 +49,7 @@ export default function UnitsPage() {
     description: '',
     isActive: true,
     lembagaId: '',
+    parentId: '',
     isRetail: false,
   });
   const [submitting, setSubmitting] = useState(false);
@@ -88,7 +93,7 @@ export default function UnitsPage() {
 
   const openCreateModal = () => {
     setEditingUnit(null);
-    setForm({ name: '', code: '', description: '', isActive: true, lembagaId: '', isRetail: false });
+    setForm({ name: '', code: '', description: '', isActive: true, lembagaId: '', parentId: '', isRetail: false });
     setShowModal(true);
   };
 
@@ -100,6 +105,7 @@ export default function UnitsPage() {
       description: unit.description ?? '',
       isActive: unit.isActive,
       lembagaId: unit.lembagaId ?? '',
+      parentId: unit.parentId ?? '',
       isRetail: unit.isRetail ?? false,
     });
     setShowModal(true);
@@ -205,6 +211,7 @@ export default function UnitsPage() {
                 <tr className="border-b border-slate-100">
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Nama</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Lembaga</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Unit Induk</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Kode</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Tipe</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Status</th>
@@ -217,6 +224,7 @@ export default function UnitsPage() {
                   <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50">
                     <td className="py-3 px-4 font-medium text-slate-800">{u.name}</td>
                     <td className="py-3 px-4 text-sm text-slate-600">{u.lembagaId ? lembagas.find((l) => l.id === u.lembagaId)?.name ?? '-' : '-'}</td>
+                    <td className="py-3 px-4 text-sm text-slate-600">{u.parent?.name ?? '-'}</td>
                     <td className="py-3 px-4 text-sm text-slate-600 font-mono">{u.code}</td>
                     <td className="py-3 px-4">
                       <Badge variant={u.isRetail ? 'success' : 'outline'}>
@@ -278,6 +286,21 @@ export default function UnitsPage() {
                 <option key={l.id} value={l.id}>{l.name} {l.code ? `(${l.code})` : ''}</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Unit Induk</label>
+            <select
+              value={form.parentId ?? ''}
+              onChange={(e) => setForm({ ...form, parentId: e.target.value || undefined })}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
+            >
+              <option value="">Pilih unit induk (opsional)</option>
+              {units.filter((u) => u.id !== editingUnit?.id).map((u) => (
+                <option key={u.id} value={u.id}>{u.name} ({u.code})</option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-500 mt-1">Unit ini dapat menjadi anak dari unit lain di bawah lembaga yang sama</p>
           </div>
 
           <div>

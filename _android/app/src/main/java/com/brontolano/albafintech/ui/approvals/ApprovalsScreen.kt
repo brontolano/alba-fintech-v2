@@ -85,7 +85,7 @@ fun ApprovalsScreen(
                 title = { androidx.compose.material3.Text("Persetujuan Transaksi") },
                 navigationIcon = {
                     androidx.compose.material3.IconButton(onClick = onNavigateBack) {
-                        androidx.compose.material.icons.rounded.CloseIcon(
+                        androidx.compose.material.icons.rounded.Close(
                             contentDescription = "Back",
                             modifier = androidx.compose.ui.Modifier.size(24.dp)
                         )
@@ -216,7 +216,7 @@ fun ApprovalTransactionItem(
         androidx.compose.foundation.layout.Row(
             modifier = androidx.compose.ui.Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .clickable(onClick = onClick),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
         ) {
@@ -248,6 +248,7 @@ fun ApprovalTransactionItem(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatusChip(status: TransactionStatus) {
     val (text, color, backgroundColor) = when (status) {

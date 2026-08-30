@@ -1,5 +1,6 @@
 package com.brontolano.albafintech.ui.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,17 +13,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.AutoMirrored.Rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Badge
-import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Security
-import androidx.compose.material3.Badge
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material3.Badge as M3Badge
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,6 +53,7 @@ import com.brontolano.albafintech.data.model.UserRole
 import com.brontolano.albafintech.ui.components.BottomNavHeight
 import com.brontolano.albafintech.ui.navigation.AppViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     appViewModel: AppViewModel,
@@ -61,7 +70,7 @@ fun ProfileScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = ArrowBack,
+                            imageVector = Icons.Filled.Close,
                             contentDescription = "Kembali",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -88,91 +97,26 @@ fun ProfileScreen(
                 )
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // ---- Profile header ----
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Avatar
-                Box(
-                    modifier = Modifier
-                        .size(100.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Person,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Name
-                val name = currentUser?.name
-                Text(
-                    text = name.ifNullOrBlank { "Pengguna" },
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                // Role badge
-                Badge(
-                    containerColor = roleBadgeColor(currentRole),
-                    contentColor = roleBadgeOnColor(currentRole),
-                    modifier = Modifier
-                        .height(24.dp)
-                        .padding(top = 8.dp)
-                        .clip(CircleShape)
-                ) {
-                    Text(
-                        text = currentRole.displayName,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = roleBadgeOnColor(currentRole)
-                    )
-                }
-
-                // Unit
-                val unitName = currentUser?.unitName
-                if (!unitName.isNullOrBlank()) {
-                    Text(
-                        text = unitName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-            }
+            ProfileHeader(
+                name = currentUser?.name,
+                role = currentRole,
+                unitName = currentUser?.unitName
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ---- Menu items ----
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ProfileMenuItem(icon = Badge, title = "Informasi Akun", subtitle = "Kelola informasi pribadi Anda")
-                ProfileMenuItem(icon = Security, title = "Keamanan", subtitle = "Ubah kata sandi, keamanan akun")
-                ProfileMenuItem(icon = Notifications, title = "Notifikasi", subtitle = "Kelola preferensi notifikasi")
-                ProfileMenuItem(icon = Language, title = "Bahasa", subtitle = "Bahasa Indonesia")
+                ProfileMenuItem(icon = Icons.Filled.Badge, title = "Informasi Akun", subtitle = "Kelola informasi pribadi Anda")
+            ProfileMenuItem(icon = Icons.Filled.Security, title = "Keamanan", subtitle = "Ubah kata sandi, keamanan akun")
+            ProfileMenuItem(icon = Icons.Filled.Notifications, title = "Notifikasi", subtitle = "Kelola preferensi notifikasi")
+            ProfileMenuItem(icon = Icons.Filled.Language, title = "Bahasa", subtitle = "Bahasa Indonesia")
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Logout
             FilledTonalButton(
                 onClick = onLogout,
                 modifier = Modifier
@@ -193,7 +137,6 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Version
             Text(
                 text = "Versi 1.0.0",
                 style = MaterialTheme.typography.bodySmall,
@@ -206,7 +149,93 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun ProfileMenuItem(
+private fun ProfileHeader(
+    name: String?,
+    role: UserRole,
+    unitName: String?
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Avatar
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Person,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(48.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = name.ifNullOrBlank("Pengguna"),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        M3Badge(
+            containerColor = roleBadgeColor(role),
+            contentColor = roleBadgeOnColor(role),
+            modifier = Modifier
+                .height(24.dp)
+                .padding(top = 8.dp)
+        ) {
+            Text(
+                text = role.displayName,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = roleBadgeOnColor(role)
+            )
+        }
+
+        if (!unitName.isNullOrBlank()) {
+            Text(
+                text = unitName,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun roleBadgeColor(role: UserRole): Color {
+    return when (role) {
+        UserRole.SUPERADMIN -> MaterialTheme.colorScheme.primary
+        UserRole.PIMPINAN -> MaterialTheme.colorScheme.secondary
+        UserRole.MANAGER -> MaterialTheme.colorScheme.tertiary
+        UserRole.STAFF -> MaterialTheme.colorScheme.surfaceContainerHigh
+    }
+}
+
+@Composable
+fun roleBadgeOnColor(role: UserRole): Color {
+    return when (role) {
+        UserRole.SUPERADMIN -> MaterialTheme.colorScheme.onPrimary
+        UserRole.PIMPINAN -> MaterialTheme.colorScheme.onSecondary
+        UserRole.MANAGER -> MaterialTheme.colorScheme.onTertiary
+        UserRole.STAFF -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+}
+
+private fun String?.ifNullOrBlank(default: String): String =
+    if (this.isNullOrBlank()) default else this
+
+@Composable
+fun ProfileMenuItem(
     icon: ImageVector,
     title: String,
     subtitle: String
@@ -214,15 +243,12 @@ private fun ProfileMenuItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(Shapes.medium),
-        shape = Shapes.medium,
+            .clickable { /* TODO: navigate */ },
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
         ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outline
-        )
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             modifier = Modifier
@@ -251,7 +277,7 @@ private fun ProfileMenuItem(
                 )
             }
             Icon(
-                imageVector = androidx.compose.material.icons.AutoMirrored.Rounded.ArrowForward,
+                imageVector = Icons.Filled.ArrowForward,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                 modifier = Modifier.size(20.dp)
@@ -260,54 +286,11 @@ private fun ProfileMenuItem(
     }
 }
 
-@Composable
-private fun roleBadgeColor(role: UserRole): androidx.compose.ui.graphics.Color {
-    return when (role) {
-        UserRole.SUPERADMIN -> MaterialTheme.colorScheme.tertiary
-        UserRole.PIMPINAN -> MaterialTheme.colorScheme.primary
-        UserRole.MANAGER -> MaterialTheme.colorScheme.secondary
-        UserRole.STAFF -> MaterialTheme.colorScheme.secondary
+// Extension property to provide displayName for UserRole
+private val UserRole.displayName: String
+    get() = when (this) {
+        UserRole.SUPERADMIN -> "Super Admin"
+        UserRole.PIMPINAN -> "Pimpinan"
+        UserRole.MANAGER -> "Manager"
+        UserRole.STAFF -> "Staff"
     }
-}
-
-@Composable
-private fun roleBadgeOnColor(role: UserRole): androidx.compose.ui.graphics.Color {
-    return when (role) {
-        UserRole.SUPERADMIN -> MaterialTheme.colorScheme.onTertiary
-        UserRole.PIMPINAN -> MaterialTheme.colorScheme.onPrimary
-        UserRole.MANAGER -> MaterialTheme.colorScheme.onSecondary
-        UserRole.STAFF -> MaterialTheme.colorScheme.onSecondary
-    }
-}
-
-private val Shapes = androidx.compose.material3.Shapes
-
-private val Shapes.medium: androidx.compose.material3.CornerBasedShape
-    get() = androidx.compose.material3.CornerBasedShape(
-        topStart = androidx.compose.ui.unit.DpOffset(0f, 0f).let { _ -> androidx.compose.foundation.shape.RoundedCornerShape(16.dp) },
-        topEnd = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        bottomStart = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        bottomEnd = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
-    )
-
-private fun String.ifNullOrBlank(defaultValue: String): String =
-    if (isNullOrBlank()) defaultValue else this
-
-@Composable
-@androidx.compose.ui.tooling.preview.Preview(
-    showBackground = true,
-    device = "spec:parent=mobile,shape=Normal,width=412,height=892,unit=dp,device=pixel_5"
-)
-fun ProfileScreenPreview() {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    com.brontolano.albafintech.ui.navigation.AppContainer.init(context)
-    com.brontolano.albafintech.ui.theme.AlbaFintechTheme {
-        androidx.compose.material3.Surface {
-            ProfileScreen(
-                appViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-                onNavigateBack = {},
-                onLogout = {}
-            )
-        }
-    }
-}

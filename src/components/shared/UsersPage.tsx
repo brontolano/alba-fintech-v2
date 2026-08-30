@@ -13,6 +13,7 @@ interface User {
   name?: string;
   role: UserRole;
   unitId?: string;
+  lembagaId?: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -21,6 +22,13 @@ interface Unit {
   id: string;
   name: string;
   code: string;
+  lembagaId?: string;
+}
+
+interface Lembaga {
+  id: string;
+  name: string;
+  code: string | null;
 }
 
 interface CreateForm {
@@ -29,6 +37,7 @@ interface CreateForm {
   password: string;
   role: UserRole;
   unitId: string;
+  lembagaId: string;
   isActive: boolean;
 }
 
@@ -50,15 +59,18 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [lembagaFilter, setLembagaFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [lembagas, setLembagas] = useState<Lembaga[]>([]);
   const [form, setForm] = useState<CreateForm>({
     name: '',
     email: '',
     password: '',
     role: 'STAFF',
     unitId: '',
+    lembagaId: '',
     isActive: true,
   });
   const [submitting, setSubmitting] = useState(false);
@@ -77,9 +89,11 @@ export default function UsersPage() {
     }
   };
 
-  const fetchUnits = async () => {
+  const fetchUnits = async (lembagaId?: string) => {
     try {
-      const res = await fetch('/api/units', { headers: { 'Content-Type': 'application/json' } });
+      const params = new URLSearchParams();
+      if (lembagaId) params.set('lembagaId', lembagaId);
+      const res = await fetch(`/api/units?${params.toString()}`, { headers: { 'Content-Type': 'application/json' } });
       const data = await res.json();
       setUnits(data.data ?? []);
     } catch (err) {
@@ -87,8 +101,19 @@ export default function UsersPage() {
     }
   };
 
+  const fetchLembagas = async () => {
+    try {
+      const res = await fetch('/api/lembaga', { headers: { 'Content-Type': 'application/json' } });
+      const data = await res.json();
+      setLembagas(data.data ?? []);
+    } catch (err) {
+      console.error('Error fetching lembaga:', err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchLembagas();
     fetchUnits();
   }, []);
 
@@ -99,9 +124,20 @@ export default function UsersPage() {
       )
     : users;
 
+  const filteredByLembaga = lembagaFilter
+    ? users.filter((u) => u.lembagaId === lembagaFilter)
+    : users;
+
+  const filteredAndSearched = search
+    ? filteredByLembaga.filter((u) =>
+        (u.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+        (u.email ?? '').toLowerCase().includes(search.toLowerCase())
+      )
+    : filteredByLembaga;
+
   const openCreateModal = () => {
     setEditingUser(null);
-    setForm({ name: '', email: '', password: '', role: 'STAFF', unitId: '', isActive: true });
+    setForm({ name: '', email: '', password: '', role: 'STAFF', unitId: '', lembagaId: '', isActive: true });
     setShowModal(true);
   };
 
@@ -113,6 +149,7 @@ export default function UsersPage() {
       password: '',
       role: user.role,
       unitId: user.unitId ?? '',
+      lembagaId: user.lembagaId ?? '',
       isActive: user.isActive,
     });
     setShowModal(true);
@@ -194,13 +231,24 @@ export default function UsersPage() {
         />
       </div>
 
+      {lembagas.length > 0 && (
+        <div className="mb-4">
+          <Select value={lembagaFilter} onValueChange={setLembagaFilter}>
+            <option value="">Semua Lembaga</option>
+            {lembagas.map((l) => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </Select>
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-14 bg-slate-100 rounded-lg animate-pulse" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : filteredAndSearched.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Users size={48} className="text-slate-300 mx-auto mb-3" />
@@ -210,7 +258,7 @@ export default function UsersPage() {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Daftar User ({filtered.length})</CardTitle>
+            <CardTitle className="text-lg">Daftar User ({filteredAndSearched.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <table className="w-full">
@@ -218,16 +266,18 @@ export default function UsersPage() {
                 <tr className="border-b border-slate-100">
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Nama</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Email</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Lembaga</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Role</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Status</th>
                   <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((u) => (
+                {filteredAndSearched.map((u) => (
                   <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50">
                     <td className="py-3 px-4 font-medium text-slate-800">{u.name ?? u.email}</td>
                     <td className="py-3 px-4 text-sm text-slate-600">{u.email}</td>
+                    <td className="py-3 px-4 text-sm text-slate-600">{u.lembagaId ? lembagas.find((l) => l.id === u.lembagaId)?.name ?? u.lembagaId : '—'}</td>
                     <td className="py-3 px-4"><Badge variant={ROLE_BADGE[u.role] ?? 'default'}>{ROLE_LABEL[u.role] ?? u.role}</Badge></td>
                     <td className="py-3 px-4"><Badge variant={u.isActive ? 'success' : 'outline'}>{u.isActive ? 'Aktif' : 'Non-aktif'}</Badge></td>
                     <td className="py-3 px-4 text-right">
@@ -310,6 +360,21 @@ export default function UsersPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Lembaga</label>
+              <Select
+                value={form.lembagaId}
+                onValueChange={(v) => {
+                  setForm({ ...form, lembagaId: v, unitId: '' });
+                  fetchUnits(v || undefined);
+                }}
+              >
+                <option value="">Semua Lembaga</option>
+                {lembagas.map((l) => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </Select>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
               <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as UserRole })}>
                 {Object.entries(ROLE_LABEL).map(([val, label]) => (
@@ -317,15 +382,18 @@ export default function UsersPage() {
                 ))}
               </Select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Unit</label>
-              <Select value={form.unitId} onValueChange={(v) => setForm({ ...form, unitId: v })}>
-                <option value="">Tanpa Unit</option>
-                {units.map((u) => (
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Unit</label>
+            <Select value={form.unitId} onValueChange={(v) => setForm({ ...form, unitId: v })}>
+              <option value="">Tanpa Unit</option>
+              {units
+                .filter((u) => !form.lembagaId || u.lembagaId === form.lembagaId)
+                .map((u) => (
                   <option key={u.id} value={u.id}>{u.name} ({u.code})</option>
                 ))}
-              </Select>
-            </div>
+            </Select>
           </div>
 
           <div className="flex items-center gap-2">

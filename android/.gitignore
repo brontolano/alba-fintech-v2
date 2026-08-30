@@ -1,22 +1,15 @@
-# Android
-*.apk
-*.ap_
-*.aab
-.bin/
-.gradle/
-captures/
-.externalNativeBuild/
-.cxx/
-local.properties
-proguard_logs/
-*.jscache
-build/
-.navigation/
 *.iml
-.idea/
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
 .DS_Store
-**/build/
-
-# Keystore / signing config (contains secrets)
-keystore.properties
-*.keystore
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties

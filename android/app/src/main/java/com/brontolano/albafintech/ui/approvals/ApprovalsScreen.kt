@@ -2,7 +2,7 @@
 
 package com.brontolano.albafintech.ui.approvals
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,8 +20,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.AutoMirrored.Rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,19 +42,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import com.brontolano.albafintech.data.model.Transaction
 import com.brontolano.albafintech.data.model.TransactionStatus
+import com.brontolano.albafintech.data.model.Transaction
 import com.brontolano.albafintech.data.model.TransactionType
-import com.brontolano.albafintech.data.model.TransactionSummary
 import com.brontolano.albafintech.ui.components.BottomNavHeight
 import com.brontolano.albafintech.ui.navigation.LocalSnackbarHostState
 import java.text.NumberFormat
@@ -87,7 +83,7 @@ fun ApprovalsScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = ArrowBack,
+                            imageVector = Icons.Filled.Close,
                             contentDescription = "Kembali",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -147,8 +143,9 @@ fun ApprovalsScreen(
             LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(
-                    vertical = 16.dp,
-                    horizontal = 16.dp,
+                    start = 16.dp,
+                    top = 16.dp,
+                    end = 16.dp,
                     // Lift the last items above the bottom bar.
                     bottom = 16.dp + BottomNavHeight
                 ),
@@ -193,7 +190,7 @@ fun ApprovalsScreen(
 
 @Composable
 fun ApprovalItem(
-    transaction: TransactionSummary,
+    transaction: Transaction,
     onClick: () -> Unit
 ) {
     Card(
@@ -204,10 +201,7 @@ fun ApprovalItem(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
         ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outline
-        )
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             modifier = Modifier
@@ -225,7 +219,7 @@ fun ApprovalItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${transaction.unitName} • ${formatDate(transaction.date)}",
+                    text = "${transaction.unitName} • ${formatDate(transaction.createdAt)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -282,6 +276,8 @@ fun StatusChip(status: TransactionStatus) {
     device = "spec:parent=mobile,shape=Normal,width=412,height=892,unit=dp,device=pixel_5"
 )
 fun ApprovalsScreenPreview() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    com.brontolano.albafintech.ui.navigation.AppContainer.init(context)
     com.brontolano.albafintech.ui.theme.AlbaFintechTheme {
         androidx.compose.material3.Surface {
             ApprovalsScreen(
@@ -319,14 +315,3 @@ private fun formatDate(dateString: String): String {
         dateString
     }
 }
-
-@Suppress("unused")
-private fun formatCurrencyFromTransaction(tx: Transaction): String {
-    val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
-    formatter.minimumFractionDigits = 0
-    formatter.maximumFractionDigits = 0
-    return formatter.format(tx.amount)
-}
-
-@Suppress("unused")
-private fun avatarContentScale(): ContentScale = ContentScale.Crop

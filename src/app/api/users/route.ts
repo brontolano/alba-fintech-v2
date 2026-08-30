@@ -12,6 +12,7 @@ const createUserSchema = z.object({
   password: z.string().min(6, 'Password minimal 6 karakter'),
   role: z.enum(['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF']).default('STAFF'),
   unitId: z.string().optional(),
+  lembagaId: z.string().optional(),
   isActive: z.boolean().optional().default(true),
 });
 
@@ -21,6 +22,7 @@ const updateUserSchema = z.object({
   password: z.string().min(6, 'Password minimal 6 karakter').optional(),
   role: z.enum(['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF']).optional(),
   unitId: z.string().nullable().optional(),
+  lembagaId: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -94,7 +96,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, email, password, role: userRole, unitId, isActive } = parsed.data;
+    const { name, email, password, role: userRole, unitId, lembagaId, isActive } = parsed.data;
 
     // Check for duplicate email
     const existing = await prisma.user.findUnique({
@@ -133,6 +135,7 @@ export async function POST(request: Request) {
         passwordHash,
         role: userRole,
         unitId: unitId || null,
+        lembagaId: lembagaId || null,
         isActive: isActive ?? true,
       },
       select: {
