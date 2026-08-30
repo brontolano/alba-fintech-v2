@@ -50,7 +50,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // DataStore
+    // DataStore & Security
     implementation(libs.androidx.datastore)
     implementation(libs.androidx.security.crypto)
 
