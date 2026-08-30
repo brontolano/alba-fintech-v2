@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { ShoppingCart, Package, TrendingUp, TrendingDown, Download, RefreshCw, Calendar } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -57,7 +57,7 @@ export default function POSPage() {
     return sorted;
   }, [transactions, sortKey, sortDir]);
 
-  const fetchLembagas = async () => {
+  const fetchLembagas = useCallback(async () => {
     if (!isSuperadmin) return;
     try {
       const res = await fetch('/api/lembaga');
@@ -66,9 +66,9 @@ export default function POSPage() {
     } catch (err) {
       console.error('Fetch lembaga error:', err);
     }
-  };
+  }, [isSuperadmin]);
 
-  const fetchUnits = async (lembagaId?: string) => {
+  const fetchUnits = useCallback(async (lembagaId?: string) => {
     try {
       const params = new URLSearchParams();
       if (lembagaId) params.set('lembagaId', lembagaId);
@@ -78,10 +78,10 @@ export default function POSPage() {
     } catch (err) {
       console.error('Fetch units error:', err);
     }
-  };
+  }, []);
 
   // Fetch transactions filtered by lembaga/unit
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -96,7 +96,7 @@ export default function POSPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [lembagaFilter, unitFilter]);
 
   useEffect(() => {
     if (sessionStatus === 'loading') return;
@@ -105,8 +105,7 @@ export default function POSPage() {
       if (lembagaFilter) fetchUnits(lembagaFilter);
     }
     fetchTransactions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionStatus, isSuperadmin, lembagaFilter, unitFilter]);
+  }, [sessionStatus, isSuperadmin, lembagaFilter, unitFilter, fetchLembagas, fetchUnits, fetchTransactions]);
 
   const handleLembagaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setLembagaFilter(e.target.value);

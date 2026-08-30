@@ -44,6 +44,13 @@ export default function MobileBottomNav({ role, unitId }: MobileBottomNavProps) 
     setPathname(currentPath);
   }, [currentPath]);
 
+  // Fetch unit info to determine if POS/Inventory should show
+  const isSuperAdmin = role === 'SUPERADMIN';
+  const { unit: unitInfo, loading: unitLoading } = useUnitInfo(unitId);
+  const isRetailUnit = unitInfo?.isRetail ?? false;
+  const isPimpinan = role === 'PIMPINAN';
+  const rolePrefix = role ? role.toLowerCase() : 'staff';
+
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + '/');
 
@@ -53,16 +60,9 @@ export default function MobileBottomNav({ role, unitId }: MobileBottomNavProps) 
   };
 
   // For SuperAdmin override (desktop-only), this component returns null
-  if (role === 'SUPERADMIN') {
+  if (isSuperAdmin) {
     return null;
   }
-
-  const isPimpinan = role === 'PIMPINAN';
-  const rolePrefix = role ? role.toLowerCase() : 'staff';
-
-  // Fetch unit info to determine if POS/Inventory should show
-  const { unit: unitInfo, loading: unitLoading } = useUnitInfo(unitId);
-  const isRetailUnit = unitInfo?.isRetail ?? false;
 
   // Role-based 5-item layout (index 2 is always the "hero" button).
   //   Pimpinan      → Dashboard | Transaksi | Approval | Reports  | AI Assistant

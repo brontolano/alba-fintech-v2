@@ -279,7 +279,7 @@ export default function BroadcastsPage() {
         <div className="bg-white rounded-lg border border-slate-200 p-8 text-center">
           <Megaphone size={48} className="text-slate-300 mx-auto mb-3" />
           <h3 className="font-medium text-slate-900 mb-2">Belum Ada Broadcast</h3>
-          <p className="text-sm text-slate-500">Klik "Buat Draft" untuk memulai.</p>
+          <p className="text-sm text-slate-500">Klik {"Buat Draft"} untuk memulai.</p>
         </div>
       ) : (
         <div className="bg-white rounded-lg border border-slate-200 overflow-x-auto">

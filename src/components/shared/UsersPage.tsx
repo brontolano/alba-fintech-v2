@@ -63,6 +63,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [lembagaFilter, setLembagaFilter] = useState('');
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [unitFilter, setUnitFilter] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -123,6 +125,34 @@ export default function UsersPage() {
     fetchUnits();
   }, []);
 
+  const toggleSelect = (id: string) => {
+    setSelectedUsers((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedUsers.length === 0) return;
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedUsers }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error);
+
+      toast.success(`Berhasil menghapus ${selectedUsers.length} user`);
+      setUsers((prev) => prev.filter((u) => !selectedUsers.includes(u.id)));
+      setSelectedUsers([]);
+      setShowDeleteModal(false);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   // Combine filters and search, then sort
   const filteredAndSearched = useMemo(() => {
     const byLembaga = lembagaFilter
@@ -148,6 +178,8 @@ export default function UsersPage() {
     });
     return sorted;
   }, [users, lembagaFilter, unitFilter, search, sortKey, sortDir]);
+
+  const selectedCount = filteredAndSearched.filter((u) => selectedUsers.includes(u.id)).length;
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -276,6 +308,21 @@ export default function UsersPage() {
         </div>
       )}
 
+      {/* Bulk Action Toolbar */}
+      {selectedUsers.length > 0 && (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-4">
+          <span className="text-sm font-medium text-amber-800">{selectedCount} dipilih</span>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setShowDeleteModal(true)}
+            className="gap-1"
+          >
+            <Trash2 size={14} /> Hapus
+          </Button>
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
@@ -297,14 +344,28 @@ export default function UsersPage() {
           <CardContent className="p-0">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-100">
+                <tr className="border-b border-slate-100 bg-slate-50">
+                  <th className="py-3 px-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.length === filteredAndSearched.length && filteredAndSearched.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedUsers(filteredAndSearched.map((u) => u.id));
+                        } else {
+                          setSelectedUsers([]);
+                        }
+                      }}
+                      className="rounded border-slate-300"
+                    />
+                  </th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('name')}>
                     Nama {sortKey === 'name' && (sortDir === 'desc' ? '↓' : '↑')}
                   </th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('email')}>
                     Email {sortKey === 'email' && (sortDir === 'desc' ? '↓' : '↑')}
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Lembaga</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Unit</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase cursor-pointer" onClick={() => handleSort('role')}>
                     Role {sortKey === 'role' && (sortDir === 'desc' ? '↓' : '↑')}
                   </th>
@@ -318,9 +379,17 @@ export default function UsersPage() {
               <tbody>
                 {filteredAndSearched.map((u) => (
                   <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50">
+                    <td className="py-3 px-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(u.id)}
+                        onChange={() => toggleSelect(u.id)}
+                        className="rounded border-slate-300"
+                      />
+                    </td>
                     <td className="py-3 px-4 font-medium text-slate-800">{u.name ?? u.email}</td>
                     <td className="py-3 px-4 text-sm text-slate-600">{u.email}</td>
-                    <td className="py-3 px-4 text-sm text-slate-600">{u.lembagaId ? lembagas.find((l) => l.id === u.lembagaId)?.name ?? u.lembagaId : '—'}</td>
+                    <td className="py-3 px-4 text-sm text-slate-600">{u.unitId ? units.find((un) => un.id === u.unitId)?.name ?? u.unitId : '—'}</td>
                     <td className="py-3 px-4"><Badge variant={ROLE_BADGE[u.role] ?? 'default'}>{ROLE_LABEL[u.role] ?? u.role}</Badge></td>
                     <td className="py-3 px-4"><Badge variant={u.isActive ? 'success' : 'outline'}>{u.isActive ? 'Aktif' : 'Non-aktif'}</Badge></td>
                     <td className="py-3 px-4 text-right">

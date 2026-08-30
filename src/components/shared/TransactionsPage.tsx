@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import Image from 'next/image';
+
 import { Wallet, Plus, Search, Eye, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Modal, Button, Badge, Select, TransactionStatusBadge, TransactionTypeBadge } from '@/components/ui';
 import { toast } from 'sonner';
@@ -29,6 +31,7 @@ interface Unit {
   id: string;
   name: string;
   code: string;
+  lembagaId?: string | null;
 }
 
 interface CreateForm {
@@ -87,7 +90,7 @@ export default function TransactionsPage() {
     }
   };
 
-  const fetchUnits = async () => {
+  const fetchUnits = useCallback(async () => {
     if (userRole === 'SUPERADMIN' || userRole === 'PIMPINAN') {
       try {
         const res = await fetch('/api/units', { headers: { 'Content-Type': 'application/json' } });
@@ -97,7 +100,7 @@ export default function TransactionsPage() {
         console.error('Error fetching units:', err);
       }
     }
-  };
+  }, [userRole]);
 
   const fetchLembagas = async () => {
     try {
@@ -129,18 +132,35 @@ export default function TransactionsPage() {
     if (userRole === 'SUPERADMIN' || userRole === 'PIMPINAN') {
       fetchUnits();
     }
-  }, [userRole]);
+  }, [userRole, fetchUnits]);
 
   const filtered = useMemo(() => {
-    const byUnit = unitFilter
-      ? transactions.filter((t) => t.unitId === unitFilter)
-      : transactions;
+    // Get active units based on user role and lembaga filter
+    // SuperAdmin/PIMPINAN can filter by lembaga, others see only their unit
+    const isAdminFilter = (userRole === 'SUPERADMIN' || userRole === 'PIMPINAN');
+    
+    let filteredByUnit: typeof transactions;
+    if (lembagaFilter && isAdminFilter) {
+      const lembagaUnitIds = units.filter(u => u.lembagaId === lembagaFilter).map(u => u.id);
+      if (unitFilter) {
+        filteredByUnit = transactions.filter(t => lembagaUnitIds.includes(t.unitId) && t.unitId === unitFilter);
+      } else {
+        filteredByUnit = transactions.filter(t => lembagaUnitIds.includes(t.unitId));
+      }
+    } else if (unitFilter) {
+      // Only filter by unit if specified
+      filteredByUnit = transactions.filter(t => t.unitId === unitFilter);
+    } else {
+      filteredByUnit = transactions;
+    }
+    
     const searched = search
-      ? byUnit.filter((t) =>
+      ? filteredByUnit.filter((t) =>
           t.description.toLowerCase().includes(search.toLowerCase()) ||
           (t.reference ?? '').toLowerCase().includes(search.toLowerCase())
         )
-      : byUnit;
+      : filteredByUnit;
+    // Sort
     const sorted = [...searched];
     sorted.sort((a, b) => {
       const dir = sortDir === 'asc' ? 1 : -1;
@@ -151,7 +171,7 @@ export default function TransactionsPage() {
       return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     });
     return sorted;
-  }, [transactions, search, unitFilter, sortKey, sortDir]);
+  }, [transactions, units, lembagaFilter, unitFilter, search, sortKey, sortDir, userRole]);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('id-ID', {
@@ -306,14 +326,16 @@ export default function TransactionsPage() {
                         <p className="font-medium text-slate-800">{tx.description}</p>
                         {tx.reference && <p className="text-xs text-slate-400">{tx.reference}</p>}
                         {tx.photoUrl && (
-                          <img
-                            src={tx.photoUrl}
-                            alt="Nota"
-                            className="mt-1 max-w-20 max-h-20 rounded border border-slate-200 object-cover"
-                            loading="lazy"
-                            decoding="async"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
+                          <div className="relative mt-1 max-w-20 max-h-20 rounded border border-slate-200">
+                            <Image
+                              src={tx.photoUrl}
+                              alt="Nota"
+                              fill
+                              className="object-cover rounded"
+                              loading="lazy"
+                              onError={(e) => { (e.target as HTMLInputElement).style.display = 'none'; }}
+                            />
+                          </div>
                         )}
                       </td>
                       <td className="py-3 px-4"><TransactionTypeBadge type={tx.type} /></td>

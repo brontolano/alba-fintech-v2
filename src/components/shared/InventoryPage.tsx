@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Package, Plus, Search, Edit, Trash2, Upload, Download, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
@@ -38,7 +38,7 @@ export default function InventoryPage() {
   const isSuperadmin = role === 'SUPERADMIN';
 
   // Load lembaga list (superadmin only, for dropdown)
-  const fetchLembagas = async () => {
+  const fetchLembagas = useCallback(async () => {
     if (!isSuperadmin) return;
     try {
       const res = await fetch('/api/lembaga');
@@ -47,10 +47,10 @@ export default function InventoryPage() {
     } catch (err) {
       console.error('Fetch lembaga error:', err);
     }
-  };
+  }, [isSuperadmin]);
 
   // Load units — filtered by selected lembaga if superadmin
-  const fetchUnits = async (lembagaId?: string) => {
+  const fetchUnits = useCallback(async (lembagaId?: string) => {
     try {
       const params = new URLSearchParams();
       if (lembagaId) params.set('lembagaId', lembagaId);
@@ -60,10 +60,10 @@ export default function InventoryPage() {
     } catch (err) {
       console.error('Fetch units error:', err);
     }
-  };
+  }, []);
 
   // Load inventory items filtered by unit (or lembaga for superadmin)
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -82,7 +82,7 @@ export default function InventoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isSuperadmin, lembagaFilter, unitFilter]);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -91,8 +91,7 @@ export default function InventoryPage() {
       if (lembagaFilter) fetchUnits(lembagaFilter);
     }
     fetchItems();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, isSuperadmin, lembagaFilter, unitFilter]);
+  }, [status, isSuperadmin, lembagaFilter, unitFilter, fetchLembagas, fetchUnits, fetchItems]);
 
   // When lembaga changes, refetch units + reset unit filter
   const handleLembagaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
