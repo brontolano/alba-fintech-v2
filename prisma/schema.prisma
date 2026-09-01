@@ -91,6 +91,7 @@ model Transaction {
   accountId    String?           @map("account_id")
   photoUrl     String?           @map("photo_url")
   approvals    Approval[]
+  orderItems   OrderItem[]
   account      Account?          @relation(fields: [accountId], references: [id])
   approvedBy   User?             @relation("TransactionApprover", fields: [approvedById], references: [id])
   createdBy    User              @relation("TransactionCreator", fields: [createdById], references: [id])
@@ -105,6 +106,22 @@ model Transaction {
   @@index([unitId, createdAt])
   @@index([type, createdAt])
   @@map("transactions")
+}
+
+model OrderItem {
+  id             String        @id @default(cuid())
+  transactionId  String        @map("transaction_id")
+  itemId         String?       @map("item_id")
+  itemName       String
+  quantity       Int           @default(1)
+  unitPrice      Decimal       @db.Decimal(12,2)
+  totalPrice     Decimal       @db.Decimal(12,2)
+  inventoryItem  InventoryItem? @relation(fields: [itemId], references: [id])
+  transaction    Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([itemId])
+  @@map("order_items")
 }
 
 model Approval {
@@ -243,25 +260,26 @@ model UnitSetting {
   inventoryEnabled Boolean @default(true) @map("inventory_enabled")
   autoApproval  Boolean  @default(false) @map("auto_approval")
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  updatedAt     DateTime @updatedAt @map("updated_at")
   unit          Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
   @@map("unit_settings")
 }
 
 model InventoryItem {
-  id            String   @id @default(cuid())
-  unitId        String   @map("unit_id")
-  name          String   @db.VarChar(200)
-  sku           String   @unique @db.VarChar(50)
-  currentStock  Int      @default(0) @map("current_stock")
-  minStock      Int      @default(0) @map("min_stock")
-  unitPrice     Decimal?  @db.Decimal(12,2) @map("unit_price")
-  category      String?  @db.VarChar(100)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  unit          Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  id            String        @id @default(cuid())
+  unitId        String        @map("unit_id")
+  name          String        @db.VarChar(200)
+  sku           String        @unique @db.VarChar(50)
+  currentStock  Int           @default(0) @map("current_stock")
+  minStock      Int           @default(0) @map("min_stock")
+  unitPrice     Decimal?      @db.Decimal(12,2) @map("unit_price")
+  category      String?       @db.VarChar(100)
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  unit          Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  orderItems    OrderItem[]
 
   @@index([unitId])
   @@index([category])
@@ -282,7 +300,7 @@ model BroadcastMessage {
   lembagaId     String?  @map("lembaga_id")
   senderId      String   @map("sender_id")
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  updatedAt     DateTime @updatedAt @map("updated_at")
   sender        User     @relation("SentBroadcasts", fields: [senderId], references: [id])
   recipients    BroadcastRecipient[]
   lembaga       Lembaga? @relation(fields: [lembagaId], references: [id])
@@ -316,7 +334,6 @@ enum ApprovalStatus {
 }
 
 enum notifications_type {
-  enums
   INFO
   SUCCESS
   WARNING

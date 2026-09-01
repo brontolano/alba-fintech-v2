@@ -37,6 +37,7 @@ export default function ApprovalsPage() {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [itemsToDelete, setItemsToDelete] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null);
 
   useEffect(() => {
     const fetchApprovals = async () => {
@@ -127,16 +128,20 @@ export default function ApprovalsPage() {
       setSelectedIds([]);
     } finally {
       setIsDeleting(false);
+      setBulkAction(null);
     }
   };
 
   const confirmBulkAction = (action: 'approve' | 'reject') => {
+    setBulkAction(action);
     setItemsToDelete(selectedIds);
     setShowBulkDeleteConfirm(true);
   };
 
-  const executeBulkAction = (action: 'approve' | 'reject') => {
-    handleBulkAction(action);
+  const executeBulkAction = () => {
+    if (bulkAction) {
+      handleBulkAction(bulkAction);
+    }
     setShowBulkDeleteConfirm(false);
     setItemsToDelete([]);
   };
@@ -144,6 +149,7 @@ export default function ApprovalsPage() {
   const cancelDelete = () => {
     setShowBulkDeleteConfirm(false);
     setItemsToDelete([]);
+    setBulkAction(null);
   };
 
   const formatCurrency = (amount: number) =>
@@ -193,7 +199,7 @@ export default function ApprovalsPage() {
                     Tolak Semua
                   </Button>
                   <Button
-                    variant="success"
+                    variant="default"
                     size="sm"
                     onClick={() => confirmBulkAction('approve')}
                     disabled={isDeleting}
@@ -276,9 +282,9 @@ export default function ApprovalsPage() {
           {/* Delete Confirmation Modal */}
           <Modal
             open={showBulkDeleteConfirm}
-            onOpenChange={setShowBulkDeleteConfirm}
+            onClose={() => setShowBulkDeleteConfirm(false)}
             title="Konfirmasi Bulk Action"
-            description={`Anda yakin ingin menolak ${itemsToDelete.length} transaksi yang dipilih?`}
+            description={`Anda yakin ingin ${bulkAction === 'reject' ? 'menolak' : 'mengsetujui'} ${itemsToDelete.length} transaksi yang dipilih?`}
           >
             <div className="flex gap-3 justify-end mt-4">
               <Button variant="outline" onClick={cancelDelete}>
@@ -286,11 +292,11 @@ export default function ApprovalsPage() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => executeBulkAction('reject')}
+                onClick={executeBulkAction}
                 disabled={isDeleting}
               >
                 {isDeleting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                Tolak Semua
+                {bulkAction === 'reject' ? 'Tolak Semua' : 'Setujui Semua'}
               </Button>
             </div>
           </Modal>
