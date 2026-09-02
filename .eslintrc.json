@@ -2,7 +2,7 @@
   "extends": ["next/core-web-vitals", "prettier"],
   "rules": {
     "react/react-in-jsx-scope": "off",
-    "@typescript-eslint/no-unused-vars": [
+    "no-unused-vars": [
       "warn",
       { "argsIgnorePattern": "^_" }
     ]
