@@ -2,12 +2,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/options';
 import {
   Search,
-  Filter,
   CheckCircle,
-  XCircle,
   Clock,
-  Users,
-  FileText,
   Download,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -16,7 +12,7 @@ import { id } from 'date-fns/locale';
 export default async function ReconciliationPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user;
-  const role = user?.role || 'STAFF';
+  
 
   const units = ['KPAK', 'Koperasi Buku', 'Kantin Umi', 'Kantin Baru'];
   const today = new Date();

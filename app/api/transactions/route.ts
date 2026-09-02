@@ -3,20 +3,51 @@ import { authOptions } from '@/app/api/auth/options';
 import { getServerSession } from 'next-auth';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { mkdir } from 'fs/promises';
+import { join } from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import * as fs from 'fs';
 
 const prisma = new PrismaClient();
 
 // Schema for creating transactions
 const createTransactionSchema = z.object({
-  unitId: z.string().optional(),
   type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
   amount: z.number().positive('Jumlah harus positif'),
   description: z.string().min(1, 'Deskripsi wajib diisi'),
+  unitId: z.string().optional(),
   categoryId: z.string().optional(),
   accountId: z.string().optional(),
   reference: z.string().optional(),
   date: z.string().optional(),
 });
+
+// Helper function to handle photo upload
+async function handlePhotoUpload(photoFile: File): Promise<string | null> {
+  try {
+    const uploadDir = join(process.cwd(), 'public', 'uploads', 'transactions');
+    
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(uploadDir)) {
+      await mkdir(uploadDir, { recursive: true });
+    }
+
+    const buffer = await photoFile.arrayBuffer();
+    const fileName = `transaction_${uuidv4()}.jpg`;
+    const filePath = join(uploadDir, fileName);
+    
+    // Convert ArrayBuffer to Buffer for Node.js fs
+    const nodeBuffer = Buffer.from(buffer);
+    
+    // Use fs.promises.writeFile with proper buffer handling
+    const { promises: fsPromises } = require('fs');
+    await fsPromises.writeFile(filePath, nodeBuffer);
+    return `/uploads/transactions/${fileName}`;
+  } catch (error) {
+    console.error('Error uploading photo:', error);
+    return null;
+  }
+}
 
 // Schema for query parameters
 const querySchema = z.object({
@@ -47,24 +78,22 @@ export async function GET(request: NextRequest) {
 
     // Build where clause
     const where: any = {};
-    const role = session.user.role;
+    const role = session.user.role as string;
 
     // Role-based filtering
-    if (role === 'STAFF') {
-      where.unitId = session.user.unitId;
-    } else if (role === 'MANAGER') {
+    if (role === 'STAFF' || role === 'MANAGER') {
       where.unitId = session.user.unitId;
     } else if (role === 'PIMPINAN') {
-      if (!where.lembagaId) {
-        where.unit = {
-          lembagaId: session.user.lembagaId,
-        };
-      }
+      where.unit = {
+        lembagaId: session.user.lembagaId,
+      };
     }
 
+    // Query parameter filtering (override role-based filters)
     if (parsed.data.unitId) {
-      where.unitId = parsed.data.unitId;
+      // If unitId is specified, it takes precedence
       delete where.unit;
+      where.unitId = parsed.data.unitId;
     }
     if (parsed.data.type) {
       where.type = parsed.data.type;
@@ -75,10 +104,20 @@ export async function GET(request: NextRequest) {
     if (parsed.data.categoryId) {
       where.categoryId = parsed.data.categoryId;
     }
-    if (parsed.data.startDate || parsed.data.endDate) {
+    if (parsed.data.startDate && parsed.data.endDate) {
       where.OR = [
         { createdAt: { gte: parsed.data.startDate, lte: parsed.data.endDate } },
         { date: { gte: parsed.data.startDate, lte: parsed.data.endDate } },
+      ];
+    } else if (parsed.data.startDate) {
+      where.OR = [
+        { createdAt: { gte: parsed.data.startDate } },
+        { date: { gte: parsed.data.startDate } },
+      ];
+    } else if (parsed.data.endDate) {
+      where.OR = [
+        { createdAt: { lte: parsed.data.endDate } },
+        { date: { lte: parsed.data.endDate } },
       ];
     }
 
@@ -142,6 +181,17 @@ export async function POST(request: NextRequest) {
       unitId = session.user.unitId!;
     }
 
+    // Handle photo upload if present in FormData
+    let photoUrl = null;
+    const contentType = request.headers.get('content-type');
+    if (contentType?.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      const photo = formData.get('photo') as File | null;
+      if (photo && photo.size > 0) {
+        photoUrl = await handlePhotoUpload(photo);
+      }
+    }
+
     // Create transaction
     const transaction = await prisma.transaction.create({
       data: {
@@ -155,6 +205,7 @@ export async function POST(request: NextRequest) {
         date: parsed.data.date ? new Date(parsed.data.date) : undefined,
         createdById: session.user.id,
         status: 'PENDING',
+        photoUrl,
       },
       include: {
         unit: true,

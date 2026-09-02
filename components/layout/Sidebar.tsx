@@ -2,9 +2,9 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutDashboard,
   LayoutGrid,
-  FileText,
+  FileText as FileTextIcon,
+  LayoutDashboard,
   Receipt,
   ShoppingCart,
   Package,
@@ -13,13 +13,8 @@ import {
   Settings,
   LogOut,
   Users,
-  Home,
   Clock,
-  ShieldCheck,
-  FileText as FileTextIcon,
-  Wallet,
 } from 'lucide-react';
-import { User } from 'next-auth';
 
 interface SidebarProps {
   user: {

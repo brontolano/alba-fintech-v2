@@ -57,13 +57,18 @@ export async function GET(request: NextRequest) {
     // Role-based filtering
     if (role === 'PIMPINAN') {
       // Pimpinan sees all notes within their lembaga
-      // This requires a join through units
+      where.OR = [
+        { unit: { lembagaId: lembagaId } },
+        { unitId: null }, // Notes not tied to a specific unit
+      ];
     } else if (role === 'MANAGER') {
       // Manager sees notes from their unit
       where.unitId = unitId;
     }
 
+    // If unitId is provided in query params, override role-based filtering
     if (parsed.data.unitId) {
+      delete where.OR;
       where.unitId = parsed.data.unitId;
     }
     if (parsed.data.type) {

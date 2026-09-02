@@ -2,16 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import {
-  FileText,
   Plus,
   Search,
-  Filter,
   Calendar,
   Edit,
   Trash2,
-  Download,
-  TrendingUp,
-  TrendingDown,
   Save,
 } from 'lucide-react';
 import { format } from 'date-fns';

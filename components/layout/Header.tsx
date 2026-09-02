@@ -2,7 +2,6 @@
 
 import { Bell, Search, UserCircle } from 'lucide-react';
 import Image from 'next/image';
-import { User } from 'next-auth';
 
 interface HeaderProps {
   user: {

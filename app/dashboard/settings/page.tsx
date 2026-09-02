@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Settings,
   Save,
   Upload,
   Download,
-  RefreshCw,
   Database,
   Trash2,
   Shield,
   Bell,
   Palette,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 

@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import {
-  LayoutGrid,
   Plus,
   Search,
   Edit,
   Trash2,
   Building,
-  ShoppingCart,
   Wallet,
-  Users,
+  ShoppingCart,
 } from 'lucide-react';
 import { toast } from 'sonner';
 

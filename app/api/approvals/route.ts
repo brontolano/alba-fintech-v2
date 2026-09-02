@@ -7,7 +7,7 @@ import { z } from 'zod';
 const prisma = new PrismaClient();
 
 // Schema for approval actions
-const approvalActionSchema = z.object({
+const _approvalActionSchema = z.object({
   action: z.enum(['approve', 'reject']),
   comment: z.string().optional(),
 });

@@ -4,7 +4,6 @@ import {
   Package,
   Plus,
   Search,
-  Filter,
   Edit,
   Trash2,
   TrendingUp,
@@ -14,7 +13,6 @@ import {
 export default async function InventoryPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user;
-  const role = user?.role || 'STAFF';
 
   const units = ['KPAK', 'Koperasi Buku', 'Kantin Umi', 'Kantin Baru'];
 

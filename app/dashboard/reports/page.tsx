@@ -1,45 +1,21 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/options';
-import Link from 'next/link';
 import {
   BarChart3,
-  Filter,
-  Download,
   Calendar,
-  PieChart,
-  FileText,
+  PieChart as PieChartIcon,
+  FileText as FileTextIcon,
+  Download as DownloadIcon,
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  Filler,
-} from 'chart.js';
-import { Bar, Doughnut } from 'react-chartjs-2';
-
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  Filler
-);
+import { BarChart } from '@/components/charts/BarChart';
+import { DoughnutChart } from '@/components/charts/DoughnutChart';
 
 export default async function ReportsPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user;
-  const role = user?.role || 'STAFF';
+  
 
   // Mock data for reports
   const units = ['KPAK', 'Koperasi Buku', 'Kantin Umi', 'Kantin Baru'];
@@ -112,7 +88,7 @@ export default async function ReportsPage() {
       title: 'Laba Bersih',
       value: '66,000,000',
       change: '+25% dari bulan lalu',
-      icon: <PieChart className="w-6 h-6 text-emerald-600" />,
+      icon: <PieChartIcon className="w-6 h-6 text-emerald-600" />,
       bgColor: 'bg-emerald-100',
     },
     {
@@ -136,11 +112,11 @@ export default async function ReportsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button className="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition text-sm">
-            <FileText size={16} />
+            <FileTextIcon size={16} />
             <span>Cetak Laporan</span>
           </button>
           <button className="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition text-sm">
-            <Download size={16} />
+            <DownloadIcon size={16} />
             <span>Export Excel</span>
           </button>
         </div>
@@ -221,7 +197,7 @@ export default async function ReportsPage() {
             </select>
           </div>
           <div className="h-64">
-            <Bar
+            <BarChart
               data={monthlyData}
               options={{
                 responsive: true,
@@ -234,7 +210,7 @@ export default async function ReportsPage() {
                 scales: {
                   y: {
                     ticks: {
-                      callback: (value) => {
+                      callback: (value: any) => {
                         return formatCurrency(value as number);
                       },
                     },
@@ -253,7 +229,7 @@ export default async function ReportsPage() {
             </h2>
           </div>
           <div className="h-64">
-            <Doughnut
+            <DoughnutChart
               data={unitDistributionData}
               options={{
                 responsive: true,
@@ -336,12 +312,9 @@ export default async function ReportsPage() {
                       {formatCurrency(balance)}
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <Link
-                        href={`/dashboard/reports/${unit.toLowerCase().replace(/\s+/g, '-')}`}
-                        className="text-emerald-600 hover:text-emerald-700 font-medium text-sm"
-                      >
+                      <span className="text-emerald-600 font-medium text-sm">
                         Detail
-                      </Link>
+                      </span>
                     </td>
                   </tr>
                 );

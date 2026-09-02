@@ -1,20 +1,17 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/options';
 import {
-  Receipt,
-  Plus,
   Search,
-  Filter,
   Eye,
   Trash2,
-  Download,
+  Plus,
+  Filter,
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function TransactionsPage() {
   const session = await getServerSession(authOptions);
   const user = session?.user;
-  const role = user?.role || 'STAFF';
 
   // In a real app, fetch actual data from the database
   const transactions = [

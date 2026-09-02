@@ -5,8 +5,6 @@ import {
   ClipboardList,
   CheckCircle,
   XCircle,
-  Clock,
-  Eye,
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
@@ -58,7 +56,7 @@ export default function ApprovalsPage() {
     fetchApprovals();
   }, []);
 
-  const handleApprove = async (id: string, transactionId: string) => {
+  const handleApprove = async (id: string, _transactionId: string) => {
     setProcessingId(id);
     try {
       const res = await fetch(`/api/approvals/${id}`, {

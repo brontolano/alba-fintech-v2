@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   ShoppingCart,
   Plus,
@@ -11,7 +11,6 @@ import {
   Banknote,
   Receipt,
   Package,
-  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 

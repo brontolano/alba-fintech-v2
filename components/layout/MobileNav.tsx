@@ -6,12 +6,10 @@ import {
   Package,
   ShoppingCart,
   BarChart3,
-  Settings,
-  FileText,
   ClipboardList,
+  FileText,
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
-import { User } from 'next-auth';
 
 interface MobileNavProps {
   user: {

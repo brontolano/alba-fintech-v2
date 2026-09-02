@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, Save, Shield, Mail, Lock } from 'lucide-react';
+import { Save, Lock, User as UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface UserProfile {
@@ -136,7 +136,7 @@ export default function AccountPage() {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <User size={28} className="text-emerald-600" />
+                <UserIcon size={28} className="text-emerald-600" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-slate-800">
@@ -291,7 +291,7 @@ export default function AccountPage() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <User size={48} className="mx-auto text-slate-300 mb-4" />
+          <UserIcon size={48} className="mx-auto text-slate-300 mb-4" />
           <p className="text-slate-500">Profil tidak ditemukan</p>
         </div>
       )}

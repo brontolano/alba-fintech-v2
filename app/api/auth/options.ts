@@ -26,6 +26,27 @@ declare module 'next-auth/jwt' {
   }
 }
 
+// Extend the Session type to include custom fields
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id?: string;
+      role?: string;
+      unitId?: string | null;
+      lembagaId?: string | null;
+    };
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id?: string;
+    role?: string;
+    unitId?: string | null;
+    lembagaId?: string | null;
+  }
+}
+
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
