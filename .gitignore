@@ -17,6 +17,7 @@ out/
 .env.test.local
 .env.production/
 .env.production.local
+.env.production.local
 
 # Database
 *.db
@@ -50,3 +51,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Build info
+*.tsbuildinfo
