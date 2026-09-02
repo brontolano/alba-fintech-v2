@@ -32,10 +32,10 @@ export async function GET(request: NextRequest) {
 
     const categories = await prisma.financialCategory.findMany({
       where,
-      orderBy: {
-        type: 'asc',
-        name: 'asc',
-      },
+      orderBy: [
+        { type: 'asc' },
+        { name: 'asc' },
+      ],
     });
 
     return NextResponse.json({ data: categories }, { status: 200 });
