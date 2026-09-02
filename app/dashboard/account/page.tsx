@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Lock, User as UserIcon } from 'lucide-react';
+import { Save, Lock, User as UserIcon, Camera, X } from 'lucide-react';
 import { toast } from 'sonner';
+import Image from 'next/image';
 
 interface UserProfile {
   id: string;
   name: string | null;
   email: string;
+  image?: string | null;
   role: string;
   unitId: string | null;
   lembagaId: string | null;
@@ -22,6 +24,9 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [passwords, setPasswords] = useState({
     current: '',
     new: '',
@@ -71,6 +76,65 @@ export default function AccountPage() {
     } finally {
       setUpdating(false);
     }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Hanya gambar yang diizinkan');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Ukuran gambar maksimal 5MB');
+      return;
+    }
+
+    // Preview
+    setPreviewImage(URL.createObjectURL(file));
+    setSelectedImage(file);
+  };
+
+  const handleSaveImage = async () => {
+    if (!selectedImage) return;
+
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', selectedImage);
+
+      const res = await fetch('/api/users/profile/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Gagal mengunggah gambar');
+      }
+
+      const data = await res.json();
+      setProfile(data.data);
+      toast.success('Foto profil berhasil diperbarui');
+      
+      // Reset preview
+      URL.revokeObjectURL(previewImage || '');
+      setPreviewImage(null);
+      setSelectedImage(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal mengunggah gambar');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setPreviewImage(null);
+    setSelectedImage(null);
   };
 
   const handleChangePassword = async () => {
@@ -135,8 +199,51 @@ export default function AccountPage() {
           {/* Profile Info */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <UserIcon size={28} className="text-emerald-600" />
+              <div className="relative">
+                <div className="w-16 h-16 bg-emerald-100 rounded-xl flex items-center justify-center overflow-hidden">
+                  {previewImage ? (
+                    <Image
+                      src={previewImage}
+                      alt="Preview"
+                      width={64}
+                      height={64}
+                      className="object-cover"
+                    />
+                  ) : profile.image ? (
+                    <Image
+                      src={profile.image}
+                      alt="Profile"
+                      width={64}
+                      height={64}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <UserIcon size={28} className="text-emerald-600" />
+                  )}
+                </div>
+                <label
+                  htmlFor="profile-image"
+                  className="absolute -bottom-1 -right-1 bg-emerald-600 text-white rounded-full p-1 cursor-pointer hover:bg-emerald-700 transition"
+                  title="Ganti foto"
+                >
+                  <Camera size={14} />
+                  <input
+                    type="file"
+                    id="profile-image"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
+                {previewImage && (
+                  <button
+                    onClick={handleRemoveImage}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 cursor-pointer hover:bg-red-600 transition"
+                    title="Batal pilih"
+                  >
+                    <X size={10} />
+                  </button>
+                )}
               </div>
               <div>
                 <h2 className="text-xl font-bold text-slate-800">
@@ -148,6 +255,28 @@ export default function AccountPage() {
                 </span>
               </div>
             </div>
+
+            {previewImage && (
+              <div className="mb-4 p-4 bg-slate-50 rounded-lg">
+                <p className="text-sm text-slate-600 mb-2">
+                  Foto baru dipilih. Klik &quot;Simpan Gambar&quot; untuk mengunggah.
+                </p>
+                <button
+                  onClick={handleSaveImage}
+                  disabled={uploadingImage}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+                >
+                  <Camera size={16} />
+                  <span>{uploadingImage ? 'Mengunggah...' : 'Simpan Gambar'}</span>
+                </button>
+                <button
+                  onClick={handleRemoveImage}
+                  className="ml-2 px-4 py-2 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition"
+                >
+                  Batal
+                </button>
+              </div>
+            )}
 
             <form onSubmit={handleUpdateProfile} className="space-y-4 mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
