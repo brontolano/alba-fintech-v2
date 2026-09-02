@@ -1,0 +1,53 @@
+{
+  "name": "alba-fintech-v3",
+  "version": "1.0.0",
+  "description": "Aplikasi Keuangan Pondok Pesantren Al-Basyariyah v3",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prepare": "prisma generate"
+  },
+  "dependencies": {
+    "@next-auth/prisma-adapter": "1.0.3",
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "chart.js": "^4.5.1",
+    "date-fns": "^3.6.0",
+    "dotenv": "^17.4.2",
+    "lucide-react": "^1.39.0",
+    "next": "14.2.18",
+    "next-auth": "4.24.15",
+    "react": "18.3.1",
+    "react-chartjs-2": "^5.3.1",
+    "react-dom": "18.3.1",
+    "react-hook-form": "^7.54.3",
+    "sonner": "^2.0.8",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.30",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@typescript-eslint/eslint-plugin": "^7",
+    "autoprefixer": "^10.4.18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.18",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.4",
+    "postcss": "^8",
+    "prettier": "^3.2.5",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.1",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.3.3"
+  }
+}

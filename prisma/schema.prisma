@@ -1,0 +1,468 @@
+// Schema for Al-Basyariyah Financial Management System v3
+// Designed specifically for Pondok Pesantren Al-Basyariyah
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// For local development without MySQL, you can use SQLite:
+// datasource db {
+//   provider = "sqlite"
+//   url      = "file:./dev.db"
+// }
+
+// --- MODELS ---
+
+model Lembaga {
+  id              String        @id @default(cuid())
+  name            String        @unique
+  code            String?       @unique
+  description     String?
+  address         String?
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  units           Unit[]
+  users           User[]
+  broadcastMessages BroadcastMessage[]
+  financialCategories FinancialCategory[]
+
+  @@map("lembagas")
+}
+
+// Units within the pesantren
+// KPAK (Finance Office), Koperasi Buku, Kantin Umi, Kantin Baru
+model Unit {
+  id            String        @id @default(cuid())
+  name          String
+  code          String        @unique
+  description   String?
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  lembagaId     String?
+  isRetail      Boolean       @default(false) @map("is_retail")
+  type          UnitType      @default(KPAK)
+  parentId      String?       @map("parent_id")
+  parent        Unit?         @relation("UnitHierarchy", fields: [parentId], references: [id])
+  children      Unit[]        @relation("UnitHierarchy")
+  transactions  Transaction[]
+  financialNotes FinancialNote[]
+  unitSettings  UnitSetting?
+  inventoryItems InventoryItem[]
+  approvals     Approval[]
+  bankAccounts  BankAccount[]
+  lembaga       Lembaga?      @relation(fields: [lembagaId], references: [id])
+  users         User[]
+
+  @@index([lembagaId], map: "units_lembaga_id_fkey")
+  @@index([parentId], map: "units_parent_id_fkey")
+  @@map("units")
+}
+
+// User roles
+enum Role {
+  SUPERADMIN
+  PIMPINAN
+  MANAGER
+  STAFF
+
+  @@map("role")
+}
+
+// Unit types
+enum UnitType {
+  KPAK     // Kantor Pelayanan Administrasi Keuangan (Finance Office)
+  KOPERASI // Cooperative (school supplies, books)
+  KANTIN   // Cafeteria
+  UMUM     // General/Other
+
+  @@map("unit_type")
+}
+
+// Users
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String?
+  passwordHash  String        @map("password_hash")
+  role          Role          @default(STAFF)
+  unitId        String?       @map("unit_id")
+  lembagaId     String?       @map("lembaga_id")
+  isActive      Boolean       @default(true)
+  emailVerified DateTime?     @map("email_verified")
+  image         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  approvals     Approval[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  pushSubscriptions PushSubscription[]
+  transactionsApproved Transaction[] @relation("TransactionApprover")
+  transactionsCreated  Transaction[] @relation("TransactionCreator")
+  financialNotesCreated FinancialNote[] @relation("FinancialNoteCreator")
+  financialNotesApproved FinancialNote[] @relation("FinancialNoteApprover")
+  unit          Unit?         @relation(fields: [unitId], references: [id])
+  lembaga       Lembaga?      @relation(fields: [lembagaId], references: [id])
+  sentBroadcasts BroadcastMessage[] @relation("SentBroadcasts")
+  receivedBroadcasts BroadcastRecipient[] @relation("ReceivedBroadcasts")
+
+  @@index([unitId], map: "users_unit_id_fkey")
+  @@index([lembagaId], map: "users_lembaga_id_fkey")
+  @@map("users")
+}
+
+// Financial Categories for chart of accounts
+model FinancialCategory {
+  id          String             @id @default(cuid())
+  name        String
+  code        String             @unique
+  type        CategoryType
+  description String?
+  parentId    String?            @map("parent_id")
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  lembagaId   String?
+  parent      FinancialCategory? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    FinancialCategory[] @relation("CategoryHierarchy")
+  transactions Transaction[]
+  financialNotes FinancialNote[]
+  lembaga     Lembaga?           @relation(fields: [lembagaId], references: [id])
+
+  @@index([type])
+  @@index([parentId])
+  @@map("financial_categories")
+}
+
+enum CategoryType {
+  INCOME    // Pemasukan
+  EXPENSE   // Pengeluaran
+  TRANSFER  // Transfer antar unit/akun
+
+  @@map("category_type")
+}
+
+// Bank Accounts for units
+model BankAccount {
+  id          String         @id @default(cuid())
+  name        String
+  code        String         @unique
+  type        AccountType
+  balance     Decimal        @db.Decimal(15,2) @default(0.00)
+  description String?
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  unitId      String?
+  unit        Unit?          @relation(fields: [unitId], references: [id])
+  transactions Transaction[]
+
+  @@index([unitId])
+  @@map("bank_accounts")
+}
+
+enum AccountType {
+  CASH      // Kas tunai
+  BANK      // Rekening bank
+  E_WALLET  // Dompet elektronik
+
+  @@map("account_type")
+}
+
+// Transactions - the core financial record
+model Transaction {
+  id            String             @id @default(cuid())
+  unitId        String             @map("unit_id")
+  type          TransactionType
+  amount        Decimal            @db.Decimal(15,2)
+  description   String
+  categoryId    String?            @map("category_id")
+  accountId     String?            @map("account_id")
+  reference     String?            // No. ref / bukti transfer
+  date          DateTime           @default(now()) @map("transaction_date")
+  status        TransactionStatus  @default(PENDING)
+  createdById   String             @map("created_by_id")
+  approvedById  String?            @map("approved_by_id")
+  approvedAt    DateTime?          @map("approved_at")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  photoUrl      String?            @map("photo_url")
+  isPimpinanNote Boolean           @default(false) @map("is_pimpinan_note")
+  orderItems    OrderItem[]
+  approvals     Approval[]
+  unit          Unit               @relation(fields: [unitId], references: [id])
+  category      FinancialCategory? @relation(fields: [categoryId], references: [id])
+  account       BankAccount?       @relation(fields: [accountId], references: [id])
+  createdBy     User               @relation("TransactionCreator", fields: [createdById], references: [id])
+  approvedBy    User?              @relation("TransactionApprover", fields: [approvedById], references: [id])
+
+  @@index([unitId])
+  @@index([status])
+  @@index([createdById])
+  @@index([categoryId])
+  @@index([accountId])
+  @@index([approvedById])
+  @@index([status, createdAt])
+  @@index([unitId, createdAt])
+  @@index([date, unitId])
+  @@map("transactions")
+}
+
+enum TransactionType {
+  INCOME    // Pemasukan
+  EXPENSE   // Pengeluaran
+  TRANSFER  // Transfer antar akun/unit
+
+  @@map("transaction_type")
+}
+
+enum TransactionStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("transaction_status")
+}
+
+// Approval Workflow
+model Approval {
+  id            String          @id @default(cuid())
+  transactionId String          @map("transaction_id")
+  unitId        String?         @map("unit_id")
+  approverId    String          @map("approver_id")
+  status        ApprovalStatus  @default(PENDING)
+  comment       String?
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  approver      User            @relation(fields: [approverId], references: [id])
+  transaction   Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  unit          Unit?           @relation(fields: [unitId], references: [id])
+
+  @@index([transactionId])
+  @@index([approverId])
+  @@index([unitId])
+  @@map("approvals")
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("approval_status")
+}
+
+// Financial Notes (Pimpinan records)
+model FinancialNote {
+  id            String             @id @default(cuid())
+  unitId        String?            @map("unit_id")
+  title         String
+  description   String
+  amount        Decimal            @db.Decimal(15,2)
+  type          TransactionType
+  date          DateTime           @default(now()) @map("date")
+  categoryId    String?            @map("category_id")
+  createdById   String             @map("created_by_id")
+  approvedById  String?            @map("approved_by_id")
+  approvedAt    DateTime?          @map("approved_at")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  isReconciled  Boolean            @default(false) @map("is_reconciled")
+  reconciledAt  DateTime?          @map("reconciled_at")
+  reconciledById String?           @map("reconciled_by_id")
+  unit          Unit?              @relation(fields: [unitId], references: [id])
+  category      FinancialCategory? @relation(fields: [categoryId], references: [id])
+  createdBy     User               @relation("FinancialNoteCreator", fields: [createdById], references: [id])
+  approvedBy    User?              @relation("FinancialNoteApprover", fields: [approvedById], references: [id])
+
+  @@index([unitId])
+  @@index([createdById])
+  @@index([date])
+  @@index([isReconciled])
+  @@index([unitId, date])
+  @@map("financial_notes")
+}
+
+// Audit Trail
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  oldData   String?  @map("old_data")
+  newData   String?  @map("new_data")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Inventory Items (for retail units)
+model InventoryItem {
+  id            String        @id @default(cuid())
+  unitId        String        @map("unit_id")
+  name          String        @db.VarChar(200)
+  sku           String        @unique @db.VarChar(50)
+  category      String?       @db.VarChar(100)
+  currentStock  Int           @default(0) @map("current_stock")
+  minStock      Int           @default(0) @map("min_stock")
+  unitPrice     Decimal?      @db.Decimal(12,2) @map("unit_price")
+  purchasePrice Decimal?      @db.Decimal(12,2) @map("purchase_price")
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  unit          Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  orderItems    OrderItem[]
+
+  @@index([unitId])
+  @@index([category])
+  @@map("inventory_items")
+}
+
+// Order Items (POS transactions)
+model OrderItem {
+  id            String        @id @default(cuid())
+  transactionId String        @map("transaction_id")
+  itemId        String?       @map("item_id")
+  itemName      String
+  quantity      Int           @default(1)
+  unitPrice     Decimal       @db.Decimal(12,2)
+  totalPrice    Decimal       @db.Decimal(12,2)
+  inventoryItem InventoryItem? @relation(fields: [itemId], references: [id])
+  transaction   Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([itemId])
+  @@map("order_items")
+}
+
+// Notifications
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String?            @map("user_id")
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean            @default(false) @map("is_read")
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+  user      User?              @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+
+  @@map("notification_type")
+}
+
+// Push Subscriptions for notifications
+model PushSubscription {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  endpoint  String    @unique @map("endpoint") @db.VarChar(512)
+  keys      String    @db.LongText
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// Broadcast Messages
+model BroadcastMessage {
+  id            String   @id @default(cuid())
+  title         String   @db.VarChar(200)
+  message       String   @db.Text
+  type          String   @default("INFO") @db.VarChar(20)
+  priority      String   @default("NORMAL") @db.VarChar(20)
+  status        BroadcastStatus @default(DRAFT)
+  isDraft       Boolean  @default(true)
+  isSent        Boolean  @default(false)
+  sentAt        DateTime? @map("sent_at")
+  deliveredTo   Int?     @map("delivered_to")
+  lembagaId     String?  @map("lembaga_id")
+  senderId      String   @map("sender_id")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  sender        User     @relation("SentBroadcasts", fields: [senderId], references: [id])
+  recipients    BroadcastRecipient[]
+  lembaga       Lembaga? @relation(fields: [lembagaId], references: [id])
+
+  @@index([senderId])
+  @@index([lembagaId])
+  @@map("broadcast_messages")
+}
+
+enum BroadcastStatus {
+  DRAFT
+  PENDING
+  SENT
+  FAILED
+
+  @@map("broadcast_status")
+}
+
+model BroadcastRecipient {
+  id        String          @id @default(cuid())
+  broadcastId String        @map("broadcast_id")
+  userId    String          @map("user_id")
+  isRead    Boolean         @default(false) @map("is_read")
+  createdAt DateTime        @default(now())
+  broadcast BroadcastMessage @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  user      User            @relation("ReceivedBroadcasts", fields: [userId], references: [id])
+
+  @@index([broadcastId])
+  @@index([userId])
+  @@unique([broadcastId, userId])
+  @@map("broadcast_recipients")
+}
+
+// Unit Settings
+model UnitSetting {
+  id            String   @id @default(cuid())
+  unitId        String   @unique @map("unit_id")
+  posEnabled    Boolean  @default(true) @map("pos_enabled")
+  inventoryEnabled Boolean @default(true) @map("inventory_enabled")
+  autoApproval  Boolean  @default(false) @map("auto_approval")
+  requiresApproval Boolean @default(true) @map("requires_approval")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  unit          Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@map("unit_settings")
+}
+
+// System Settings
+model SystemSetting {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  value         String?
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
