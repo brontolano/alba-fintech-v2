@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { CheckSquare, RefreshCw, AlertCircle, Trash2, Loader2 } from 'lucide-react';
+import { CheckSquare, RefreshCw, AlertCircle, Trash2, Loader2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Modal, Button } from '@/components/ui';
+import { format } from 'date-fns';
 
 type SortKey = 'createdAt' | 'amount' | 'status';
 type SortDir = 'asc' | 'desc';
@@ -34,10 +35,8 @@ export default function ApprovalsPage() {
   
   // Bulk action state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
-  const [itemsToDelete, setItemsToDelete] = useState<string[]>([]);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null);
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [pendingBulkAction, setPendingBulkAction] = useState<'approve' | 'reject' | null>(null);
 
   useEffect(() => {
     const fetchApprovals = async () => {
@@ -88,6 +87,8 @@ export default function ApprovalsPage() {
         )
       );
       setSelectedIds((prev) => prev.filter((itemId) => itemId !== id));
+    } catch (err) {
+      console.error('Error:', err);
     } finally {
       setActionLoading(null);
     }
@@ -108,10 +109,9 @@ export default function ApprovalsPage() {
     }
   };
 
-  const handleBulkAction = async (action: 'approve' | 'reject') => {
+  const executeBulkAction = async (action: 'approve' | 'reject') => {
     if (selectedIds.length === 0) return;
     
-    setIsDeleting(true);
     try {
       await Promise.all(
         selectedIds.map((id) =>
@@ -125,31 +125,18 @@ export default function ApprovalsPage() {
       setApprovals((prev) =>
         prev.filter((a) => !selectedIds.includes(a.id))
       );
-      setSelectedIds([]);
+    } catch (err) {
+      console.error('Bulk action error:', err);
     } finally {
-      setIsDeleting(false);
-      setBulkAction(null);
+      setSelectedIds([]);
+      setShowBulkConfirm(false);
+      setPendingBulkAction(null);
     }
   };
 
   const confirmBulkAction = (action: 'approve' | 'reject') => {
-    setBulkAction(action);
-    setItemsToDelete(selectedIds);
-    setShowBulkDeleteConfirm(true);
-  };
-
-  const executeBulkAction = () => {
-    if (bulkAction) {
-      handleBulkAction(bulkAction);
-    }
-    setShowBulkDeleteConfirm(false);
-    setItemsToDelete([]);
-  };
-
-  const cancelDelete = () => {
-    setShowBulkDeleteConfirm(false);
-    setItemsToDelete([]);
-    setBulkAction(null);
+    setPendingBulkAction(action);
+    setShowBulkConfirm(true);
   };
 
   const formatCurrency = (amount: number) =>
@@ -191,10 +178,9 @@ export default function ApprovalsPage() {
                 </span>
                 <div className="flex gap-2">
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="sm"
                     onClick={() => confirmBulkAction('reject')}
-                    disabled={isDeleting}
                   >
                     Tolak Semua
                   </Button>
@@ -202,7 +188,6 @@ export default function ApprovalsPage() {
                     variant="default"
                     size="sm"
                     onClick={() => confirmBulkAction('approve')}
-                    disabled={isDeleting}
                   >
                     Setujui Semua
                   </Button>
@@ -279,25 +264,25 @@ export default function ApprovalsPage() {
             </div>
           </CardContent>
           
-          {/* Delete Confirmation Modal */}
+          {/* Bulk Action Confirmation Modal */}
           <Modal
-            open={showBulkDeleteConfirm}
-            onClose={() => setShowBulkDeleteConfirm(false)}
+            open={showBulkConfirm}
+            onClose={() => setShowBulkConfirm(false)}
             title="Konfirmasi Bulk Action"
-            description={`Anda yakin ingin ${bulkAction === 'reject' ? 'menolak' : 'mengsetujui'} ${itemsToDelete.length} transaksi yang dipilih?`}
+            description={pendingBulkAction ? `Anda yakin ingin ${pendingBulkAction === 'reject' ? 'menolak' : 'mengsetujui'} ${selectedIds.length} transaksi yang dipilih?` : ''}
           >
             <div className="flex gap-3 justify-end mt-4">
-              <Button variant="outline" onClick={cancelDelete}>
+              <Button variant="outline" onClick={() => setShowBulkConfirm(false)}>
                 Batal
               </Button>
-              <Button
-                variant="destructive"
-                onClick={executeBulkAction}
-                disabled={isDeleting}
-              >
-                {isDeleting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                {bulkAction === 'reject' ? 'Tolak Semua' : 'Setujui Semua'}
-              </Button>
+              {pendingBulkAction && (
+                <Button
+                  variant={pendingBulkAction === 'reject' ? 'default' : 'default'}
+                  onClick={() => executeBulkAction(pendingBulkAction)}
+                >
+                  {pendingBulkAction === 'reject' ? 'Tolak Semua' : 'Setujui Semua'}
+                </Button>
+              )}
             </div>
           </Modal>
         </Card>
