@@ -24,6 +24,10 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
