@@ -48,6 +48,8 @@ jobs:
 
       - name: Clean remote deploy directory
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          HOSTINGER_SSH_USERNAME: ${{ secrets.HOSTINGER_SSH_USERNAME }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
@@ -113,6 +115,9 @@ jobs:
 
       - name: Restart app
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          HOSTINGER_SSH_USERNAME: ${{ secrets.HOSTINGER_SSH_USERNAME }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
