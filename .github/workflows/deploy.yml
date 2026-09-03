@@ -111,31 +111,7 @@ jobs:
           source: "prisma/schema.prisma"
           target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html/prisma
 
-      - name: Generate Prisma (for standalone/node_modules)
-        run: npx prisma generate
-
-      - name: SCP transfer package.json and lock for runtime
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: "package.json,package-lock.json"
-          target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html/
-
-      - name: SCP transfer node_modules for standalone
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: ".next/standalone/node_modules/"
-          target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html/node_modules/
-          rm: true
-
-      - name: Restart app (no server-side build/install needed)
+      - name: Restart app
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
@@ -147,10 +123,7 @@ jobs:
             set -e
             DEPLOY_DIR="/home/${HOSTINGER_SSH_USERNAME}/domains/alba.brontolano.com/public_html"
 
-            echo ">>> Generating Prisma client on server (if needed)"
             cd "$DEPLOY_DIR"
-            npx prisma generate 2>&1 || echo "WARNING: prisma generate completed with warnings"
-
             echo ">>> Restarting Node.js application"
             touch "$DEPLOY_DIR/../restart.txt" && echo "App restarted successfully"
 
