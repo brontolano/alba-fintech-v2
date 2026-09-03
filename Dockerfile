@@ -5,7 +5,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies (cached layer)
+# Install all dependencies (including dev) needed for build
 COPY package.json package-lock.json ./
 RUN npm ci
 
@@ -23,12 +23,18 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Copy standalone build
+# Copy only the built artefacts
 COPY --from=builder /app/.next/standalone/ ./
-COPY --from=builder /app/.next/static/ ./
+COPY --from=builder /app/.next/static/ ./.next/static/
 COPY --from=builder /app/public/ ./public/
 COPY --from=builder /app/prisma/ ./prisma/
 COPY --from=builder /app/server.js ./
+
+# Copy package files to install production deps (including raw-loader)
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/package-lock.json ./
+# Install only production dependencies
+RUN npm ci --production
 
 # Set environment
 ENV NODE_ENV=production

@@ -47,5 +47,5 @@ export default function RootLayout({
   );
 }
 
-// Force dynamic rendering for session-dependent layout
+// Force dynamic rendering for layout and pages
 export const dynamic = 'force-dynamic';

@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Home, ArrowLeft } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default function NotFound() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
