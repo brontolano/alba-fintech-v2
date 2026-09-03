@@ -6,6 +6,7 @@ const nextConfig = {
   
   // Image optimization
   images: {
+    unoptimized: true,
     domains: ['localhost', 'alba-fintech.vercel.app', 'lh3.googleusercontent.com'],
     remotePatterns: [
       {
