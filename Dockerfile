@@ -1,5 +1,4 @@
-# ALBA Finance v3 - Dockerfile
-# For Hostinger deployment with standalone output
+# ALBA Finance v3 - Production Docker image
 
 FROM node:20-alpine AS builder
 
@@ -23,22 +22,17 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Copy only the built artefacts
+# The standalone output already contains the production dependency tree.
 COPY --from=builder /app/.next/standalone/ ./
 COPY --from=builder /app/.next/static/ ./.next/static/
 COPY --from=builder /app/public/ ./public/
 COPY --from=builder /app/prisma/ ./prisma/
 COPY --from=builder /app/server.js ./
 
-# Copy package files to install production deps (including raw-loader)
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/package-lock.json ./
-# Install only production dependencies
-RUN npm ci --production
-
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

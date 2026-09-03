@@ -7,7 +7,7 @@
 //   - .next/static/       (build artifacts)
 //   - .env.production     (template — Anda isi manual)
 
-import { existsSync, mkdirSync, cpSync, copyFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, cpSync, copyFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -41,7 +41,13 @@ copyDir(join(ROOT, 'public'), join(DEPLOY, 'public'));
 // 3. .next/static/ → deploy-package/.next/static/
 copyDir(join(ROOT, '.next', 'static'), join(DEPLOY, '.next', 'static'));
 
-// 4. Prisma engine binaries (WAJIB di-copy manual karena webpack externals)
+// 4. Use the custom server so Hostinger has a health endpoint and correct port handling.
+if (existsSync(join(ROOT, 'server.js'))) {
+  copyFileSync(join(ROOT, 'server.js'), join(DEPLOY, 'server.js'));
+  console.log('✅ Copied server.js');
+}
+
+// 5. Prisma engine binaries (WAJIB di-copy manual karena webpack externals)
 const standaloneNodeModules = join(DEPLOY, 'node_modules');
 const rootNodeModules = join(ROOT, 'node_modules');
 
@@ -58,7 +64,7 @@ for (const dir of prismaArtifacts) {
   }
 }
 
-// 5. .env.production template (kalau ada)
+// 6. .env.production template (kalau ada)
 if (existsSync(join(ROOT, '.env.production'))) {
   copyFileSync(join(ROOT, '.env.production'), join(DEPLOY, '.env.production'));
   console.log('✅ Copied .env.production');

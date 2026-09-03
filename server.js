@@ -13,7 +13,7 @@ const handle = app.getRequestHandler();
 async function checkDB() {
   try {
     const prisma = new PrismaClient();
-    await prisma.$queryRaw({ sql: 'SELECT 1' });
+    await prisma.$queryRawUnsafe('SELECT 1');
     await prisma.$disconnect();
     console.log('✅ Database connection OK');
   } catch (err) {
