@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install sharp for standalone image optimization
+        run: npm install
+
       - name: Generate Prisma Client
         run: npx prisma generate
 
@@ -91,27 +94,47 @@ jobs:
           source: "prisma/schema.prisma"
           target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html/prisma
 
-      - name: Install deps, generate Prisma, restart app
+      - name: Generate Prisma (for standalone/node_modules)
+        run: npx prisma generate
+
+      - name: SCP transfer package.json and lock for runtime
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          source: "package.json,package-lock.json"
+          target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html/
+
+      - name: SCP transfer node_modules for standalone
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          source: ".next/standalone/node_modules/"
+          target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html/node_modules/
+          rm: true
+
+      - name: Restart app (no server-side build/install needed)
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          envs: HOSTINGER_SSH_USERNAME,DATABASE_URL,NEXTAUTH_URL,NEXTAUTH_SECRET
+          envs: HOSTINGER_SSH_USERNAME,NEXTAUTH_URL
           script: |
             set -e
             DEPLOY_DIR="/home/${HOSTINGER_SSH_USERNAME}/domains/alba.brontolano.com/public_html"
-            cd "$DEPLOY_DIR"
 
-            echo ">>> Generating Prisma client"
+            echo ">>> Generating Prisma client on server (if needed)"
+            cd "$DEPLOY_DIR"
             npx prisma generate 2>&1 || echo "WARNING: prisma generate completed with warnings"
 
-            echo ">>> Installing production dependencies"
-            npm install --production 2>&1 | tail -5
-            npm install sharp 2>&1 | tail -3 || echo "WARNING: sharp install failed"
-
             echo ">>> Restarting Node.js application"
-            touch "$DEPLOY_DIR/../restart.txt" || echo "WARNING: Could not create restart.txt - restart manually via hPanel"
+            touch "$DEPLOY_DIR/../restart.txt" && echo "App restarted successfully"
 
             echo ">>> Deploy complete! App URL: ${NEXTAUTH_URL}"
