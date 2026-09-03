@@ -7,6 +7,9 @@
     "node": ">=20.0.0"
   },
   "packageManager": "npm@10.x",
+  "overrides": {
+    "postcss": "8.5.28"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "npm run prisma:generate && next build",
@@ -32,7 +35,7 @@
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
     "lucide-react": "^1.39.0",
-    "next": "14.2.18",
+    "next": "15.5.25",
     "next-auth": "^4.24.15",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.3.1",
@@ -52,10 +55,10 @@
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
-    "eslint-config-next": "14.2.18",
+    "eslint-config-next": "15.5.25",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
-    "postcss": "^8.4.49",
+    "postcss": "8.5.28",
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "prisma": "^5.22.0",

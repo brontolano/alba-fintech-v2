@@ -14,9 +14,10 @@ const approvalActionSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Auth check
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -38,7 +39,7 @@ export async function PATCH(
 
     // Fetch approval
     const approval = await prisma.approval.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         transaction: true,
         unit: true,
@@ -60,7 +61,7 @@ export async function PATCH(
     await prisma.$transaction(async (tx) => {
       // Update approval
       await tx.approval.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           status: newStatus,
           comment: parsed.data.comment,
@@ -92,7 +93,7 @@ export async function PATCH(
 
     return NextResponse.json({
       message: `Transaksi berhasil ${parsed.data.action === 'approve' ? 'disetujui' : 'ditolak'}`,
-      data: { id: params.id, status: newStatus },
+      data: { id, status: newStatus },
     }, { status: 200 });
   } catch (error) {
     console.error('[Approval PATCH] Error:', error);
@@ -101,10 +102,11 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Auth check
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -119,7 +121,7 @@ export async function DELETE(
 
     // Delete approval
     await prisma.approval.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({
