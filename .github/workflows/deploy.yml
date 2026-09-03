@@ -14,6 +14,7 @@ on:
       - 'tsconfig.json'
       - 'middleware.ts'
       - 'server.js'
+      - '.github/workflows/deploy.yml'
 
 jobs:
   build-and-deploy:
