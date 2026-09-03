@@ -109,6 +109,7 @@ jobs:
 
             echo ">>> Installing production dependencies"
             npm install --production 2>&1 | tail -5
+            npm install sharp 2>&1 | tail -3 || echo "WARNING: sharp install failed"
 
             echo ">>> Restarting Node.js application"
             touch "$DEPLOY_DIR/../restart.txt" || echo "WARNING: Could not create restart.txt - restart manually via hPanel"
