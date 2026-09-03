@@ -2,7 +2,7 @@ import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 
 // Public paths that don't require authentication
-const PUBLIC_PATHS = ['/login', '/api/auth'];
+const PUBLIC_PATHS = ['/login', '/api/auth', '/health'];
 
 // Shared paths that all authenticated users can access
 const SHARED_PATHS = [
