@@ -49,17 +49,14 @@ jobs:
 
       - name: Clean remote deploy directory
         uses: appleboy/ssh-action@v1.0.0
-        env:
-          HOSTINGER_SSH_USERNAME: ${{ secrets.HOSTINGER_SSH_USERNAME }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          envs: HOSTINGER_SSH_USERNAME
           script: |
             set -e
-            DEPLOY_DIR="/home/${HOSTINGER_SSH_USERNAME}/domains/alba.brontolano.com/public_html"
+            DEPLOY_DIR="/home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html"
             echo ">>> Cleaning remote deploy directory: $DEPLOY_DIR"
             rm -rf "$DEPLOY_DIR"/.next "$DEPLOY_DIR"/node_modules "$DEPLOY_DIR"/package.json "$DEPLOY_DIR"/server.js "$DEPLOY_DIR"/prisma
             mkdir -p "$DEPLOY_DIR"/.next
@@ -116,21 +113,17 @@ jobs:
 
       - name: Restart app
         uses: appleboy/ssh-action@v1.0.0
-        env:
-          HOSTINGER_SSH_USERNAME: ${{ secrets.HOSTINGER_SSH_USERNAME }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          envs: HOSTINGER_SSH_USERNAME,NEXTAUTH_URL
           script: |
             set -e
-            DEPLOY_DIR="/home/${HOSTINGER_SSH_USERNAME}/domains/alba.brontolano.com/public_html"
+            DEPLOY_DIR="/home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html"
 
             cd "$DEPLOY_DIR"
             echo ">>> Restarting Node.js application"
             touch "$DEPLOY_DIR/../restart.txt" && echo "App restarted successfully"
 
-            echo ">>> Deploy complete! App URL: ${NEXTAUTH_URL}"
+            echo ">>> Deploy complete! App URL: ${{ secrets.NEXTAUTH_URL }}"
