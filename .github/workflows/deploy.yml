@@ -13,7 +13,7 @@ on:
       - 'next.config.mjs'
       - 'tsconfig.json'
       - 'middleware.ts'
-      - '.env.local'
+      - 'server.js'
 
 jobs:
   build-and-deploy:
@@ -32,57 +32,84 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
       - name: Clean Next.js build cache
         run: rm -rf .next
 
-      - name: Build Next.js app
+      - name: Build Next.js app (standalone output)
         run: npm run build
+        env:
+          NEXT_PUBLIC_APP_NAME: ${{ secrets.NEXT_PUBLIC_APP_NAME }}
+          NEXT_PUBLIC_CURRENCY: ${{ secrets.NEXT_PUBLIC_CURRENCY }}
+          NEXT_PUBLIC_LOCALE: ${{ secrets.NEXT_PUBLIC_LOCALE }}
 
-      - name: Setup SFTP for deployment
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.HOSTINGER_FTP_HOST }}
-          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          source: ".next"
-          target: /home/u1234567/domains/alba.brontolano.com/public_html
-          rm: true
-
-      - name: Upload server.js
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.HOSTINGER_FTP_HOST }}
-          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          source: "server.js"
-          target: /home/u1234567/domains/alba.brontolano.com/public_html
-
-      - name: Upload package files
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.HOSTINGER_FTP_HOST }}
-          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          source: "package.json"
-          target: /home/u1234567/domains/alba.brontolano.com/public_html
-
-      - name: Upload prisma schema
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.HOSTINGER_FTP_HOST }}
-          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          source: "prisma/schema.prisma"
-          target: /home/u1234567/domains/alba.brontolano.com/public_html/prisma
-
-      - name: Install dependencies on server
+      - name: Clean remote deploy directory
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.HOSTINGER_FTP_HOST }}
-          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: HOSTINGER_SSH_USERNAME
           script: |
-            cd /home/u1234567/domains/alba.brontolano.com/public_html
-            npm install --production
-            npx prisma generate
-            npx prisma db pull || echo "Database not connected yet"
+            set -e
+            DEPLOY_DIR="/home/${HOSTINGER_SSH_USERNAME}/domains/alba.brontolano.com/public_html"
+            echo ">>> Cleaning remote deploy directory: $DEPLOY_DIR"
+            rm -rf "$DEPLOY_DIR"/.next "$DEPLOY_DIR"/node_modules "$DEPLOY_DIR"/package.json "$DEPLOY_DIR"/server.js "$DEPLOY_DIR"/prisma
+            mkdir -p "$DEPLOY_DIR"/.next
+
+      - name: SCP transfer standalone build
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          source: ".next/standalone/*"
+          target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html
+
+      - name: SCP transfer .next/static
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          source: ".next/static"
+          target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html/.next
+
+      - name: SCP transfer prisma schema
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          source: "prisma/schema.prisma"
+          target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html/prisma
+
+      - name: Install deps, generate Prisma, restart app
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: HOSTINGER_SSH_USERNAME,DATABASE_URL,NEXTAUTH_URL,NEXTAUTH_SECRET,NODE_ENV
+          script: |
+            set -e
+            DEPLOY_DIR="/home/${HOSTINGER_SSH_USERNAME}/domains/alba.brontolano.com/public_html"
+            cd "$DEPLOY_DIR"
+
+            echo ">>> Generating Prisma client"
+            npx prisma generate 2>&1 || echo "WARNING: prisma generate completed with warnings"
+
+            echo ">>> Installing production dependencies"
+            npm install --production 2>&1 | tail -5
+
+            echo ">>> Restarting Node.js application"
+            touch "$DEPLOY_DIR/../restart.txt" || echo "WARNING: Could not create restart.txt - restart manually via hPanel"
+
+            echo ">>> Deploy complete! App URL: ${NEXTAUTH_URL}"
