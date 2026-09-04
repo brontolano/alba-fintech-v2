@@ -107,6 +107,14 @@ if (existsSync(lockSrc)) {
   console.log('✅ package-lock.json → deploy-package/');
 }
 
+// 6b. Salin script reset-users.ts untuk keperluan manajemen user di server
+ensureDir(join(DEPLOY, 'scripts'));
+const resetScriptSrc = join(ROOT, 'scripts', 'reset-users.ts');
+if (existsSync(resetScriptSrc)) {
+  copyFileSync(resetScriptSrc, join(DEPLOY, 'scripts', 'reset-users.ts'));
+  console.log('✅ scripts/reset-users.ts → deploy-package/scripts/');
+}
+
 // 7. Pastikan Prisma client runtime & query engine tersedia di deploy-package/node_modules
 //    Hostinger akan panggil `postinstall: prisma generate` — butuh paket prisma di node_modules
 const standaloneNodeModules = join(DEPLOY, 'node_modules');
