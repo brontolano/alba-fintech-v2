@@ -12,7 +12,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npm run prisma:generate && next build --webpack",
+    "build": "npm run prisma:generate && next build",
     "build:no-lint": "npm run prisma:generate && next build --no-lint",
     "start": "next start",
     "type-check": "tsc --noEmit",

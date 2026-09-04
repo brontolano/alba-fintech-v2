@@ -95,6 +95,9 @@ for (const dir of ['.prisma', '@prisma']) {
   copyDir(src, dest, 'node_modules/' + dir + ' (Prisma engine)');
 }
 
+// Copy sharp (dibutuhkan oleh Next.js image optimization di standalone mode)
+copyDir(join(rootNodeModules, 'sharp'), join(standaloneNodeModules, 'sharp'), 'node_modules/sharp (image optimizer)');
+
 // 7. Copy prisma schema
 ensureDir(join(DEPLOY, 'prisma'));
 const schemaSrc = join(ROOT, 'prisma', 'schema.prisma');

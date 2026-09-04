@@ -1,11 +1,11 @@
 "use client";
 
+import Link from 'next/link';
+
 export default function GlobalError({
   error,
-  retry,
 }: {
   error: Error & { digest?: string };
-  retry: () => void;
 }) {
   return (
     <html lang="id">
@@ -22,12 +22,12 @@ export default function GlobalError({
             ulang halaman.
           </p>
           <div className="flex justify-center">
-            <button
-              onClick={() => retry()}
-              className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
             >
-              Coba Lagi
-            </button>
+              Kembali ke Login
+            </Link>
           </div>
           {error?.digest && (
             <p className="mt-6 text-xs text-slate-400">
