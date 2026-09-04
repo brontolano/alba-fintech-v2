@@ -1,7 +1,5 @@
 "use client";
 
-import Link from 'next/link';
-
 export default function GlobalError({
   error,
 }: {
@@ -22,12 +20,12 @@ export default function GlobalError({
             ulang halaman.
           </p>
           <div className="flex justify-center">
-            <Link
+            <a
               href="/login"
               className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
             >
               Kembali ke Login
-            </Link>
+            </a>
           </div>
           {error?.digest && (
             <p className="mt-6 text-xs text-slate-400">
