@@ -2,36 +2,35 @@
 const nextConfig = {
   reactStrictMode: true,
   compress: true,
-  
+
   // Image optimization
   images: {
     unoptimized: true,
-    domains: ['localhost', 'alba-fintech.vercel.app', 'lh3.googleusercontent.com'],
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: '**',
+        protocol: "https",
+        hostname: "**",
       },
     ],
   },
-  
+
   // Bundle configuration
   webpack: (config) => {
     // Add markdown support
     config.module.rules.push({
       test: /\.md$/,
-      use: 'raw-loader',
+      use: "raw-loader",
     });
-    
+
     return config;
   },
-  
+
   // Output for deployment
-  output: 'standalone',
-  
+  output: "standalone",
+
   // Disable powered-by header
   poweredByHeader: false,
-  
+
   // Reduce build output
   productionBrowserSourceMaps: false,
 };
