@@ -106,7 +106,7 @@ if (existsSync(schemaSrc)) {
   console.log('✅ prisma/schema.prisma');
 }
 
-// 8. Buat package.json lean untuk Hostinger (hPanel hanya butuh start script)
+// 8. Buat package.json lean untuk Hostinger (dengan build & start script serta dependensi)
 const pkgSrcRaw = readFileSync(join(ROOT, 'package.json'), 'utf8');
 const pkgSrc = JSON.parse(pkgSrcRaw);
 const pkgDeploy = {
@@ -115,11 +115,18 @@ const pkgDeploy = {
   private: true,
   engines: pkgSrc.engines,
   scripts: {
-    start: 'node server.js',
+    build: "echo 'Already built locally/standalone'",
+    start: "node server.js"
   },
+  dependencies: {
+    "next": pkgSrc.dependencies?.next || "^14.2.18",
+    "react": pkgSrc.dependencies?.react || "^18.3.1",
+    "react-dom": pkgSrc.dependencies?.["react-dom"] || "^18.3.1",
+    "@prisma/client": pkgSrc.dependencies?.["@prisma/client"] || "^5.22.0"
+  }
 };
 writeFileSync(join(DEPLOY, 'package.json'), JSON.stringify(pkgDeploy, null, 2));
-console.log('✅ package.json (lean, start: node server.js)');
+console.log('✅ package.json (lean, build & start scripts, dependencies included)');
 
 // 9. Copy .env.production jika ada di root, atau buat template
 const envSrc  = join(ROOT, '.env.production');
