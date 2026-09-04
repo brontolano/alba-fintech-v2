@@ -85,18 +85,14 @@ if (existsSync(customServerSrc)) {
   console.log('✅ server.js (custom entry point)');
 }
 
-// 6. Pastikan Prisma engine ada di standalone node_modules
+// 6. Salin SELURUH node_modules dari root (pastikan semua dependensi tersedia)
+// Ini penting untuk Hostinger agar tidak perlu npm install ulang
 const standaloneNodeModules = join(DEPLOY, 'node_modules');
 const rootNodeModules        = join(ROOT, 'node_modules');
 
-for (const dir of ['.prisma', '@prisma']) {
-  const src  = join(rootNodeModules, dir);
-  const dest = join(standaloneNodeModules, dir);
-  copyDir(src, dest, 'node_modules/' + dir + ' (Prisma engine)');
-}
-
-// Copy sharp (dibutuhkan oleh Next.js image optimization di standalone mode)
-copyDir(join(rootNodeModules, 'sharp'), join(standaloneNodeModules, 'sharp'), 'node_modules/sharp (image optimizer)');
+console.log('📦 Menyalin seluruh node_modules (ini mungkin memakan waktu)...');
+copyDir(rootNodeModules, standaloneNodeModules, 'node_modules/ (full copy)');
+console.log('✅ node_modules lengkap berhasil disalin');
 
 // 7. Copy prisma schema
 ensureDir(join(DEPLOY, 'prisma'));
@@ -106,27 +102,27 @@ if (existsSync(schemaSrc)) {
   console.log('✅ prisma/schema.prisma');
 }
 
-// 8. Buat package.json lean untuk Hostinger (dengan build & start script serta dependensi)
+// 8. Buat package.json lengkap untuk Hostinger (dengan semua dependensi yang diperlukan)
 const pkgSrcRaw = readFileSync(join(ROOT, 'package.json'), 'utf8');
 const pkgSrc = JSON.parse(pkgSrcRaw);
+
+// Ambil SEMUA dependencies dari package.json asli (kecuali devDependencies)
+const fullDeps = { ...pkgSrc.dependencies };
+
 const pkgDeploy = {
   name: pkgSrc.name,
   version: pkgSrc.version,
   private: true,
   engines: pkgSrc.engines,
   scripts: {
-    build: "echo 'Already built locally/standalone'",
-    start: "node server.js"
+    build: "next build",
+    start: "node server.js",
+    postinstall: "prisma generate"
   },
-  dependencies: {
-    "next": pkgSrc.dependencies?.next || "^14.2.18",
-    "react": pkgSrc.dependencies?.react || "^18.3.1",
-    "react-dom": pkgSrc.dependencies?.["react-dom"] || "^18.3.1",
-    "@prisma/client": pkgSrc.dependencies?.["@prisma/client"] || "^5.22.0"
-  }
+  dependencies: fullDeps
 };
 writeFileSync(join(DEPLOY, 'package.json'), JSON.stringify(pkgDeploy, null, 2));
-console.log('✅ package.json (lean, build & start scripts, dependencies included)');
+console.log('✅ package.json (full dependencies, build script included)');
 
 // 9. Copy .env.production jika ada di root, atau buat template
 const envSrc  = join(ROOT, '.env.production');
