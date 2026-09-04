@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/options';
 import { getServerSession } from 'next-auth';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
 
 // Schema for creating users
 const createUserSchema = z.object({

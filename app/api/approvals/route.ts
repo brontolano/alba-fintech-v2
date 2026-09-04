@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/options';
 import { getServerSession } from 'next-auth';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 
-const prisma = new PrismaClient();
 
 // Schema for approval actions
 const _approvalActionSchema = z.object({
@@ -111,7 +110,7 @@ export async function POST(request: NextRequest) {
     const approval = await prisma.approval.create({
       data: {
         transactionId: parsed.data.transactionId,
-        approverId: session.user.id,
+        approverId: session.user.id!,
         unitId: transaction.unitId,
         status: 'PENDING',
       },

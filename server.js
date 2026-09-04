@@ -1,47 +1,53 @@
 /**
- * ALBA Finance v3 — Hostinger Standalone Server Entry Point
- * Run: node server.js  (set NODE_ENV=production + env vars di hPanel)
+ * ALBA Finance v3 — Custom Entry Point untuk Hostinger
+ * Wrapper untuk Next.js standalone server.
+ *
+ * Cara jalankan: node server.js
+ * Environment vars harus sudah di-set di hPanel sebelum start.
  */
-const { createServer } = require('http');
-const next = require('next');
-const { PrismaClient } = require('@prisma/client');
 
-const dev = process.env.NODE_ENV !== 'production';
-const app = next({ dev });
-const handle = app.getRequestHandler();
+// Load .env.production jika ada (fallback jika hPanel tidak load env)
+const path = require('path');
+const fs   = require('fs');
 
-async function checkDB() {
-  try {
-    const prisma = new PrismaClient();
-    await prisma.$queryRawUnsafe('SELECT 1');
-    await prisma.$disconnect();
-    console.log('✅ Database connection OK');
-  } catch (err) {
-    console.error('❌ Database connection failed:', err.message);
-    console.log('⚠️  App will start, but DB-dependent routes will fail until credentials are fixed.');
+const envProdPath = path.join(__dirname, '.env.production');
+if (fs.existsSync(envProdPath)) {
+  // Baca dan set secara manual (tidak bergantung dotenv)
+  const lines = fs.readFileSync(envProdPath, 'utf8').split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx < 0) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    let val  = trimmed.slice(eqIdx + 1).trim();
+    // Hapus tanda kutip
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (!process.env[key]) process.env[key] = val;
   }
 }
 
-async function start() {
-  await app.prepare();
-  const server = createServer((req, res) => {
-    if (req.url === '/health') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
-      return;
-    }
-    handle(req, res);
-  });
+// Set default
+process.env.PORT     = process.env.PORT     || '3000';
+process.env.HOSTNAME = process.env.HOSTNAME || '0.0.0.0';
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
-  const port = process.env.PORT || 3000;
-  server.listen(port, () => {
-    console.log(`> Ready on http://localhost:${port} (HOSTINGER)`);
-  });
+console.log('🚀 Starting ALBA Finance v3...');
+console.log('  PORT     :', process.env.PORT);
+console.log('  HOSTNAME :', process.env.HOSTNAME);
+console.log('  NODE_ENV :', process.env.NODE_ENV);
+console.log('  DB URL   :', process.env.DATABASE_URL ? '✅ set' : '❌ NOT SET — app will fail!');
+console.log('  NEXTAUTH :', process.env.NEXTAUTH_SECRET ? '✅ set' : '❌ NOT SET — auth will fail!');
+
+// Jalankan Next.js standalone server (di-rename dari server.js asli saat deploy:prepare)
+const nextServer = path.join(__dirname, 'next-server.js');
+if (!fs.existsSync(nextServer)) {
+  // Fallback: mungkin running dari root project (bukan deploy-package)
+  console.error('❌ next-server.js tidak ditemukan di:', nextServer);
+  console.error('   Jalankan "npm run deploy:prepare" terlebih dahulu.');
+  process.exit(1);
 }
 
-start().then(() => {
-  if (!dev) checkDB();
-}).catch((err) => {
-  console.error('❌ Failed to start server:', err);
-  process.exit(1);
-});
+require(nextServer);

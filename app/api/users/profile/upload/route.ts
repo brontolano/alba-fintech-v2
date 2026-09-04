@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/options';
-import { PrismaClient } from '@prisma/client';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 
-const prisma = new PrismaClient();
 
 async function handleProfileImageUpload(imageFile: File): Promise<string | null> {
   try {

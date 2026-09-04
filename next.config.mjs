@@ -3,36 +3,38 @@ const nextConfig = {
   reactStrictMode: true,
   compress: true,
 
+  // Output mode standalone untuk Hostinger
+  output: 'standalone',
+
+  // Disable powered-by header
+  poweredByHeader: false,
+
+  // Kurangi ukuran build
+  productionBrowserSourceMaps: false,
+
   // Image optimization
   images: {
     unoptimized: true,
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "**",
+        protocol: 'https',
+        hostname: '**',
       },
     ],
   },
 
+  // Prisma dan bcryptjs tidak boleh di-bundle webpack (harus jalan di Node.js runtime)
+  serverExternalPackages: ['@prisma/client', 'prisma', 'bcryptjs', 'sharp'],
+
   // Bundle configuration
   webpack: (config) => {
-    // Add markdown support
+    // Markdown support
     config.module.rules.push({
       test: /\.md$/,
-      use: "raw-loader",
+      use: 'raw-loader',
     });
-
     return config;
   },
-
-  // Output for deployment
-  output: "standalone",
-
-  // Disable powered-by header
-  poweredByHeader: false,
-
-  // Reduce build output
-  productionBrowserSourceMaps: false,
 };
 
 export default nextConfig;

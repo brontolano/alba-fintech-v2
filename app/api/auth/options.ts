@@ -1,15 +1,16 @@
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { PrismaClient } from '@prisma/client';
-const bcrypt = require('bcryptjs');
+import bcrypt from 'bcryptjs';
+import prisma from '@/lib/prisma';
+import type { NextAuthOptions } from 'next-auth';
 
-const prisma = new PrismaClient();
-
-// Extend the Session type to include custom fields
 declare module 'next-auth' {
   interface Session {
     user: {
       id?: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
       role?: string;
       unitId?: string | null;
       lembagaId?: string | null;
@@ -26,28 +27,7 @@ declare module 'next-auth/jwt' {
   }
 }
 
-// Extend the Session type to include custom fields
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      id?: string;
-      role?: string;
-      unitId?: string | null;
-      lembagaId?: string | null;
-    };
-  }
-}
-
-declare module 'next-auth/jwt' {
-  interface JWT {
-    id?: string;
-    role?: string;
-    unitId?: string | null;
-    lembagaId?: string | null;
-  }
-}
-
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
@@ -56,28 +36,22 @@ export const authOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials: any) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
           include: { unit: true, lembaga: true },
         });
 
-        if (!user || !user.isActive) {
-          return null;
-        }
+        if (!user || !user.isActive) return null;
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           user.passwordHash
         );
 
-        if (!isPasswordValid) {
-          return null;
-        }
+        if (!isPasswordValid) return null;
 
         return {
           id: user.id,
@@ -97,25 +71,25 @@ export const authOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   session: {
-    strategy: 'jwt' as const,
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 hari
   },
   callbacks: {
-    async jwt({ token, user }: any) {
+    async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        token.unitId = user.unitId;
-        token.lembagaId = user.lembagaId;
+        token.id = (user as any).id;
+        token.role = (user as any).role;
+        token.unitId = (user as any).unitId;
+        token.lembagaId = (user as any).lembagaId;
       }
       return token;
     },
-    async session({ session, token }: any) {
+    async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.unitId = token.unitId as string | null;
-        session.user.lembagaId = token.lembagaId as string | null;
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.unitId = token.unitId;
+        session.user.lembagaId = token.lembagaId;
       }
       return session;
     },

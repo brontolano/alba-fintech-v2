@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/options';
 import { getServerSession } from 'next-auth';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 
-const prisma = new PrismaClient();
 
 // Schema for creating transactions
 const createTransactionSchema = z.object({
@@ -203,7 +202,7 @@ export async function POST(request: NextRequest) {
         accountId: parsed.data.accountId,
         reference: parsed.data.reference,
         date: parsed.data.date ? new Date(parsed.data.date) : undefined,
-        createdById: session.user.id,
+        createdById: session.user.id!,
         status: 'PENDING',
         photoUrl,
       },

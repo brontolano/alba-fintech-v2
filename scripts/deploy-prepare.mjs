@@ -1,86 +1,159 @@
-// Build script untuk Hostinger hPanel
-// Usage: node scripts/deploy-prepare.mjs
-//
-// Hasil: folder deploy-package/ berisi:
-//   - .next/standalone/  (server.js + minimal node_modules)
-//   - public/             (static assets)
-//   - .next/static/       (build artifacts)
-//   - .env.production     (template — Anda isi manual)
+/**
+ * ALBA Finance v3 — Deploy Prepare Script untuk Hostinger
+ *
+ * Langkah:
+ *   1. npm run build          (generate .next/standalone)
+ *   2. node scripts/deploy-prepare.mjs
+ *   3. Upload seluruh isi deploy-package/ ke Hostinger
+ *   4. Set ENV vars di hPanel → Node.js
+ *   5. Klik Restart Application
+ *
+ * Struktur deploy-package/ yang dihasilkan:
+ *   server.js          <- entry point kustom (set env, health check)
+ *   next-server.js     <- Next.js standalone server (asli)
+ *   .next/             <- Build output
+ *   .next/static/      <- Static assets CSS/JS
+ *   node_modules/      <- Deps minimal dari standalone + Prisma
+ *   prisma/            <- Schema Prisma
+ *   public/            <- Aset statis (logo, favicon)
+ *   package.json       <- Lean: name, engines, start script
+ *   .env.production    <- Template env vars
+ */
 
-import { existsSync, mkdirSync, cpSync, copyFileSync, rmSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, mkdirSync, cpSync, copyFileSync, renameSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, "..");
-const STANDALONE = join(ROOT, ".next", "standalone");
-const DEPLOY = join(ROOT, "deploy-package");
+const ROOT       = join(__dirname, '..');
+const STANDALONE = join(ROOT, '.next', 'standalone');
+const DEPLOY     = join(ROOT, 'deploy-package');
 
 function ensureDir(p) {
   if (!existsSync(p)) mkdirSync(p, { recursive: true });
 }
 
-function copyDir(src, dest) {
+function copyDir(src, dest, label) {
   if (!existsSync(src)) {
-    console.warn(`⚠️  Source not found: ${src}`);
+    console.warn('⚠️  Source not found, skipping:', src);
     return;
   }
-  ensureDir(dirname(dest));
-  cpSync(src, dest, { recursive: true });
-  console.log(`✅ Copied ${src} → ${dest}`);
+  ensureDir(dest);
+  cpSync(src, dest, { recursive: true, force: true });
+  if (label) console.log('✅', label);
 }
 
-console.log("📦 Preparing Hostinger deploy package...\n");
+console.log('\n📦 ALBA Finance v3 — Deploy Prepare\n');
 
+// Validasi
 if (!existsSync(STANDALONE)) {
-  throw new Error(
-    "Missing .next/standalone. Run npm run build before preparing the package.",
-  );
+  console.error('❌ .next/standalone tidak ditemukan!');
+  console.error('   Jalankan dulu: npm run build');
+  process.exit(1);
 }
 
+// Bersihkan dan buat ulang folder deploy
 rmSync(DEPLOY, { recursive: true, force: true });
 ensureDir(DEPLOY);
 
-// 1. .next/standalone → deploy-package/
-copyDir(STANDALONE, DEPLOY);
+// 1. Copy seluruh standalone bundle ke root deploy-package
+//    Ini akan menyalin: server.js (Next.js), package.json, node_modules/, .next/
+copyDir(STANDALONE, DEPLOY, '.next/standalone → deploy-package/');
 
-// 2. public/ → deploy-package/public/
-copyDir(join(ROOT, "public"), join(DEPLOY, "public"));
-
-// 3. .next/static/ → deploy-package/.next/static/
-copyDir(join(ROOT, ".next", "static"), join(DEPLOY, ".next", "static"));
-
-// 4. Use the custom server so Hostinger has a health endpoint and correct port handling.
-if (existsSync(join(ROOT, "server.js"))) {
-  copyFileSync(join(ROOT, "server.js"), join(DEPLOY, "server.js"));
-  console.log("✅ Copied server.js");
+// 2. Rename server.js Next.js → next-server.js (supaya tidak ditimpa oleh server.js kustom kita)
+const nextServerSrc  = join(DEPLOY, 'server.js');
+const nextServerDest = join(DEPLOY, 'next-server.js');
+if (existsSync(nextServerSrc)) {
+  renameSync(nextServerSrc, nextServerDest);
+  console.log('✅ server.js (Next.js) → next-server.js');
 }
 
-// 5. Prisma engine binaries (WAJIB di-copy manual karena webpack externals)
-const standaloneNodeModules = join(DEPLOY, "node_modules");
-const rootNodeModules = join(ROOT, "node_modules");
+// 3. Copy public folder (favicon, logo, manifest)
+copyDir(join(ROOT, 'public'), join(DEPLOY, 'public'), 'public/ → deploy-package/public/');
 
-const prismaArtifacts = [".prisma", "@prisma"];
+// 4. Copy .next/static (CSS, JS chunks — WAJIB untuk standalone)
+copyDir(
+  join(ROOT, '.next', 'static'),
+  join(DEPLOY, '.next', 'static'),
+  '.next/static → deploy-package/.next/static/'
+);
 
-for (const dir of prismaArtifacts) {
-  const src = join(rootNodeModules, dir);
+// 5. Salin server.js kustom kita (wrapper yang load env, health check, panggil next-server.js)
+const customServerSrc = join(ROOT, 'server.js');
+if (existsSync(customServerSrc)) {
+  copyFileSync(customServerSrc, join(DEPLOY, 'server.js'));
+  console.log('✅ server.js (custom entry point)');
+}
+
+// 6. Pastikan Prisma engine ada di standalone node_modules
+const standaloneNodeModules = join(DEPLOY, 'node_modules');
+const rootNodeModules        = join(ROOT, 'node_modules');
+
+for (const dir of ['.prisma', '@prisma']) {
+  const src  = join(rootNodeModules, dir);
   const dest = join(standaloneNodeModules, dir);
-  if (existsSync(src)) {
-    copyDir(src, dest);
-  }
+  copyDir(src, dest, 'node_modules/' + dir + ' (Prisma engine)');
 }
 
-// 6. .env.production template (kalau ada)
-if (existsSync(join(ROOT, ".env.production"))) {
-  copyFileSync(join(ROOT, ".env.production"), join(DEPLOY, ".env.production"));
-  console.log("✅ Copied .env.production");
+// 7. Copy prisma schema
+ensureDir(join(DEPLOY, 'prisma'));
+const schemaSrc = join(ROOT, 'prisma', 'schema.prisma');
+if (existsSync(schemaSrc)) {
+  copyFileSync(schemaSrc, join(DEPLOY, 'prisma', 'schema.prisma'));
+  console.log('✅ prisma/schema.prisma');
+}
+
+// 8. Buat package.json lean untuk Hostinger (hPanel hanya butuh start script)
+const pkgSrcRaw = readFileSync(join(ROOT, 'package.json'), 'utf8');
+const pkgSrc = JSON.parse(pkgSrcRaw);
+const pkgDeploy = {
+  name: pkgSrc.name,
+  version: pkgSrc.version,
+  private: true,
+  engines: pkgSrc.engines,
+  scripts: {
+    start: 'node server.js',
+  },
+};
+writeFileSync(join(DEPLOY, 'package.json'), JSON.stringify(pkgDeploy, null, 2));
+console.log('✅ package.json (lean, start: node server.js)');
+
+// 9. Copy .env.production jika ada di root, atau buat template
+const envSrc  = join(ROOT, '.env.production');
+const envDest = join(DEPLOY, '.env.production');
+if (existsSync(envSrc)) {
+  copyFileSync(envSrc, envDest);
+  console.log('✅ .env.production (copied from project root)');
 } else {
-  console.log("ℹ️  .env.production not found — create manually on server");
+  const template = [
+    '# ALBA Finance v3 — Production Environment',
+    '# Isi sesuai konfigurasi Hostinger Anda sebelum upload!',
+    '',
+    '# Database MySQL Hostinger',
+    'DATABASE_URL="mysql://USERNAME:PASSWORD@HOST:3306/DBNAME"',
+    '',
+    '# URL publik aplikasi (tanpa trailing slash)',
+    'NEXTAUTH_URL="https://your-domain.com"',
+    '',
+    '# Secret untuk JWT — generate dengan: openssl rand -base64 32',
+    'NEXTAUTH_SECRET="GANTI_DENGAN_RANDOM_STRING_32_KARAKTER"',
+    '',
+    '# Runtime',
+    'NODE_ENV="production"',
+    '',
+    '# Port (Hostinger biasanya set ini otomatis, tapi bisa diisi 3000)',
+    '# PORT=3000',
+    '# HOSTNAME=0.0.0.0',
+  ].join('\n');
+  writeFileSync(envDest, template);
+  console.log('📝 .env.production (template — WAJIB diisi sebelum upload ke Hostinger!)');
 }
 
-console.log("\n🎉 Deploy package ready at: deploy-package/");
-console.log("\nNext steps:");
-console.log("  1. Set HOSTINGER_DEPLOY_DIR to the exact Node.js app directory");
-console.log("  2. Set environment variables in hPanel → Node.js App");
-console.log("  3. Run GitHub Actions → Deploy to Hostinger → Run workflow");
-console.log("\n⚠️  Jangan lupa set PORT/HOSTNAME di hPanel env vars.");
+console.log('\n🎉 Deploy package siap di: deploy-package/');
+console.log('\n📋 Langkah selanjutnya:');
+console.log('   1. Edit deploy-package/.env.production dengan kredensial Hostinger');
+console.log('   2. Upload SELURUH ISI deploy-package/ ke folder aplikasi di Hostinger');
+console.log('   3. Di hPanel → Node.js: set Application startup file ke "server.js"');
+console.log('   4. Set ENV vars di hPanel (DATABASE_URL, NEXTAUTH_URL, NEXTAUTH_SECRET, NODE_ENV)');
+console.log('   5. Klik Restart Application');
+console.log('   6. Test: curl https://your-domain.com/health\n');

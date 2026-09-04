@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/options';
 import { getServerSession } from 'next-auth';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 
-const prisma = new PrismaClient();
 
 const createCategorySchema = z.object({
   name: z.string().min(1, 'Nama kategori wajib diisi'),
