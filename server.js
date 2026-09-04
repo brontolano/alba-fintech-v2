@@ -12,7 +12,6 @@ const fs   = require('fs');
 
 const envProdPath = path.join(__dirname, '.env.production');
 if (fs.existsSync(envProdPath)) {
-  // Baca dan set secara manual (tidak bergantung dotenv)
   const lines = fs.readFileSync(envProdPath, 'utf8').split('\n');
   for (const line of lines) {
     const trimmed = line.trim();
@@ -21,7 +20,6 @@ if (fs.existsSync(envProdPath)) {
     if (eqIdx < 0) continue;
     const key = trimmed.slice(0, eqIdx).trim();
     let val  = trimmed.slice(eqIdx + 1).trim();
-    // Hapus tanda kutip
     if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
@@ -29,24 +27,38 @@ if (fs.existsSync(envProdPath)) {
   }
 }
 
-// Set default
+// Set defaults
 process.env.PORT     = process.env.PORT     || '3000';
 process.env.HOSTNAME = process.env.HOSTNAME || '0.0.0.0';
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
-console.log('🚀 Starting ALBA Finance v3...');
-console.log('  PORT     :', process.env.PORT);
-console.log('  HOSTNAME :', process.env.HOSTNAME);
-console.log('  NODE_ENV :', process.env.NODE_ENV);
-console.log('  DB URL   :', process.env.DATABASE_URL ? '✅ set' : '❌ NOT SET — app will fail!');
-console.log('  NEXTAUTH :', process.env.NEXTAUTH_SECRET ? '✅ set' : '❌ NOT SET — auth will fail!');
+// Validate required env vars before starting the server
+function requireEnv(name) {
+  if (!process.env[name]) {
+    console.error(`\n❌ FATAL: Required environment variable ${name} is not set.`);
+    console.error('   Set it in hPanel → Node.js → Environment Variables,');
+    console.error('   or create/edit .env.production with the value.');
+    console.error('   See DEPLOY.md for the full list.\n');
+    process.exit(1);
+  }
+}
+
+requireEnv('DATABASE_URL');
+requireEnv('NEXTAUTH_SECRET');
+
+console.log('\n🚀 Starting ALBA Finance v3...');
+console.log('  PORT      :', process.env.PORT);
+console.log('  HOSTNAME  :', process.env.HOSTNAME);
+console.log('  NODE_ENV  :', process.env.NODE_ENV);
+console.log('  DB URL    : ✅ set');
+console.log('  NEXTAUTH  : ✅ set');
 
 // Jalankan Next.js standalone server (di-rename dari server.js asli saat deploy:prepare)
 const nextServer = path.join(__dirname, 'next-server.js');
 if (!fs.existsSync(nextServer)) {
-  // Fallback: mungkin running dari root project (bukan deploy-package)
-  console.error('❌ next-server.js tidak ditemukan di:', nextServer);
-  console.error('   Jalankan "npm run deploy:prepare" terlebih dahulu.');
+  console.error('\n❌ next-server.js tidak ditemukan di:', nextServer);
+  console.error('   Pastikan deploy-package/ sudah lengkap.');
+  console.error('   Jalankan ulang: node scripts/deploy-prepare.mjs\n');
   process.exit(1);
 }
 

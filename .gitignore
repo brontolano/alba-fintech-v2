@@ -60,6 +60,9 @@ Thumbs.db
 *.bat
 cookies.txt
 
+# Zip archives (build artifacts)
+*.zip
+
 # Temp build output files
 build-output.txt
 build_check.txt

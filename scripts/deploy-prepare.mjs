@@ -79,20 +79,72 @@ copyDir(
 );
 
 // 5. Salin server.js kustom kita (wrapper yang load env, health check, panggil next-server.js)
+
+// 5a. Hapus .env lokal yang tidak sengaja tersalin dari standalone/ (jangan sampai bocor ke Hostinger!)
+const leakedEnv = join(DEPLOY, '.env');
+if (existsSync(leakedEnv)) {
+  rmSync(leakedEnv, { force: true });
+  console.log('🧹 Menghapus .env lokal yang bocor ke deploy-package/');
+}
+// Juga hapus .env.local / .env.development jika ada
+for (const leaked of ['.env.local', '.env.development', '.env.development.local', '.env.test', '.env.production.local']) {
+  const p = join(DEPLOY, leaked);
+  if (existsSync(p)) {
+    rmSync(p, { force: true });
+    console.log('🧹 Menghapus ' + leaked + ' dari deploy-package/');
+  }
+}
 const customServerSrc = join(ROOT, 'server.js');
 if (existsSync(customServerSrc)) {
   copyFileSync(customServerSrc, join(DEPLOY, 'server.js'));
   console.log('✅ server.js (custom entry point)');
 }
 
-// 6. Salin SELURUH node_modules dari root (pastikan semua dependensi tersedia)
-// Ini penting untuk Hostinger agar tidak perlu npm install ulang
+// 6. Salin package-lock.json (untuk npm ci yang reproducible di Hostinger)
+const lockSrc = join(ROOT, 'package-lock.json');
+if (existsSync(lockSrc)) {
+  copyFileSync(lockSrc, join(DEPLOY, 'package-lock.json'));
+  console.log('✅ package-lock.json → deploy-package/');
+}
+
+// 7. Pastikan Prisma client runtime & query engine tersedia di deploy-package/node_modules
+//    Hostinger akan panggil `postinstall: prisma generate` — butuh paket prisma di node_modules
 const standaloneNodeModules = join(DEPLOY, 'node_modules');
 const rootNodeModules        = join(ROOT, 'node_modules');
 
-console.log('📦 Menyalin seluruh node_modules (ini mungkin memakan waktu)...');
-copyDir(rootNodeModules, standaloneNodeModules, 'node_modules/ (full copy)');
-console.log('✅ node_modules lengkap berhasil disalin');
+if (!existsSync(standaloneNodeModules)) ensureDir(standaloneNodeModules);
+
+console.log('📦 Memastikan paket Prisma runtime tersedia di node_modules...');
+
+// Prisma packages yang WAJIB ada untuk prisma generate + client di runtime
+const PRISMA_PACKAGES = ['@prisma', 'prisma', 'bcryptjs', 'sharp'];
+for (const pkg of PRISMA_PACKAGES) {
+  const srcPkg = join(rootNodeModules, pkg);
+  if (existsSync(srcPkg)) {
+    copyDir(srcPkg, join(standaloneNodeModules, pkg), `${pkg} → node_modules/`);
+  } else {
+    console.warn('⚠️  Paket', pkg, 'tidak ditemukan di root node_modules');
+  }
+}
+
+// Query engine binary (linux-musl atau debian-openssl) — cek di prisma/engines/ atau @prisma/client/
+const prismaEnginesSrc = join(rootNodeModules, 'prisma', 'engines');
+if (existsSync(prismaEnginesSrc)) {
+  copyDir(prismaEnginesSrc, join(standaloneNodeModules, 'prisma', 'engines'), 'prisma/engines (query engine binary)');
+} else {
+  const clientEngines = join(rootNodeModules, '@prisma', 'client', 'runtime');
+  if (existsSync(clientEngines)) {
+    copyDir(clientEngines, join(standaloneNodeModules, '@prisma', 'client', 'runtime'), '@prisma/client/runtime → node_modules/');
+  }
+}
+
+// 7a. (Opsional) Salin node_modules penuh hanya jika dipaksakan via env
+if (process.env.COPY_NODE_MODULES === '1') {
+  console.log('📦 COPY_NODE_MODULES=1 — menyalin node_modules penuh (ukuran besar)...');
+  copyDir(rootNodeModules, standaloneNodeModules, 'node_modules/ (full copy)');
+} else {
+  console.log('⏭️  node_modules penuh dilewati (hanya Prisma + critical deps yang disalin)');
+}
 
 // 7. Copy prisma schema
 ensureDir(join(DEPLOY, 'prisma'));
@@ -115,14 +167,15 @@ const pkgDeploy = {
   private: true,
   engines: pkgSrc.engines,
   scripts: {
-    build: "next build",
+    // NOTE: build script intentionally omitted — deploy-package is pre-built
+    // Only run `npm run build` if you need to rebuild from source
     start: "node server.js",
     postinstall: "prisma generate"
   },
   dependencies: fullDeps
 };
 writeFileSync(join(DEPLOY, 'package.json'), JSON.stringify(pkgDeploy, null, 2));
-console.log('✅ package.json (full dependencies, build script included)');
+console.log('✅ package.json (dependencies + start/postinstall scripts only)');
 
 // 9. Copy .env.production jika ada di root, atau buat template
 const envSrc  = join(ROOT, '.env.production');
