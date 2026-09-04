@@ -32,7 +32,15 @@ jobs:
         run: npm run type-check
 
       - name: Security audit
-        run: npm audit --audit-level=high
+        run: |
+          set -o pipefail
+          for attempt in 1 2 3; do
+            npm audit --audit-level=high && exit 0
+            if [ "$attempt" -lt 3 ]; then
+              echo "npm audit request failed on attempt $attempt; retrying"
+            fi
+          done
+          exit 1
 
       - name: Production build
         run: npm run build

@@ -2,10 +2,10 @@
 
 export default function GlobalError({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
   return (
     <html lang="id">
@@ -23,7 +23,7 @@ export default function GlobalError({
           </p>
           <div className="flex justify-center">
             <button
-              onClick={() => reset()}
+              onClick={() => retry()}
               className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
             >
               Coba Lagi
