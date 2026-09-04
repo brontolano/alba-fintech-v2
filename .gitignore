@@ -27,6 +27,7 @@ dev.db
 
 # Deployment package
 deploy-package/
+alba-fintech-deploy.tar.gz
 
 # Logs
 *.log

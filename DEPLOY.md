@@ -23,15 +23,16 @@ Deployment is started manually after the required Hostinger secrets are configur
 
 Go to **GitHub → Settings → Secrets and variables → Actions** and add:
 
-| Secret Name              | Example Value                        | Description                               |
-| ------------------------ | ------------------------------------ | ----------------------------------------- |
-| `HOSTINGER_SSH_HOST`     | _(from hPanel)_                      | Hostinger SSH host                        |
-| `HOSTINGER_SSH_USERNAME` | _(from hPanel)_                      | Hostinger SSH username                    |
-| `HOSTINGER_SSH_KEY`      | _(private key)_                      | SSH private key; never commit or share it |
-| `HOSTINGER_SSH_PORT`     | `65002`                              | SSH port shown in hPanel                  |
-| `NEXTAUTH_URL`           | `https://alba.brontolano.com`        | Your production URL                       |
-| `NEXTAUTH_SECRET`        | _(base64 32-byte random)_            | Generate: `openssl rand -base64 32`       |
-| `DATABASE_URL`           | `mysql://user:pass@host:3306/dbname` | Hostinger MySQL connection                |
+| Secret Name              | Example Value                                | Description                               |
+| ------------------------ | -------------------------------------------- | ----------------------------------------- |
+| `HOSTINGER_SSH_HOST`     | _(from hPanel)_                              | Hostinger SSH host                        |
+| `HOSTINGER_SSH_USERNAME` | _(from hPanel)_                              | Hostinger SSH username                    |
+| `HOSTINGER_SSH_KEY`      | _(private key)_                              | SSH private key; never commit or share it |
+| `HOSTINGER_SSH_PORT`     | `65002`                                      | SSH port shown in hPanel                  |
+| `HOSTINGER_DEPLOY_DIR`   | `/home/user/domains/example.com/public_html` | Exact Node.js app directory from hPanel   |
+| `NEXTAUTH_URL`           | `https://alba.brontolano.com`                | Your production URL                       |
+| `NEXTAUTH_SECRET`        | _(base64 32-byte random)_                    | Generate: `openssl rand -base64 32`       |
+| `DATABASE_URL`           | `mysql://user:pass@host:3306/dbname`         | Hostinger MySQL connection                |
 
 ### Deploy via GitHub Actions
 

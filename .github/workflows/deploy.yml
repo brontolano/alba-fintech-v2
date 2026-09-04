@@ -23,11 +23,12 @@ jobs:
           HOSTINGER_SSH_USERNAME: ${{ secrets.HOSTINGER_SSH_USERNAME }}
           HOSTINGER_SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
           HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_DEPLOY_DIR: ${{ secrets.HOSTINGER_DEPLOY_DIR }}
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
         run: |
           set -e
           missing=0
-          for name in HOSTINGER_SSH_HOST HOSTINGER_SSH_USERNAME HOSTINGER_SSH_KEY HOSTINGER_SSH_PORT NEXTAUTH_URL; do
+          for name in HOSTINGER_SSH_HOST HOSTINGER_SSH_USERNAME HOSTINGER_SSH_KEY HOSTINGER_SSH_PORT HOSTINGER_DEPLOY_DIR NEXTAUTH_URL; do
             if [ -z "${!name}" ]; then
               echo "Missing required GitHub Actions secret: $name"
               missing=1
@@ -55,6 +56,11 @@ jobs:
           NEXT_PUBLIC_CURRENCY: ${{ secrets.NEXT_PUBLIC_CURRENCY }}
           NEXT_PUBLIC_LOCALE: ${{ secrets.NEXT_PUBLIC_LOCALE }}
 
+      - name: Prepare deployment archive
+        run: |
+          npm run deploy:prepare
+          tar -czf alba-fintech-deploy.tar.gz -C deploy-package .
+
       - name: Clean remote deploy directory
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -64,60 +70,20 @@ jobs:
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
           script: |
             set -e
-            DEPLOY_DIR="/home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html"
+            DEPLOY_DIR="${{ secrets.HOSTINGER_DEPLOY_DIR }}"
             echo ">>> Cleaning remote deploy directory: $DEPLOY_DIR"
-            rm -rf "$DEPLOY_DIR"/.next "$DEPLOY_DIR"/node_modules "$DEPLOY_DIR"/package.json "$DEPLOY_DIR"/server.js "$DEPLOY_DIR"/prisma
-            mkdir -p "$DEPLOY_DIR"/.next
+            mkdir -p "$DEPLOY_DIR"
+            rm -rf "$DEPLOY_DIR"/.next "$DEPLOY_DIR"/node_modules "$DEPLOY_DIR"/public "$DEPLOY_DIR"/prisma "$DEPLOY_DIR"/server.js
 
-      - name: SCP transfer standalone build
+      - name: Upload deployment archive
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: ".next/standalone/*"
-          target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html
-
-      - name: SCP transfer .next/static
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: ".next/static"
-          target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html/.next
-
-      - name: SCP transfer public assets
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: "public/*"
-          target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html/public
-
-      - name: SCP transfer custom server
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: "server.js"
-          target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html
-
-      - name: SCP transfer prisma schema
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: "prisma/schema.prisma"
-          target: /home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html/prisma
+          source: "alba-fintech-deploy.tar.gz"
+          target: ${{ secrets.HOSTINGER_DEPLOY_DIR }}/
 
       - name: Restart app
         uses: appleboy/ssh-action@v1.0.0
@@ -128,9 +94,11 @@ jobs:
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
           script: |
             set -e
-            DEPLOY_DIR="/home/${{ secrets.HOSTINGER_SSH_USERNAME }}/domains/alba.brontolano.com/public_html"
+            DEPLOY_DIR="${{ secrets.HOSTINGER_DEPLOY_DIR }}"
 
             cd "$DEPLOY_DIR"
+            tar -xzf alba-fintech-deploy.tar.gz
+            rm -f alba-fintech-deploy.tar.gz
             echo ">>> Restarting Node.js application"
             touch "$DEPLOY_DIR/../restart.txt" && echo "App restarted successfully"
 
