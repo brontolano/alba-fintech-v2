@@ -132,7 +132,7 @@ if (!existsSync(standaloneNodeModules)) ensureDir(standaloneNodeModules);
 console.log('📦 Memastikan paket Prisma runtime tersedia di node_modules...');
 
 // Prisma packages yang WAJIB ada untuk prisma generate + client di runtime
-const PRISMA_PACKAGES = ['@prisma', 'prisma', 'bcryptjs', 'sharp'];
+const PRISMA_PACKAGES = ['@prisma', 'prisma', 'bcryptjs', 'sharp', 'mysql2'];
 for (const pkg of PRISMA_PACKAGES) {
   const srcPkg = join(rootNodeModules, pkg);
   if (existsSync(srcPkg)) {
