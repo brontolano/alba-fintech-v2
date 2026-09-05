@@ -1,5 +1,6 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/options';
+'use client';
+
+import { useState, useEffect } from 'react';
 import {
   Package,
   Plus,
@@ -8,77 +9,145 @@ import {
   Trash2,
   TrendingUp,
   TrendingDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
-export default async function InventoryPage() {
-  const session = await getServerSession(authOptions);
-  const user = session?.user;
+interface InventoryItem {
+  id: string;
+  name: string;
+  sku: string;
+  category: string | null;
+  unitId: string | null;
+  unitName?: string;
+  unit: { id: string; name: string } | null;
+  currentStock: number;
+  minStock: number;
+  unitPrice: number;
+  purchasePrice: number;
+  isActive: boolean;
+  orderItems: Array<{ id: string; quantity: number; totalPrice: number }>;
+  createdAt: string;
+  updatedAt: string;
+}
 
-  const units = ['KPAK', 'Koperasi Buku', 'Kantin Umi', 'Kantin Baru'];
+interface Unit {
+  id: string;
+  name: string;
+}
 
-  // Mock inventory data
-  const inventoryItems = [
-    {
-      id: '1',
-      name: 'Buku Tulis A4',
-      sku: 'BK001',
-      category: 'Buku',
-      unit: 'Koperasi Buku',
-      currentStock: 150,
-      minStock: 50,
-      unitPrice: 5000,
-      purchasePrice: 3500,
-      isActive: true,
-    },
-    {
-      id: '2',
-      name: 'Pensil Baru',
-      sku: 'PG001',
-      category: 'Alat Tulis',
-      unit: 'Koperasi Buku',
-      currentStock: 320,
-      minStock: 100,
-      unitPrice: 3000,
-      purchasePrice: 2000,
-      isActive: true,
-    },
-    {
-      id: '3',
-      name: 'Mie Instan',
-      sku: 'MN001',
-      category: 'Makanan',
-      unit: 'Kantin Umi',
-      currentStock: 45,
-      minStock: 20,
-      unitPrice: 4500,
-      purchasePrice: 3200,
-      isActive: true,
-    },
-    {
-      id: '4',
-      name: 'Minuman Soda',
-      sku: 'DR001',
-      category: 'Minuman',
-      unit: 'Kantin Umi',
-      currentStock: 78,
-      minStock: 30,
-      unitPrice: 5500,
-      purchasePrice: 4000,
-      isActive: true,
-    },
-    {
-      id: '5',
-      name: 'Roti Coklat',
-      sku: 'FT001',
-      category: 'Makanan',
-      unit: 'Kantin Baru',
-      currentStock: 25,
-      minStock: 50,
-      unitPrice: 6000,
-      purchasePrice: 4500,
-      isActive: true,
-    },
-  ];
+interface InventoryResponse {
+  data: InventoryItem[];
+  summary: {
+    total: number;
+    pages: number;
+  };
+}
+
+interface UnitsResponse {
+  data: Unit[];
+}
+
+export default function InventoryPage() {
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const limit = 20;
+
+  const [filters, setFilters] = useState({
+    search: '',
+    unitId: '',
+    category: '',
+    stockStatus: 'all',
+  });
+
+  const fetchUnits = async () => {
+    try {
+      const res = await fetch('/api/units');
+      if (!res.ok) throw new Error('Gagal memuat unit');
+      const data: UnitsResponse = await res.json();
+      setUnits(data.data ?? []);
+    } catch (err) {
+      console.error('Error fetching units:', err);
+    }
+  };
+
+  const fetchInventory = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', currentPage.toString());
+      params.set('limit', limit.toString());
+      if (filters.unitId) params.set('unitId', filters.unitId);
+      if (filters.category) params.set('category', filters.category);
+      params.set('isActive', 'true'); // Only active items for POS view
+
+      const res = await fetch(`/api/inventory?${params.toString()}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Gagal memuat inventori');
+      }
+      const data: InventoryResponse = await res.json();
+      const fetchedItems = data.data ?? [];
+      setItems(fetchedItems);
+      setTotalPages(data.summary?.pages ?? 1);
+      setTotalItems(data.summary?.total ?? 0);
+
+      // Extract unique categories
+      const cats = Array.from(new Set(fetchedItems
+        .map((item) => item.category)
+        .filter((c): c is string => c !== null && c !== undefined)
+      ));
+      setCategories(cats);
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal memuat inventori');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnits();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetchInventory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, filters]);
+
+  const handleFilterChange = (field: string, value: string) => {
+    setFilters((prev) => ({ ...prev, [field]: value }));
+    setCurrentPage(1);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Hapus barang ini?')) return;
+    // Note: inventory currently doesn't have a delete endpoint
+    // This would need a proper API route - for now show informational message
+    toast.info('Fitur hapus barang membutuhkan endpoint API yang belum tersedia');
+  };
+
+  // Client-side search filter
+  const filteredItems = items.filter((item) => {
+    const matchSearch =
+      item.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+      (item.sku || '').toLowerCase().includes(filters.search.toLowerCase());
+    const matchStock =
+      filters.stockStatus === 'all'
+        ? true
+        : filters.stockStatus === 'low'
+        ? item.currentStock <= item.minStock && item.currentStock > 0
+        : filters.stockStatus === 'out'
+        ? item.currentStock <= 0
+        : item.currentStock > item.minStock;
+    return matchSearch && matchStock;
+  });
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('id-ID', {
@@ -116,9 +185,14 @@ export default async function InventoryPage() {
     }
   };
 
-  const lowStockCount = inventoryItems.filter(
+  const lowStockCount = filteredItems.filter(
     (item) => getStockStatus(item.currentStock, item.minStock) !== 'good'
   ).length;
+
+  const totalValue = filteredItems.reduce(
+    (sum, item) => sum + Number(item.currentStock) * Number(item.unitPrice),
+    0
+  );
 
   return (
     <div className="p-6">
@@ -147,7 +221,7 @@ export default async function InventoryPage() {
                 Total Barang
               </p>
               <p className="text-2xl font-bold text-slate-800">
-                {inventoryItems.length}
+                {filteredItems.length}
               </p>
             </div>
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -175,13 +249,7 @@ export default async function InventoryPage() {
                 Nilai Stok
               </p>
               <p className="text-2xl font-bold text-emerald-600">
-                {formatCurrency(
-                  inventoryItems.reduce(
-                    (sum, item) =>
-                      sum + item.currentStock * item.unitPrice,
-                    0
-                  )
-                )}
+                {formatCurrency(totalValue)}
               </p>
             </div>
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -196,7 +264,7 @@ export default async function InventoryPage() {
                 Unit Aktif
               </p>
               <p className="text-2xl font-bold text-slate-800">
-                3 / {units.filter(() => true).length}
+                {units.length} Unit Terdaftar
               </p>
             </div>
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -213,27 +281,44 @@ export default async function InventoryPage() {
             <input
               type="text"
               placeholder="Cari barang..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           </div>
 
-          <select className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+          <select
+            value={filters.unitId}
+            onChange={(e) => handleFilterChange('unitId', e.target.value)}
+            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+          >
             <option value="">Semua Unit</option>
-            <option value="koperasi">Koperasi Buku</option>
-            <option value="kantin-umi">Kantin Umi</option>
-            <option value="kantin-baru">Kantin Baru</option>
+            {units.map((unit) => (
+              <option key={unit.id} value={unit.id}>
+                {unit.name}
+              </option>
+            ))}
           </select>
 
-          <select className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+          <select
+            value={filters.category}
+            onChange={(e) => handleFilterChange('category', e.target.value)}
+            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+          >
             <option value="">Semua Kategori</option>
-            <option value="buku">Buku</option>
-            <option value="alat-tulis">Alat Tulis</option>
-            <option value="makanan">Makanan</option>
-            <option value="minuman">Minuman</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
           </select>
 
-          <select className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+          <select
+            value={filters.stockStatus}
+            onChange={(e) => handleFilterChange('stockStatus', e.target.value)}
+            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+          >
             <option value="all">Semua Status Stok</option>
             <option value="low">Stok Rendah</option>
             <option value="good">Tersedia</option>
@@ -248,122 +333,133 @@ export default async function InventoryPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">
-                  #
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">
-                  Nama Barang
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">
-                  SKU
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">
-                  Kategori
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">
-                  Unit
-                </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">
-                  Stok
-                </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">
-                  Harga Beli
-                </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">
-                  Harga Jual
-                </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">
-                  Nilai
-                </th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-slate-500 uppercase">
-                  Status
-                </th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-slate-500 uppercase">
-                  Aksi
-                </th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">#</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Nama Barang</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">SKU</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Kategori</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Unit</th>
+                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Stok</th>
+                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Harga Beli</th>
+                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Harga Jual</th>
+                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Nilai</th>
+                <th className="text-center py-3 px-4 text-xs font-medium text-slate-500 uppercase">Status</th>
+                <th className="text-center py-3 px-4 text-xs font-medium text-slate-500 uppercase">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {inventoryItems.map((item, idx) => {
-                const stockStatus = getStockStatus(
-                  item.currentStock,
-                  item.minStock
-                );
-                const totalValue = item.currentStock * item.unitPrice;
+              {loading ? (
+                <tr>
+                  <td colSpan={11} className="py-8 text-center text-slate-500">
+                    Memuat data...
+                  </td>
+                </tr>
+              ) : filteredItems.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="py-8 text-center text-slate-500">
+                    Tidak ada barang ditemukan
+                  </td>
+                </tr>
+              ) : (
+                filteredItems.map((item, idx) => {
+                  const stockStatus = getStockStatus(item.currentStock, item.minStock);
+                  const totalValue = Number(item.currentStock) * Number(item.unitPrice);
 
-                return (
-                  <tr
-                    key={item.id}
-                    className="border-b border-slate-100 hover:bg-slate-50"
-                  >
-                    <td className="py-3 px-4 text-sm text-slate-500">
-                      {idx + 1}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                          <Package className="w-4 h-4 text-slate-500" />
+                  return (
+                    <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="py-3 px-4 text-sm text-slate-500">
+                        {(currentPage - 1) * limit + idx + 1}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                            <Package className="w-4 h-4 text-slate-500" />
+                          </div>
+                          <span className="text-sm font-medium text-slate-800">
+                            {item.name}
+                          </span>
                         </div>
-                        <span className="text-sm font-medium text-slate-800">
-                          {item.name}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-slate-600">{item.sku}</td>
+                      <td className="py-3 px-4 text-sm text-slate-600">{item.category || '-'}</td>
+                      <td className="py-3 px-4 text-sm text-slate-600">
+                        {item.unit?.name || item.unitName || '-'}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span
+                          className={`text-sm font-medium ${
+                            stockStatus === 'good'
+                              ? 'text-green-600'
+                              : stockStatus === 'low'
+                              ? 'text-yellow-600'
+                              : 'text-red-600'
+                          }`}
+                        >
+                          {item.currentStock} / {item.minStock}
                         </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-slate-600">
-                      {item.sku}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-slate-600">
-                      {item.category}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-slate-600">
-                      {item.unit}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <span
-                        className={`text-sm font-medium ${
-                          stockStatus === 'good'
-                            ? 'text-green-600'
-                            : stockStatus === 'low'
-                            ? 'text-yellow-600'
-                            : 'text-red-600'
-                        }`}
-                      >
-                        {item.currentStock} / {item.minStock}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right text-sm text-slate-600">
-                      {formatCurrency(item.purchasePrice)}
-                    </td>
-                    <td className="py-3 px-4 text-right text-sm text-emerald-600">
-                      {formatCurrency(item.unitPrice)}
-                    </td>
-                    <td className="py-3 px-4 text-right text-sm text-slate-800 font-medium">
-                      {formatCurrency(totalValue)}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      {getStockBadge(stockStatus)}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex justify-center gap-1">
-                        <button
-                          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
-                          title="Edit"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600"
-                          title="Hapus"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td className="py-3 px-4 text-right text-sm text-slate-600">
+                        {formatCurrency(Number(item.purchasePrice))}
+                      </td>
+                      <td className="py-3 px-4 text-right text-sm text-emerald-600">
+                        {formatCurrency(Number(item.unitPrice))}
+                      </td>
+                      <td className="py-3 px-4 text-right text-sm text-slate-800 font-medium">
+                        {formatCurrency(totalValue)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {getStockBadge(stockStatus)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex justify-center gap-1">
+                          <button
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+                            title="Edit"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600"
+                            title="Hapus"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Pagination */}
+      <div className="mt-6 flex items-center justify-between">
+        <p className="text-sm text-slate-600">
+          Menampilkan {totalItems > 0 ? (currentPage - 1) * limit + 1 : 0}-{Math.min(currentPage * limit, totalItems)} dari {totalItems} barang
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1 || loading}
+            className="px-3 py-1 border border-slate-300 rounded-lg text-sm hover:bg-slate-5 flex items-center gap-1 disabled:opacity-50"
+          >
+            <ChevronLeft size={14} />
+            Sebelumnya
+          </button>
+          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium">
+            {currentPage}
+          </span>
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage >= totalPages || loading}
+            className="px-3 py-1 border border-slate-300 rounded-lg text-sm hover:bg-slate-5 flex items-center gap-1 disabled:opacity-50"
+          >
+            Berikutnya
+            <ChevronRight size={14} />
+          </button>
         </div>
       </div>
     </div>

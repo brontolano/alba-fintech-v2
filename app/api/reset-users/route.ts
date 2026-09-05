@@ -1,17 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { authOptions } from '@/app/api/auth/options';
+import { getServerSession } from 'next-auth';
 
 /**
  * API endpoint untuk reset semua user dan membuat superadmin baru.
- * Endpoint ini sengaja dibuka (tanpa auth) karena digunakan untuk setup awal.
- * SETELAH SETUP SELESAI, endpoint ini HARUS dihapus atau dikunci.
+ * Endpoint ini dilindungi — hanya bisa diakses oleh SUPERADMIN.
  *
  * POST /api/reset-users
  * { "confirm": true, "email": "admin@brontolano.com", "password": "bismillah" }
  */
 export async function POST(request: NextRequest) {
   try {
+    // Auth check — only SUPERADMIN can reset all users
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const role = (session.user as any)?.role;
+    if (role !== 'SUPERADMIN') {
+      return NextResponse.json({ error: 'Forbidden — only SUPERADMIN can access this endpoint' }, { status: 403 });
+    }
+
     const body = await request.json();
 
     if (!body.confirm) {
@@ -152,8 +163,18 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Allow GET untuk mengecek status (info saja, tidak reset)
+// Allow GET untuk mengecek status — but only for SUPERADMIN
 export async function GET(request: NextRequest) {
+  // Auth check — only SUPERADMIN can access
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const role = (session.user as any)?.role;
+  if (role !== 'SUPERADMIN') {
+    return NextResponse.json({ error: 'Forbidden — only SUPERADMIN can access this endpoint' }, { status: 403 });
+  }
+
   const userCount = await prisma.user.count();
   const users = await prisma.user.findMany({
     select: { email: true, name: true, role: true },

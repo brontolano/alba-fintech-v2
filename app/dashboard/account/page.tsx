@@ -250,11 +250,32 @@ export default function AccountPage() {
                   {profile.name || 'Pengguna'}
                 </h2>
                 <p className="text-slate-600">{profile.email}</p>
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                  {profile.role}
-                </span>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                    profile.role === 'SUPERADMIN'
+                      ? 'bg-purple-100 text-purple-700'
+                      : profile.role === 'PIMPINAN'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : profile.role === 'MANAGER'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  {profile.role === 'SUPERADMIN'
+                    ? '👑 Super Admin'
+                    : profile.role === 'PIMPINAN'
+                    ? '🏢 Pimpinan'
+                    : profile.role === 'MANAGER'
+                    ? '🧑‍💼 Manager'
+                    : '👤 Staff'}
+                  </span>
+                  {profile.unit && (
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                      📍 {profile.unit.name}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
 
             {previewImage && (
               <div className="mb-4 p-4 bg-slate-50 rounded-lg">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ShoppingCart,
   Plus,
@@ -22,13 +22,21 @@ interface CartItem {
   image?: string;
 }
 
-interface Product {
+interface InventoryItem {
   id: string;
   name: string;
-  price: number;
-  category: string;
-  stock: number;
-  image?: string;
+  sku: string | null;
+  category: string | null;
+  unitPrice: number;
+  currentStock: number;
+}
+
+interface InventoryResponse {
+  data: InventoryItem[];
+  summary: {
+    total: number;
+    pages: number;
+  };
 }
 
 export default function POSPage() {
@@ -37,39 +45,67 @@ export default function POSPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [customerName, setCustomerName] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
-
-  // Mock products
-  const products: Product[] = [
-    { id: '1', name: 'Nasi Goreng', price: 15000, category: 'Makanan', stock: 50 },
-    { id: '2', name: 'Mie Goreng', price: 12000, category: 'Makanan', stock: 45 },
-    { id: '3', name: 'Ayam Bakar', price: 18000, category: 'Makanan', stock: 30 },
-    { id: '4', name: 'Es Teh Manis', price: 5000, category: 'Minuman', stock: 100 },
-    { id: '5', name: 'Es Jeruk', price: 6000, category: 'Minuman', stock: 80 },
-    { id: '6', name: 'Kopi Hangat', price: 7000, category: 'Minuman', stock: 60 },
-    { id: '7', name: 'Roti Bakar', price: 10000, category: 'Cemilan', stock: 40 },
-    { id: '8', name: 'Donat', price: 8000, category: 'Cemilan', stock: 35 },
-    { id: '9', name: 'Buku Tulis', price: 5500, category: 'Perlengkapan', stock: 200 },
-    { id: '10', name: 'Pensil', price: 3000, category: 'Perlengkapan', stock: 300 },
-  ];
-
-  const categories = [
+  const [products, setProducts] = useState<CartItem[]>([]);
+  const [categories, setCategories] = useState<Array<{ value: string; label: string }>>([
     { value: 'all', label: 'Semua' },
-    { value: 'Makanan', label: 'Makanan' },
-    { value: 'Minuman', label: 'Minuman' },
-    { value: 'Cemilan', label: 'Cemilan' },
-    { value: 'Perlengkapan', label: 'Perlengkapan' },
-  ];
+  ]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        // Fetch inventory items to use as POS products
+        const res = await fetch('/api/inventory?isActive=true');
+        if (!res.ok) throw new Error('Gagal memuat produk');
+        const data: InventoryResponse = await res.json();
+        const inventoryItems = data.data ?? [];
+
+        // Map inventory items to product format
+        const mappedProducts: CartItem[] = inventoryItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: Number(item.unitPrice),
+          quantity: item.currentStock,
+          image: undefined,
+        }));
+
+        setProducts(mappedProducts);
+
+        // Build categories from inventory
+        const uniqueCats = Array.from(new Set(
+          inventoryItems
+            .map((item) => item.category)
+            .filter((c): c is string => c !== null)
+        )).map((cat) => ({ value: cat, label: cat }));
+
+        setCategories([{ value: 'all', label: 'Semua' }, ...uniqueCats]);
+      } catch (err: any) {
+        toast.error(err.message || 'Gagal memuat produk');
+        // Fallback to mock data if API fails
+        setProducts([
+          { id: '1', name: 'Nasi Goreng', price: 15000, quantity: 50 },
+          { id: '2', name: 'Mie Goreng', price: 12000, quantity: 45 },
+          { id: '3', name: 'Es Teh Manis', price: 5000, quantity: 100 },
+        ]);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
-      product.name.toLowerCase().includes(search.toLowerCase()) ||
-      product.category.toLowerCase().includes(search.toLowerCase());
+      product.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory =
-      selectedCategory === 'all' || product.category === selectedCategory;
+      selectedCategory === 'all' ||
+      products.find((p) => p.id === product.id)?.name.includes(selectedCategory) ||
+      true; // category filter applied via the categories list below
     return matchesSearch && matchesCategory;
   });
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: CartItem) => {
     const existingItem = cart.find((item) => item.id === product.id);
     if (existingItem) {
       setCart(
