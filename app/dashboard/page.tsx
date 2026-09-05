@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/options';
 import Link from 'next/link';
 import {
   TrendingUp,

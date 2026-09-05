@@ -245,7 +245,7 @@ export default function POSPage() {
               <button
                 key={product.id}
                 onClick={() => addToCart(product)}
-                disabled={product.stock === 0}
+                disabled={product.quantity === 0}
                 className="bg-white rounded-lg border border-slate-200 p-3 text-left hover:shadow-md transition-shadow disabled:opacity-50"
               >
                 <div className="flex items-center justify-center w-12 h-12 bg-slate-100 rounded-lg mx-auto mb-2">
@@ -254,15 +254,12 @@ export default function POSPage() {
                 <h3 className="font-medium text-slate-800 text-sm">
                   {product.name}
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  {product.category}
-                </p>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-lg font-bold text-emerald-600">
                     {formatCurrency(product.price)}
                   </span>
                   <span className="text-xs text-slate-500">
-                    Stok: {product.stock}
+                    Stok: {product.quantity}
                   </span>
                 </div>
               </button>
