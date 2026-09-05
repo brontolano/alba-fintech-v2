@@ -160,7 +160,7 @@ refactor: short description (Refactor tanpa perubahan behavior)
 ```
 
 ## Deployment
-See `DEPLOY.md` for deployment instructions.
+See `docs/DEPLOY.md` for deployment instructions.
 
 ---
 Developed by Muhammad Hamdan (@brontolano)

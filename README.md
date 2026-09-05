@@ -96,4 +96,4 @@ Dikembangkan oleh <strong>Muhammad Hamdan</strong> (<a href="https://github.com/
 
 ---
 
-> ℹ️ Dokumentasi teknis (untuk developer): lihat **[DOKUMENTASI-TEKNIS.md](./DOKUMENTASI-TEKNIS.md)**
+> ℹ️ Dokumentasi teknis (untuk developer): lihat **[DOKUMENTASI-TEKNIS.md](./docs/DOKUMENTASI-TEKNIS.md)**

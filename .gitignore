@@ -46,6 +46,11 @@ Thumbs.db
 *.swo
 *~
 
+# Claude Code - dokumentasi & memori agent AI (lokal, jangan commit)
+.claude/
+!/.claude/plans/
+!/.claude/plans/**
+
 # Prisma
 /prisma/*.ml
 
