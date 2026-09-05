@@ -115,6 +115,13 @@ if (existsSync(resetScriptSrc)) {
   console.log('✅ scripts/reset-users.ts → deploy-package/scripts/');
 }
 
+// 6c. Salin migration script untuk sync schema ke production DB
+const migrateScriptSrc = join(ROOT, 'scripts', 'migrate-db.mjs');
+if (existsSync(migrateScriptSrc)) {
+  copyFileSync(migrateScriptSrc, join(DEPLOY, 'scripts', 'migrate-db.mjs'));
+  console.log('✅ scripts/migrate-db.mjs → deploy-package/scripts/');
+}
+
 // 7. Pastikan Prisma client runtime & query engine tersedia di deploy-package/node_modules
 //    Hostinger akan panggil `postinstall: prisma generate` — butuh paket prisma di node_modules
 const standaloneNodeModules = join(DEPLOY, 'node_modules');
