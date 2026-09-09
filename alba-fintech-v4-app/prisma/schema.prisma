@@ -1,0 +1,308 @@
+generator client {
+  provider = "prisma-client-js"
+  version  = "5.19.0"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  SUPERADMIN
+  PIMPINAN
+  MANAGER
+  STAFF
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum TransactionStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum UnitType {
+  RETAIL
+  KPAK
+  OFFICE
+}
+
+enum AccountType {
+  CASH
+  BANK
+}
+
+enum NotificationType {
+  TRANSACTION
+  APPROVAL
+  SYSTEM
+  BROADCAST
+}
+
+// Models
+
+model Lembaga {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  units     Unit[]
+  users     User[]
+  auditLogs AuditLog[] @relation("LembagaAuditLogs")
+}
+
+model Unit {
+  id        String   @id @default(uuid())
+  name      String
+  code      String
+  type      UnitType @default(OFFICE)
+  isRetail  Boolean  @default(false)
+  address   String?
+  lembagaId String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lembaga       Lembaga          @relation(fields: [lembagaId], references: [id])
+  users         User[]
+  transactions  Transaction[]
+  bankAccounts  BankAccount[]
+  inventory     InventoryItem[]
+  financialNotes FinancialNote[]
+  broadcastMessages BroadcastMessage[]
+  unitSettings UnitSetting[]
+  auditLogs     AuditLog[]       @relation("UnitAuditLogs")
+
+  @@unique([lembagaId, code])
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String
+  password      String
+  role          Role      @default(STAFF)
+  unitId        String?
+  lembagaId     String
+  isActive      Boolean   @default(true)
+  avatarUrl     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  unit        Unit?          @relation(fields: [unitId], references: [id])
+  lembaga     Lembaga        @relation(fields: [lembagaId], references: [id])
+  createdTransactions Transaction[] @relation("CreatedBy")
+  approvedTransactions  Transaction[] @relation("ApprovedBy")
+  approvals   Approval[]
+  notifications Notification[]
+  pushSubscriptions PushSubscription[]
+  auditLogs   AuditLog[]     @relation("UserAuditLogs")
+}
+
+model FinancialCategory {
+  id          String          @id @default(uuid())
+  name        String
+  type        TransactionType
+  code        String
+  description String?
+  isDefault   Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  transactions  Transaction[]
+  financialNotes FinancialNote[]
+}
+
+model BankAccount {
+  id           String       @id @default(uuid())
+  name         String
+  accountNumber String
+  bankName     String?
+  balance      Decimal      @default(0.00) @db.Decimal(15, 2)
+  type         AccountType  @default(BANK)
+  unitId       String
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  unit         Unit          @relation(fields: [unitId], references: [id])
+  transactions Transaction[]
+}
+
+model Transaction {
+  id            String           @id @default(uuid())
+  type          TransactionType
+  amount        Decimal          @db.Decimal(15, 2)
+  description   String
+  date          DateTime
+  status        TransactionStatus @default(DRAFT)
+  unitId        String
+  categoryId    String
+  accountId     String?
+  reference     String?
+  photoUrl      String?
+  orderItems    Json?            // For POS
+  orderItemRecords OrderItem[]
+  createdById   String
+  approvedById  String?
+  approvedAt    DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  unit      Unit               @relation(fields: [unitId], references: [id])
+  category  FinancialCategory  @relation(fields: [categoryId], references: [id])
+  account   BankAccount?       @relation(fields: [accountId], references: [id])
+  createdBy User               @relation("CreatedBy", fields: [createdById], references: [id])
+  approvedBy User?             @relation("ApprovedBy", fields: [approvedById], references: [id])
+  approvals Approval[]
+}
+
+model Approval {
+  id           String              @id @default(uuid())
+  transactionId String
+  approverId    String
+  status        TransactionStatus   @default(PENDING)
+  notes         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+  approver    User        @relation(fields: [approverId], references: [id])
+}
+
+model FinancialNote {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  amount      Decimal  @db.Decimal(15, 2)
+  unitId      String
+  categoryId  String
+  date        DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  unit     Unit              @relation(fields: [unitId], references: [id])
+  category FinancialCategory @relation(fields: [categoryId], references: [id])
+}
+
+model InventoryItem {
+  id          String   @id @default(uuid())
+  name        String
+  sku         String?  @unique
+  category    String?
+  unitPrice   Decimal  @db.Decimal(15, 2)
+  sellPrice   Decimal  @db.Decimal(15, 2)
+  currentStock Int     @default(0)
+  minStock    Int      @default(0)
+  unitId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  unit      Unit          @relation(fields: [unitId], references: [id])
+  orderItems OrderItem[]
+}
+
+model OrderItem {
+  id              String   @id @default(uuid())
+  transactionId   String
+  productId       String
+  quantity        Int
+  unitPrice       Decimal  @db.Decimal(15, 2)
+  totalPrice      Decimal  @db.Decimal(15, 2)
+  createdAt       DateTime @default(now())
+
+  transaction Transaction   @relation(fields: [transactionId], references: [id])
+  product     InventoryItem @relation(fields: [productId], references: [id])
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  title       String
+  message     String
+  type        NotificationType
+  isRead      Boolean          @default(false)
+  data        Json?
+  createdAt   DateTime         @default(now())
+
+  user      User        @relation(fields: [userId], references: [id])
+}
+
+model PushSubscription {
+  id          String   @id @default(uuid())
+  userId      String
+  endpoint    String   @unique
+  keys        Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model BroadcastMessage {
+  id          String   @id @default(uuid())
+  title       String
+  message     String
+  type        NotificationType
+  targetRole  Role?
+  targetUnitId String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  targetUnit Unit? @relation(fields: [targetUnitId], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String
+  action      String   // CREATE, READ, UPDATE, DELETE, APPROVE, REJECT
+  entity      String   // Transaction, User, Approval, etc
+  entityId    String
+  oldData     Json?
+  newData     Json?
+  unitId      String?
+  lembagaId   String?
+  createdAt   DateTime @default(now())
+
+  user    User     @relation("UserAuditLogs", fields: [userId], references: [id])
+  unit    Unit?    @relation("UnitAuditLogs", fields: [unitId], references: [id])
+  lembaga Lembaga? @relation("LembagaAuditLogs", fields: [lembagaId], references: [id])
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UnitSetting {
+  id          String   @id @default(uuid())
+  unitId      String
+  key         String
+  value       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  @@unique([unitId, key])
+}
