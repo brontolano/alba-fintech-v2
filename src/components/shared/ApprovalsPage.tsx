@@ -76,15 +76,16 @@ export default function ApprovalsPage() {
   const handleAction = async (id: string, action: 'approve' | 'reject') => {
     setActionLoading(id);
     try {
-      await fetch('/api/approvals', {
+      const res = await fetch('/api/approvals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transactionId: id, action }),
       });
+      const result = await res.json();
+      
+      // Update state dengan data dari API response
       setApprovals((prev) =>
-        prev.map((a) =>
-          a.id === id ? { ...a, status: action === 'approve' ? 'APPROVED' : 'REJECTED' } : a
-        )
+        prev.map(a => a.id === id ? { ...a, status: result.data?.status ?? (action === 'approve' ? 'APPROVED' : 'REJECTED') } : a)
       );
       setSelectedIds((prev) => prev.filter((itemId) => itemId !== id));
     } catch (err) {
@@ -113,22 +114,32 @@ export default function ApprovalsPage() {
     if (selectedIds.length === 0) return;
     
     try {
-      await Promise.all(
-        selectedIds.map((id) =>
-          fetch('/api/approvals', {
+      // Call API for each selected item
+      const results = await Promise.all(
+        selectedIds.map(async (id) => {
+          const res = await fetch('/api/approvals', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ transactionId: id, action }),
-          })
-        )
+          });
+          const result = await res.json();
+          return { id, status: result.data?.status ?? (action === 'approve' ? 'APPROVED' : 'REJECTED') };
+        })
       );
+      
+      // Update state untuk semua item yang sudah diproses
       setApprovals((prev) =>
-        prev.filter((a) => !selectedIds.includes(a.id))
+        prev.map(a => {
+          const updated = results.find(r => r.id === a.id);
+          return updated ? { ...a, status: updated.status } : a;
+        })
       );
+      
+      // Hapus semua item yang sudah diproses dari list
+      setSelectedIds([]);
     } catch (err) {
       console.error('Bulk action error:', err);
     } finally {
-      setSelectedIds([]);
       setShowBulkConfirm(false);
       setPendingBulkAction(null);
     }
