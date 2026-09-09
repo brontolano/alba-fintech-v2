@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
@@ -44,11 +44,13 @@ export default function LoginPage() {
                     <h1 className="text-2xl font-bold text-center mb-6">
                         ALBA Finance v4
                     </h1>
+
                     {error && (
                         <div className="bg-red-50 border border-red-200 text-red-600 rounded-md p-3 mb-4 text-sm">
                             {error}
                         </div>
                     )}
+
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium mb-1">Email</label>
@@ -61,6 +63,7 @@ export default function LoginPage() {
                                 required
                             />
                         </div>
+
                         <div>
                             <label className="block text-sm font-medium mb-1">Password</label>
                             <input
@@ -72,6 +75,7 @@ export default function LoginPage() {
                                 required
                             />
                         </div>
+
                         <button
                             type="submit"
                             disabled={loading}
