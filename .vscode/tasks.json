@@ -1,0 +1,141 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run CEO Agent (Pak Asep)",
+            "type": "shell",
+            "command": "echo",
+            "args": [
+                "Starting CEO Agent..."
+            ],
+            "presentation": {
+                "group": "Agents",
+                "title": "CEO Agent",
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Team Lead Agent (Pak Budi)",
+            "type": "shell",
+            "command": "echo",
+            "args": [
+                "Starting Team Lead Agent..."
+            ],
+            "presentation": {
+                "group": "Agents",
+                "title": "Team Lead Agent",
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Developer Agent (Pak Toni)",
+            "type": "shell",
+            "command": "echo",
+            "args": [
+                "Starting Developer Agent..."
+            ],
+            "presentation": {
+                "group": "Agents",
+                "title": "Developer Agent",
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Designer Agent (Ibu Nina)",
+            "type": "shell",
+            "command": "echo",
+            "args": [
+                "Starting Designer Agent..."
+            ],
+            "presentation": {
+                "group": "Agents",
+                "title": "Designer Agent",
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Tester Agent (Ibu Rini)",
+            "type": "shell",
+            "command": "echo",
+            "args": [
+                "Starting Tester Agent..."
+            ],
+            "presentation": {
+                "group": "Agents",
+                "title": "Tester Agent",
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Research Agent (Ibu Sari)",
+            "type": "shell",
+            "command": "echo",
+            "args": [
+                "Starting Research Agent..."
+            ],
+            "presentation": {
+                "group": "Agents",
+                "title": "Research Agent",
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run DevOps Agent (Mas Yanto)",
+            "type": "shell",
+            "command": "echo",
+            "args": [
+                "Starting DevOps Agent..."
+            ],
+            "presentation": {
+                "group": "Agents",
+                "title": "DevOps Agent",
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Scrum Master Agent (Mas Eko)",
+            "type": "shell",
+            "command": "echo",
+            "args": [
+                "Starting Scrum Master Agent..."
+            ],
+            "presentation": {
+                "group": "Agents",
+                "title": "Scrum Master Agent",
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "All Agents: Start Team",
+            "type": "shell",
+            "command": "echo",
+            "args": [
+                "All agents ready. Use Ctrl+Shift+P → Run Task to launch."
+            ],
+            "presentation": {
+                "title": "Team Launcher",
+                "reveal": "always"
+            },
+            "problemMatcher": [],
+            "dependsOrder": "parallel",
+            "dependsOn": [
+                "Run CEO Agent (Pak Asep)",
+                "Run Team Lead Agent (Pak Budi)",
+                "Run Developer Agent (Pak Toni)",
+                "Run Designer Agent (Ibu Nina)",
+                "Run Tester Agent (Ibu Rini)",
+                "Run Research Agent (Ibu Sari)",
+                "Run DevOps Agent (Mas Yanto)",
+                "Run Scrum Master Agent (Mas Eko)"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,76 @@
+# See https://help.github.com/en/get-started/getting-started-with-git/ignoring-files
+# for most good practices for various types of directories and files
+
+# Node.js dependencies
+node_modules/
+
+# Production build output
+.next/
+out/
+
+# Environment variables (keep secret!)
+.env
+.env.local
+.env.development/
+.env.development.local
+.env.test/
+.env.test.local
+.env.production/
+.env.production.local
+.env.production.local
+
+# Database
+*.db
+*.sqlite
+*.sqlitejournal
+dev.db
+
+# Deployment package
+deploy-package/
+alba-fintech-deploy.tar.gz
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Claude Code - dokumentasi & memori agent AI (lokal, jangan commit)
+.claude/
+!/.claude/plans/
+!/.claude/plans/**
+
+# Prisma
+/prisma/*.ml
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build info
+*.tsbuildinfo
+
+# Test/temp files
+*.bat
+cookies.txt
+
+# Zip archives (build artifacts)
+*.zip
+
+# Temp build output files
+build-output.txt
+build_check.txt
+tsc_log.txt
+tsc-output.txt
+tsc_errors.txt

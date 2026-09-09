@@ -1,0 +1,18 @@
+# VS Code
+.vscode/ipch.txt
+.history/
+
+# Node
+node_modules/
+*.local
+
+# Logs
+*.log
+logs/
+
+# State (runtime)
+workspace/state/*.json
+
+# OS
+.DS_Store
+Thumbs.db

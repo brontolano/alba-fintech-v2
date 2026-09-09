@@ -1,0 +1,17 @@
+{
+    // Virtual Company AI — VS Code Workspace Settings
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    "files.associations": {
+        "*.agent": "markdown",
+        "AGENTS.md": "markdown"
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit"
+    },
+    // Agent orchestration settings
+    "chat.agent.timeout": 120,
+    "chat.agent.maxTurns": 50,
+    // Enable agent tool protocol for inter-agent communication
+    "chat.agent.enableToolProtocol": true
+}
