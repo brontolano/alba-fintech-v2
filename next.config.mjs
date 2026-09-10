@@ -21,14 +21,6 @@ const nextConfig = {
   // Reduce build output
   productionBrowserSourceMaps: false,
 
-  // Turbopack config untuk markdown support
-  turbopack: {
-    rules: {
-      '*.md': {
-        loaders: ['raw-loader'],
-      },
-    },
-  },
 };
 
 export default nextConfig;
