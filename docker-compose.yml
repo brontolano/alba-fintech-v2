@@ -1,0 +1,50 @@
+# ALBA Finance v3 - Docker Compose
+# Usage:
+#   docker-compose up -d   (build and start)
+#   docker-compose down -v (stop and remove volumes)
+
+version: '3.8'
+
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: alba-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-bismillah123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-alba_finance_v3}
+      MYSQL_USER: ${MYSQL_USER:-devuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-devpass123}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./mysql-init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+
+  # Next.js Application
+  app:
+    build: .
+    container_name: alba-fintech-v3
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-mysql://devuser:devpass123@db:3306/alba_finance_v3}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-base64-32-byte-random-secret-key-for-dev}
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./.next:/app/.next:cached
+      - ./public:/app/public:cached
+      - ./prisma:/app/prisma:cached
+
+volumes:
+  db_data:

@@ -1,0 +1,100 @@
+# See https://help.github.com/en/get-started/getting-started-with-git/ignoring-files
+# for most good practices for various types of directories and files
+
+# Node.js dependencies
+node_modules/
+
+# Production build output
+.next/
+out/
+
+# Environment variables (keep secret!)
+.env
+.env.local
+.env.development/
+.env.development.local
+.env.test/
+.env.test.local
+.env.production/
+.env.production.local
+.env.production
+
+# Database
+*.db
+*.sqlite
+*.sqlitejournal
+dev.db
+
+# Deployment package
+deploy-package/
+alba-fintech-deploy.tar.gz
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Claude Code - dokumentasi & memori agent AI (lokal, jangan commit)
+.claude/
+!/.claude/plans/
+!/.claude/plans/**
+
+# Prisma
+/prisma/*.ml
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build info
+*.tsbuildinfo
+
+# Test/temp files
+*.bat
+cookies.txt
+
+# Zip archives (build artifacts)
+*.zip
+
+# Temp build output files
+build-output.txt
+build_check.txt
+tsc_log.txt
+tsc-output.txt
+tsc_errors.txt
+
+# Bug-hunter / scan artifacts (local only)
+.bug-hunter/
+.goose/
+bug-hunter/
+commit-helper.cjs
+fix-git.cjs
+gen-target-files.js
+gen-target.ps1
+git-log.txt
+scan-full-output.txt
+target-files.json
+target-files-new.json
+tmp-audit.ps1
+tmp-curl-headers.ps1
+tmp-curl-signin.ps1
+tmp-curl.ps1
+tmp-curl2.ps1
+tmp-curl3.ps1
+tmp-dash.html
+tmp-save-dash.ps1
+
+# Windows / stray files
+nul

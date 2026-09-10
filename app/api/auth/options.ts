@@ -8,11 +8,11 @@ import type { NextAuthOptions } from 'next-auth';
 interface AuthUser {
   id: string;
   email: string;
-  name: string;
+  name: string | null;
   image: string | null;
   role: string;
   unitId: string | null;
-  lembagaId: string;
+  lembagaId: string | null;
   isActive: boolean;
 }
 
@@ -79,18 +79,18 @@ export const authOptions: NextAuthOptions = {
             id: true,
             email: true,
             name: true,
-            password: true,
+            passwordHash: true,
             role: true,
             unitId: true,
             lembagaId: true,
             isActive: true,
-            avatarUrl: true,
+            image: true,
           },
         });
 
         // APP-4 fix: Always run bcrypt.compare, even for non-existent users.
         // Use dummyHash so timing is uniform whether or not the user exists.
-        const passwordToCompare = user ? user.password : DUMMY_HASH;
+        const passwordToCompare = user ? user.passwordHash : DUMMY_HASH;
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
@@ -104,7 +104,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          image: user.avatarUrl,
+          image: user.image,
           role: user.role,
           unitId: user.unitId,
           lembagaId: user.lembagaId,
