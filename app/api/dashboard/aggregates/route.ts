@@ -64,10 +64,18 @@ export async function GET(request: NextRequest) {
 
     // Role-based filtering
     if (role === 'STAFF' || role === 'MANAGER') {
+      if (!unitId) {
+        return NextResponse.json({ error: 'User tidak memiliki unit' }, { status: 400 });
+      }
       txWhere.unitId = unitId;
     } else if (role === 'PIMPINAN' && lembagaId) {
       // Pimpinan sees transactions from units in their lembaga
       txWhere.unit = { lembagaId };
+    } else if (role === 'SUPERADMIN') {
+      // SUPERADMIN sees all transactions (no additional filter)
+    } else {
+      // Unknown role or missing credentials - deny access
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Override with query param if provided
