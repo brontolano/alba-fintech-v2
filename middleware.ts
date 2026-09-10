@@ -10,23 +10,6 @@ export default withAuth(
     if (token && token.isActive === false) {
       return NextResponse.redirect(new URL('/login?error=deactivated', req.url))
     }
-
-    const userRole = token?.role
-
-    const roleRoutes: Record<string, string[]> = {
-      '/superadmin': ['SUPERADMIN'],
-      '/pimpinan': ['PIMPINAN', 'SUPERADMIN'],
-      '/manager': ['MANAGER', 'PIMPINAN', 'SUPERADMIN'],
-      '/staff': ['STAFF', 'MANAGER', 'PIMPINAN', 'SUPERADMIN'],
-    }
-
-    for (const [route, allowedRoles] of Object.entries(roleRoutes)) {
-      if (pathname.startsWith(route)) {
-        if (!userRole || !allowedRoles.includes(userRole)) {
-          return NextResponse.redirect(new URL('/unauthorized', req.url))
-        }
-      }
-    }
   },
   {
     pages: { signIn: '/login' }
