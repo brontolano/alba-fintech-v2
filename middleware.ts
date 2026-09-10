@@ -4,7 +4,14 @@ import { NextResponse } from "next/server"
 export default withAuth(
   function middleware(req) {
     const { pathname } = req.nextUrl
-    const userRole = req.nextauth.token?.role
+    const token = req.nextauth.token
+
+    // APP-6 fix: Check isActive before allowing access to protected routes
+    if (token && token.isActive === false) {
+      return NextResponse.redirect(new URL('/login?error=deactivated', req.url))
+    }
+
+    const userRole = token?.role
 
     const roleRoutes: Record<string, string[]> = {
       '/superadmin': ['SUPERADMIN'],
@@ -14,8 +21,10 @@ export default withAuth(
     }
 
     for (const [route, allowedRoles] of Object.entries(roleRoutes)) {
-      if (pathname.startsWith(route) && !allowedRoles.includes(userRole!)) {
-        return NextResponse.redirect(new URL('/unauthorized', req.url))
+      if (pathname.startsWith(route)) {
+        if (!userRole || !allowedRoles.includes(userRole)) {
+          return NextResponse.redirect(new URL('/unauthorized', req.url))
+        }
       }
     }
   },

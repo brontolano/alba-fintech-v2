@@ -4,6 +4,18 @@ import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import type { NextAuthOptions } from 'next-auth';
 
+// Typed auth user return — avoids `as any` casts
+interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  image: string | null;
+  role: string;
+  unitId: string | null;
+  lembagaId: string;
+  isActive: boolean;
+}
+
 declare module 'next-auth' {
   interface Session {
     user: {
@@ -14,6 +26,7 @@ declare module 'next-auth' {
       role?: string;
       unitId?: string | null;
       lembagaId?: string | null;
+      isActive?: boolean;
     };
   }
 }
@@ -24,12 +37,17 @@ declare module 'next-auth/jwt' {
     role?: string;
     unitId?: string | null;
     lembagaId?: string | null;
+    isActive?: boolean;
   }
 }
 
 const loginAttempts = new Map<string, { count: number; last: number }>();
 const MAX_ATTEMPTS = 5;
 const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+// Fixed dummy bcrypt hash — always runs bcrypt.compare to keep uniform timing
+// regardless of whether the user exists (prevents email enumeration via timing)
+const DUMMY_HASH = '$2a$10$N9qo8uLOickgx2ZMRZoMy.MrqQ7K9ExnLxKwbdJ5mg0rV5xZ5Z5';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -40,7 +58,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<AuthUser | null> {
         if (!credentials?.email || !credentials?.password) return null;
 
         const now = Date.now();
@@ -57,20 +75,30 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          include: { unit: true, lembaga: true },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            password: true,
+            role: true,
+            unitId: true,
+            lembagaId: true,
+            isActive: true,
+            avatarUrl: true,
+          },
         });
 
-        if (!user || !user.isActive) return null;
-
-        const dummyHash = '$2a$10$N9qo8uLOickgx2ZMRZoMy.MrqQ7K9ExnLxKwbdJ5mg0rV5xZ5Z5';
-        const passwordToCompare = user ? user.password : dummyHash;
+        // APP-4 fix: Always run bcrypt.compare, even for non-existent users.
+        // Use dummyHash so timing is uniform whether or not the user exists.
+        const passwordToCompare = user ? user.password : DUMMY_HASH;
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           passwordToCompare
         );
 
-        if (!isPasswordValid) return null;
+        // Check all conditions AFTER bcrypt call to preserve constant-time
+        if (!user || !user.isActive || !isPasswordValid) return null;
 
         return {
           id: user.id,
@@ -80,6 +108,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           unitId: user.unitId,
           lembagaId: user.lembagaId,
+          isActive: user.isActive,
         };
       },
     }),
@@ -96,11 +125,31 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = (user as any).id;
-        token.role = (user as any).role;
-        token.unitId = (user as any).unitId;
-        token.lembagaId = (user as any).lembagaId;
+        // Initial sign-in: copy auth user fields into token
+        const authUser = user as AuthUser;
+        token.id = authUser.id;
+        token.role = authUser.role;
+        token.unitId = authUser.unitId;
+        token.lembagaId = authUser.lembagaId;
+        token.isActive = authUser.isActive;
       }
+
+      // APP-5 fix: Re-validate role & isActive from DB on each token refresh.
+      // This ensures demotion/deactivation takes effect without waiting for JWT expiry.
+      if (token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, isActive: true },
+        });
+        if (dbUser) {
+          token.role = dbUser.role;
+          token.isActive = dbUser.isActive;
+        } else {
+          // User no longer exists — invalidate token
+          token.isActive = false;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -109,6 +158,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
         session.user.unitId = token.unitId;
         session.user.lembagaId = token.lembagaId;
+        session.user.isActive = token.isActive;
       }
       return session;
     },
