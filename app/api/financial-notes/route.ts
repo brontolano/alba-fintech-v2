@@ -22,7 +22,7 @@ const querySchema = z.object({
   type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  status: z.enum(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED']).optional(),
+  isReconciled: z.string().optional().transform((val) => val === 'true'),
   page: z.string().optional().transform((val) => (val ? parseInt(val) : 1)),
   limit: z.string().optional().transform((val) => (val ? parseInt(val) : 10)),
 });
@@ -65,16 +65,17 @@ export async function GET(request: NextRequest) {
       where.unitId = unitId;
     }
 
-    // If unitId is provided in query params, override role-based filtering
-    if (parsed.data.unitId) {
+    // If unitId is provided in query params, override role-based filtering (only for PIMPINAN/SUPERADMIN)
+    if (parsed.data.unitId && role !== 'MANAGER') {
       delete where.OR;
       where.unitId = parsed.data.unitId;
     }
     if (parsed.data.type) {
       where.type = parsed.data.type;
     }
-    if (parsed.data.status) {
-      where.status = parsed.data.status;
+    // Filter by reconciliation status (isReconciled is already transformed to boolean)
+    if (parsed.data.isReconciled !== undefined) {
+      where.isReconciled = parsed.data.isReconciled;
     }
     if (parsed.data.startDate || parsed.data.endDate) {
       const dateFilter: any = {};

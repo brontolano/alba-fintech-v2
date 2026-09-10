@@ -18,6 +18,14 @@ const createTransactionSchema = z.object({
   accountId: z.string().optional(),
   reference: z.string().optional(),
   date: z.string().optional(),
+  photoUrl: z.string().optional(),
+  orderItems: z.array(z.object({
+    itemName: z.string(),
+    quantity: z.number(),
+    unitPrice: z.number(),
+    totalPrice: z.number().optional(),
+    itemId: z.string().optional(),
+  })).optional(),
 });
 
 // Schema for query parameters
@@ -51,7 +59,7 @@ export async function GET(request: NextRequest) {
     const where: any = {};
     const role = session.user.role as string;
 
-    // Role-based filtering
+    // Role-based filtering - STAFF and MANAGER can only see their unit
     if (role === 'STAFF' || role === 'MANAGER') {
       where.unitId = session.user.unitId;
     } else if (role === 'PIMPINAN') {
@@ -60,10 +68,8 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Query parameter filtering (override role-based filters)
-    if (parsed.data.unitId) {
-      // If unitId is specified, it takes precedence
-      delete where.unit;
+    // Query parameter filtering (SUPERADMIN only can override role-based filters)
+    if (parsed.data.unitId && role === 'SUPERADMIN') {
       where.unitId = parsed.data.unitId;
     }
     if (parsed.data.type) {
@@ -75,21 +81,15 @@ export async function GET(request: NextRequest) {
     if (parsed.data.categoryId) {
       where.categoryId = parsed.data.categoryId;
     }
-    if (parsed.data.startDate && parsed.data.endDate) {
-      where.OR = [
-        { createdAt: { gte: parsed.data.startDate, lte: parsed.data.endDate } },
-        { date: { gte: parsed.data.startDate, lte: parsed.data.endDate } },
-      ];
-    } else if (parsed.data.startDate) {
-      where.OR = [
-        { createdAt: { gte: parsed.data.startDate } },
-        { date: { gte: parsed.data.startDate } },
-      ];
-    } else if (parsed.data.endDate) {
-      where.OR = [
-        { createdAt: { lte: parsed.data.endDate } },
-        { date: { lte: parsed.data.endDate } },
-      ];
+    // Use createdAt for date filtering for consistency
+    if (parsed.data.startDate || parsed.data.endDate) {
+      where.createdAt = {};
+      if (parsed.data.startDate) {
+        where.createdAt.gte = parsed.data.startDate;
+      }
+      if (parsed.data.endDate) {
+        where.createdAt.lte = parsed.data.endDate;
+      }
     }
 
     // Fetch transactions
@@ -133,30 +133,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // RBAC
+    // RBAC - MANAGER, STAFF, PIMPINAN, SUPERADMIN can create transactions
     const role = session.user.role;
     if (role !== 'MANAGER' && role !== 'STAFF' && role !== 'PIMPINAN' && role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Parse body
-    const body = await request.json();
-    const parsed = createTransactionSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid data', details: parsed.error.errors }, { status: 400 });
-    }
-
-    // Handle photo upload if present in FormData
-    let photoUrl = null;
+    // Parse body - handle both JSON and multipart form data
+    let body: any;
     const contentType = request.headers.get('content-type');
+    let photoUrl: string | null = null;
+
     if (contentType?.includes('multipart/form-data')) {
       const formData = await request.formData();
+      // Extract JSON string from form fields if present
+      const transactionData = formData.get('transactionData') as string | null;
+      if (transactionData) {
+        body = JSON.parse(transactionData);
+      }
+      
+      // Handle photo upload
       const photo = formData.get('photo') as File | null;
       if (photo && photo.size > 0) {
         try {
           const uploadDir = join(process.cwd(), 'public', 'uploads', 'transactions');
           
-          // Create directory if it doesn't exist
           if (!fs.existsSync(uploadDir)) {
             await mkdir(uploadDir, { recursive: true });
           }
@@ -165,22 +166,47 @@ export async function POST(request: NextRequest) {
           const fileName = `transaction_${uuidv4()}.jpg`;
           const filePath = join(uploadDir, fileName);
           
-          // Convert ArrayBuffer to Buffer for Node.js fs
           const nodeBuffer = Buffer.from(buffer);
-          
-          // Use fs.promises.writeFile with proper buffer handling
           const { promises: fsPromises } = require('fs');
           await fsPromises.writeFile(filePath, nodeBuffer);
           photoUrl = `/uploads/transactions/${fileName}`;
         } catch (error) {
           console.error('Error uploading photo:', error);
-          photoUrl = null;
+        }
+      }
+    } else {
+      body = await request.json();
+    }
+
+    const parsed = createTransactionSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid data', details: parsed.error.errors }, { status: 400 });
+    }
+
+    // Use photoUrl from body or uploaded file
+    const finalPhotoUrl = photoUrl || parsed.data.photoUrl || null;
+
+    // Parse orderItems if present
+    const orderItemsData = parsed.data.orderItems || [];
+
+    // Validate inventory items if provided (for POS transactions)
+    for (const item of orderItemsData) {
+      if (item.itemId) {
+        const inventoryItem = await prisma.inventoryItem.findUnique({
+          where: { id: item.itemId },
+        });
+        if (!inventoryItem) {
+          return NextResponse.json(
+            { error: `Item tidak ditemukan: ${item.itemName || item.itemId}` },
+            { status: 400 }
+          );
+        }
+        // Auto-calculate total price if not provided
+        if (item.totalPrice === undefined && item.unitPrice && item.quantity) {
+          item.totalPrice = item.unitPrice * item.quantity;
         }
       }
     }
-
-    // Parse orderItems if present
-    const orderItemsData = body.orderItems || [];
 
     // Create transaction with orderItems
     const transaction = await prisma.transaction.create({
@@ -195,7 +221,7 @@ export async function POST(request: NextRequest) {
         date: parsed.data.date ? new Date(parsed.data.date) : undefined,
         createdById: session.user.id!,
         status: 'PENDING',
-        photoUrl,
+        photoUrl: finalPhotoUrl,
         orderItems: {
           create: orderItemsData.map((item: any) => ({
             itemName: item.itemName,

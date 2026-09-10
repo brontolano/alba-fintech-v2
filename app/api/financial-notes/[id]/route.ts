@@ -14,9 +14,7 @@ const updateFinancialNoteSchema = z.object({
   categoryId: z.string().optional().nullable(),
   isReconciled: z.boolean().optional(),
   reconciledById: z.string().optional().nullable(),
-  status: z.enum(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED']).optional(),
-  approvedById: z.string().optional().nullable(),
-  approvedAt: z.string().transform((str) => new Date(str)).optional().nullable(),
+  reconciledAt: z.string().optional().nullable(),
 });
 
 export async function GET(
