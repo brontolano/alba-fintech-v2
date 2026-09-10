@@ -27,6 +27,10 @@ declare module 'next-auth/jwt' {
   }
 }
 
+const loginAttempts = new Map<string, { count: number; last: number }>();
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -39,6 +43,18 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        const now = Date.now();
+        const attempt = loginAttempts.get(credentials.email) || { count: 0, last: now };
+        if (now - attempt.last > WINDOW_MS) {
+          attempt.count = 0;
+          attempt.last = now;
+        }
+        attempt.count++;
+        loginAttempts.set(credentials.email, attempt);
+        if (attempt.count > MAX_ATTEMPTS) {
+          throw new Error('Too many login attempts. Please try again later.');
+        }
+
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
           include: { unit: true, lembaga: true },
@@ -46,9 +62,12 @@ export const authOptions: NextAuthOptions = {
 
         if (!user || !user.isActive) return null;
 
+        const dummyHash = '$2a$10$N9qo8uLOickgx2ZMRZoMy.MrqQ7K9ExnLxKwbdJ5mg0rV5xZ5Z5';
+        const passwordToCompare = user ? user.password : dummyHash;
+
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
-          user.passwordHash
+          passwordToCompare
         );
 
         if (!isPasswordValid) return null;
@@ -57,7 +76,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          image: user.image,
+          image: user.avatarUrl,
           role: user.role,
           unitId: user.unitId,
           lembagaId: user.lembagaId,
@@ -94,5 +113,5 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  debug: process.env.NODE_ENV === 'development',
+  debug: process.env.NEXTAUTH_DEBUG === 'true',
 };
