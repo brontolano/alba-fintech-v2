@@ -34,5 +34,9 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/superadmin/:path*', '/pimpinan/:path*', '/manager/:path*', '/staff/:path*']
+  matcher: [
+    '/dashboard/:path*',
+    '/api/:path*',
+    '/login',
+  ]
 }
