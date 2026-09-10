@@ -136,17 +136,26 @@ export const authOptions: NextAuthOptions = {
 
       // APP-5 fix: Re-validate role & isActive from DB on each token refresh.
       // This ensures demotion/deactivation takes effect without waiting for JWT expiry.
+      // Wrapped in try-catch to prevent DB errors from breaking auth (graceful degradation)
       if (token.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { role: true, isActive: true },
-        });
-        if (dbUser) {
-          token.role = dbUser.role;
-          token.isActive = dbUser.isActive;
-        } else {
-          // User no longer exists — invalidate token
-          token.isActive = false;
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true, isActive: true },
+          });
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.isActive = dbUser.isActive;
+          } else {
+            // User no longer exists — invalidate token
+            token.isActive = false;
+          }
+        } catch (dbErr: unknown) {
+          // DB connection/schema error — preserve existing token values
+          // This prevents 500 errors when DB is temporarily unavailable
+          const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+          console.error('[Auth] DB error during JWT refresh:', msg);
+          // Token expires soon anyway, user will be prompted to login
         }
       }
 

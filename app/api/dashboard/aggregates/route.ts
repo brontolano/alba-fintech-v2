@@ -13,7 +13,13 @@ const querySchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     // Auth check
-    const session = await getServerSession(authOptions);
+    let session;
+    try {
+      session = await getServerSession(authOptions);
+    } catch (sessionErr: any) {
+      console.error('[Dashboard Aggregates] Session error:', sessionErr.message);
+      return NextResponse.json({ error: 'Session error' }, { status: 401 });
+    }
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -59,7 +65,7 @@ export async function GET(request: NextRequest) {
     // Role-based filtering
     if (role === 'STAFF' || role === 'MANAGER') {
       txWhere.unitId = unitId;
-    } else if (role === 'PIMPINAN') {
+    } else if (role === 'PIMPINAN' && lembagaId) {
       // Pimpinan sees transactions from units in their lembaga
       txWhere.unit = { lembagaId };
     }
@@ -182,8 +188,14 @@ export async function GET(request: NextRequest) {
         totalUnits: units.length,
       },
     }, { status: 200 });
-  } catch (error) {
-    console.error('[Dashboard Aggregates API] Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  } catch (error: any) {
+    console.error('[Dashboard Aggregates API] Error:', error.message || error);
+    console.error('[Dashboard Aggregates API] Stack:', error.stack);
+    // Return error details for debugging (remove in production if needed)
+    return NextResponse.json({
+      error: 'Internal Server Error',
+      details: error.message || String(error),
+      hint: 'Check server logs or run migration: node scripts/migrate-db.mjs'
+    }, { status: 500 });
   }
 }
