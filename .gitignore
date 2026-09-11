@@ -98,3 +98,15 @@ tmp-save-dash.ps1
 
 # Windows / stray files
 nul
+
+/uploads
+.env.local
+.env.*
+!.env.example
+goose.config.yaml
+recipes/
+database.sql
+database-update-v2.sql
+dev.db*
+prisma/schema-v3.prisma
+secrets.yaml.example

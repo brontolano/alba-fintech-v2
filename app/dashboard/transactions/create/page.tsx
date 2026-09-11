@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   ArrowLeft,
   Save,
@@ -37,6 +38,10 @@ interface CreateForm {
 
 export default function CreateTransactionPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const role = session?.user?.role as string | undefined;
+  const userUnitId = session?.user?.unitId as string | undefined;
+
   const [units, setUnits] = useState<Unit[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState<CreateForm>({
@@ -60,6 +65,10 @@ export default function CreateTransactionPage() {
       });
       const data = await res.json();
       setUnits(data.data ?? []);
+      // Auto-select unit for MANAGER/STAFF (single-unit users)
+      if (role && (role === 'MANAGER' || role === 'STAFF') && userUnitId) {
+        setForm((prevForm) => ({ ...prevForm, unitId: userUnitId }));
+      }
     } catch (err) {
       console.error('Error fetching units:', err);
     }
@@ -274,10 +283,13 @@ export default function CreateTransactionPage() {
               </label>
               <select
                 value={form.unitId}
-                onChange={(e) =>
-                  setForm({ ...form, unitId: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                onChange={(e) => setForm({ ...form, unitId: e.target.value })}
+                disabled={role === 'MANAGER' || role === 'STAFF'}
+                className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm ${
+                  role === 'MANAGER' || role === 'STAFF'
+                    ? 'bg-slate-100 text-slate-600 cursor-default'
+                    : ''
+                }`}
                 required
               >
                 <option value="">Pilih Unit</option>

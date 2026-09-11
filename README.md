@@ -81,6 +81,58 @@ Setelah reset database:
 
 ---
 
+## 🤖 Goose Recipes (Pengembangan)
+
+ALBA Finance v3 dilengkapi dengan resep (recipes) untuk membantu pengembangan menggunakan [Goose AI](https://goose-docs.ai/).
+
+### 📁 Struktur Recipes
+```
+recipes/
+├─ development.yaml          # Asisten pengembangan utama
+└─ subrecipes/
+   ├─ type-check.yaml       # Type checking TypeScript
+   ├─ build.yaml           # Build produksi
+   └─ database.yaml        # Manajemen database
+```
+
+### 🚀 Cara Menggunakan
+
+#### Dari CLI
+```bash
+# Mulai sesi pengembangan
+goose run --recipe recipes/development.yaml --params action=type-check
+
+# Build produksi
+goose run --recipe recipes/subrecipes/build.yaml --params skip_lint=false
+
+# Database sync
+goose run --recipe recipes/subrecipes/database.yaml --params action=push
+```
+
+#### Custom Slash Commands
+Konfigurasi di `goose.config.yaml`:
+```yaml
+slash_commands:
+  - command: "develop"
+    recipe_path: "./recipes/development.yaml"
+  - command: "build"
+    recipe_path: "./recipes/subrecipes/build.yaml"
+  - command: "db"
+    recipe_path: "./recipes/subrecipes/database.yaml"
+```
+
+### 📋 Langkah Penggunaan
+1. Pastikan [Goose terinstal](https://goose-docs.ai/docs/getting-started/installation)
+2. Konfigurasi provider AI di `goose.config.yaml`
+3. Jalankan `goose run --recipe recipes/development.yaml`
+4. Pilih aksi yang diinginkan dari menu dropdown
+
+### 📝 Konfigurasi Goose
+- `goose.config.yaml` - Konfigurasi utama (model, provider, slash commands)
+- `secrets.yaml.example` - Template file konfigurasi rahasia (copy ke `secrets.yaml` dan sesuaikan)
+
+---
+
 ## 📞 Dukungan
 
 Jika ada kendala teknis, hubungi:

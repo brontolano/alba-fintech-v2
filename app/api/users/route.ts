@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       where.unitId = unitId;
     }
 
-    // Fetch users
+    // Fetch users with eager-loaded relations (avoids N+1 queries)
     const users = await prisma.user.findMany({
       where,
       orderBy: {
@@ -88,30 +88,28 @@ export async function GET(request: NextRequest) {
         lembagaId: true,
         createdAt: true,
         updatedAt: true,
+        unit: {
+          select: { id: true, name: true, code: true },
+        },
+        lembaga: {
+          select: { id: true, name: true, code: true },
+        },
       },
     });
 
-    // Fetch related unit and lembaga separately
-    const formattedUsers = await Promise.all(
-      users.map(async (user) => {
-        const [unit, lembaga] = await Promise.all([
-          user.unitId ? prisma.unit.findUnique({
-            where: { id: user.unitId },
-            select: { id: true, name: true, code: true }
-          }) : null,
-          user.lembagaId ? prisma.lembaga.findUnique({
-            where: { id: user.lembagaId },
-            select: { id: true, name: true, code: true }
-          }) : null
-        ]);
-
-        return {
-          ...user,
-          unit,
-          lembaga,
-        };
-      })
-    );
+    const formattedUsers = users.map((user) => ({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isActive: user.isActive,
+      unitId: user.unitId,
+      lembagaId: user.lembagaId,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      unit: user.unit,
+      lembaga: user.lembaga,
+    }));
 
     const total = await prisma.user.count({ where });
 

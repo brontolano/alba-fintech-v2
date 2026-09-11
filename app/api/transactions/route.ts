@@ -81,14 +81,16 @@ export async function GET(request: NextRequest) {
     if (parsed.data.categoryId) {
       where.categoryId = parsed.data.categoryId;
     }
-    // Use createdAt for date filtering for consistency
+    // Filter by transaction date, not createdAt
     if (parsed.data.startDate || parsed.data.endDate) {
-      where.createdAt = {};
+      where.date = {};
       if (parsed.data.startDate) {
-        where.createdAt.gte = parsed.data.startDate;
+        where.date.gte = new Date(parsed.data.startDate);
       }
       if (parsed.data.endDate) {
-        where.createdAt.lte = parsed.data.endDate;
+        const end = new Date(parsed.data.endDate);
+        end.setHours(23, 59, 59, 999);
+        where.date.lte = end;
       }
     }
 
@@ -146,10 +148,25 @@ export async function POST(request: NextRequest) {
 
     if (contentType?.includes('multipart/form-data')) {
       const formData = await request.formData();
-      // Extract JSON string from form fields if present
+      // Support either a JSON 'transactionData' string or individual form fields
       const transactionData = formData.get('transactionData') as string | null;
       if (transactionData) {
         body = JSON.parse(transactionData);
+      } else {
+        body = {
+          type: formData.get('type'),
+          amount: parseFloat(formData.get('amount') as string || '0'),
+          description: formData.get('description'),
+          unitId: formData.get('unitId') || undefined,
+          categoryId: formData.get('categoryId') || undefined,
+          accountId: formData.get('accountId') || undefined,
+          reference: formData.get('reference') || undefined,
+          date: formData.get('date') || undefined,
+          photoUrl: formData.get('photoUrl') || undefined,
+          orderItems: formData.get('orderItems')
+            ? JSON.parse(formData.get('orderItems') as string)
+            : undefined,
+        };
       }
       
       // Handle photo upload
@@ -167,7 +184,7 @@ export async function POST(request: NextRequest) {
           const filePath = join(uploadDir, fileName);
           
           const nodeBuffer = Buffer.from(buffer);
-          const { promises: fsPromises } = require('fs');
+          const { promises: fsPromises } = await import('fs');
           await fsPromises.writeFile(filePath, nodeBuffer);
           photoUrl = `/uploads/transactions/${fileName}`;
         } catch (error) {
@@ -186,8 +203,19 @@ export async function POST(request: NextRequest) {
     // Use photoUrl from body or uploaded file
     const finalPhotoUrl = photoUrl || parsed.data.photoUrl || null;
 
+    // Auto-assign unit for MANAGER/STAFF (they belong to a single unit)
+    const { unitId: clientUnitId, ...safeBody } = parsed.data;
+    const unitId = (role === 'MANAGER' || role === 'STAFF')
+      ? clientUnitId || session.user.unitId
+      : clientUnitId;
+    const parsedData = { ...safeBody, unitId } as typeof parsed.data & { unitId?: string };
+
+    if (!parsedData.unitId) {
+      return NextResponse.json({ error: 'Unit wajib dipilih' }, { status: 400 });
+    }
+
     // Parse orderItems if present
-    const orderItemsData = parsed.data.orderItems || [];
+    const orderItemsData = parsedData.orderItems || [];
 
     // Validate inventory items if provided (for POS transactions)
     for (const item of orderItemsData) {
@@ -211,7 +239,7 @@ export async function POST(request: NextRequest) {
     // Create transaction with orderItems
     const transaction = await prisma.transaction.create({
       data: {
-        unitId: parsed.data.unitId!,
+        unitId: parsedData.unitId!,
         type: parsed.data.type,
         amount: parsed.data.amount,
         description: parsed.data.description,

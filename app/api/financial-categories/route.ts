@@ -21,10 +21,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const role = (session.user as any)?.role;
+    const lembagaId = (session.user as any)?.lembagaId;
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
 
     const where: any = {};
+
+    // Role-based filtering
+    if (role === 'SUPERADMIN') {
+      // Can see all categories (with optional lembagaId filter)
+      if (searchParams.has('lembagaId')) {
+        where.lembagaId = searchParams.get('lembagaId');
+      }
+    } else {
+      // Non-superadmin only see categories tied to their lembaga
+      where.OR = [
+        { lembagaId: lembagaId },
+        { lembagaId: null }, // global categories
+      ];
+    }
+
     if (type) {
       where.type = type;
     }

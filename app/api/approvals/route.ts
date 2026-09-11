@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid data', details: parsed.error.errors }, { status: 400 });
     }
 
-    // Check if transaction exists
+    // Check if transaction exists and belongs to user's unit/scope
     const transaction = await prisma.transaction.findUnique({
       where: { id: parsed.data.transactionId },
     });
@@ -105,6 +105,27 @@ export async function POST(request: NextRequest) {
     if (!transaction) {
       return NextResponse.json({ error: 'Transaksi tidak ditemukan' }, { status: 404 });
     }
+
+    // Validate transaction ownership against role scope
+    if (role === 'STAFF' || role === 'MANAGER') {
+      if (transaction.unitId !== session.user.unitId) {
+        return NextResponse.json({ error: 'Forbidden - transaksi tidak berada di unit Anda' }, { status: 403 });
+      }
+    }
+
+    // Prevent duplicate approval requests
+    const existingApproval = await prisma.approval.findFirst({
+      where: { transactionId: parsed.data.transactionId, status: 'PENDING' },
+    });
+    if (existingApproval) {
+      return NextResponse.json({ error: 'Permintaan persetujuan sudah ada' }, { status: 409 });
+    }
+
+    // Update transaction status to pending approval
+    await prisma.transaction.update({
+      where: { id: parsed.data.transactionId },
+      data: { status: 'PENDING' },
+    });
 
     // Create approval
     const approval = await prisma.approval.create({

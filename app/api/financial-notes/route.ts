@@ -11,7 +11,9 @@ const createFinancialNoteSchema = z.object({
   description: z.string().optional(),
   amount: z.number().positive('Jumlah harus positif'),
   type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
-  date: z.string().transform((str) => new Date(str)),
+  date: z.string().transform((str) => new Date(str)).refine((d) => !isNaN(d.getTime()), {
+    message: 'Tanggal tidak valid',
+  }),
   unitId: z.string().optional(),
   categoryId: z.string().optional(),
 });

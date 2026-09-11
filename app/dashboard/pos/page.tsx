@@ -154,8 +154,7 @@ export default function POSPage() {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const tax = subtotal * 0.1;
-  const total = subtotal + tax;
+  const total = subtotal;
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('id-ID', {
@@ -377,12 +376,6 @@ export default function POSPage() {
                 <span className="text-sm text-slate-600">Subtotal</span>
                 <span className="text-sm font-medium text-slate-800">
                   {formatCurrency(subtotal)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-slate-600">Pajak (10%)</span>
-                <span className="text-sm font-medium text-slate-800">
-                  {formatCurrency(tax)}
                 </span>
               </div>
               <div className="border-t border-slate-200 pt-2 mt-2">

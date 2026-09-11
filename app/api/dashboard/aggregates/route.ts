@@ -199,11 +199,8 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('[Dashboard Aggregates API] Error:', error.message || error);
     console.error('[Dashboard Aggregates API] Stack:', error.stack);
-    // Return error details for debugging (remove in production if needed)
     return NextResponse.json({
       error: 'Internal Server Error',
-      details: error.message || String(error),
-      hint: 'Check server logs or run migration: node scripts/migrate-db.mjs'
     }, { status: 500 });
   }
 }

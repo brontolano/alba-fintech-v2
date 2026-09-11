@@ -127,10 +127,22 @@ export default function InventoryPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Hapus barang ini?')) return;
-    // Note: inventory currently doesn't have a delete endpoint
-    // This would need a proper API route - for now show informational message
-    toast.info('Fitur hapus barang membutuhkan endpoint API yang belum tersedia');
+    if (!confirm('Hapus barang ini? Tindakan ini tidak dapat dibatalkan.')) return;
+    try {
+      const res = await fetch('/api/inventory', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Gagal menghapus barang');
+      }
+      toast.success('Barang berhasil dihapus');
+      fetchInventory();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal menghapus barang');
+    }
   };
 
   // Client-side search filter

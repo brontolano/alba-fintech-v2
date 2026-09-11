@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { BarChart } from '@/components/charts/BarChart';
 import { DoughnutChart } from '@/components/charts/DoughnutChart';
+import Link from 'next/link';
 import { toast } from 'sonner';
 
 interface MonthlyDataItem {
@@ -264,7 +265,7 @@ export default function ReportsPage() {
 
       {/* Filters */}
       <div className="mb-6 bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-center gap-2">
             <Calendar size={18} className="text-slate-500" />
             <div className="flex-1">
@@ -290,25 +291,6 @@ export default function ReportsPage() {
                 {unit.name}
               </option>
             ))}
-          </select>
-
-          <select
-            value="all"
-            onChange={() => {}}
-            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-          >
-            <option value="all">Semua Tipe</option>
-            <option value="income">Pemasukan</option>
-            <option value="expense">Pengeluaran</option>
-          </select>
-
-          <select
-            value="summary"
-            onChange={() => {}}
-            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-          >
-            <option value="summary">Ringkasan</option>
-            <option value="detailed">Detail</option>
           </select>
         </div>
       </div>
@@ -463,9 +445,12 @@ export default function ReportsPage() {
                             {unit.percentage}%
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <span className="text-emerald-600 font-medium text-sm">
+                            <Link
+                              href={`/dashboard/reports/${unit.id}`}
+                              className="text-emerald-600 font-medium text-sm hover:text-emerald-700"
+                            >
                               Detail
-                            </span>
+                            </Link>
                           </td>
                         </tr>
                       );

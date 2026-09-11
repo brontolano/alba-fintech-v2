@@ -65,12 +65,11 @@ export async function GET(request: NextRequest) {
       where.isActive = parsed.data.isActive === 'true';
     }
 
-    // Fetch inventory items
+    // Fetch inventory items (orderItems excluded to avoid heavy joins)
     const items = await prisma.inventoryItem.findMany({
       where,
       include: {
         unit: true,
-        orderItems: true,
       },
       orderBy: {
         name: 'asc',
@@ -141,6 +140,49 @@ export async function POST(request: NextRequest) {
     if (error.code === 'P2002') {
       return NextResponse.json({ error: 'SKU sudah digunakan' }, { status: 409 });
     }
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // Auth check
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // RBAC
+    const role = session.user.role;
+    if (role !== 'SUPERADMIN' && role !== 'MANAGER') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Parse body
+    const body = await request.json();
+    const parsed = z.object({
+      id: z.string(),
+    }).safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+    }
+
+    // Validate ownership for non-superadmin
+    const item = await prisma.inventoryItem.findUnique({
+      where: { id: parsed.data.id },
+      select: { id: true, unitId: true },
+    });
+    if (!item) {
+      return NextResponse.json({ error: 'Barang tidak ditemukan' }, { status: 404 });
+    }
+    if (role !== 'SUPERADMIN' && item.unitId !== session.user.unitId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    await prisma.inventoryItem.delete({ where: { id: parsed.data.id } });
+    return NextResponse.json({ message: 'Barang berhasil dihapus' }, { status: 200 });
+  } catch (error: any) {
+    console.error('[Inventory API] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

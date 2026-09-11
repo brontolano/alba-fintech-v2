@@ -80,10 +80,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // RBAC - only SUPERADMIN and PIMPINAN can manage settings
+    // RBAC - only SUPERADMIN can manage settings
     const role = (session.user as any)?.role;
-    if (role !== 'SUPERADMIN' && role !== 'PIMPINAN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (role !== 'SUPERADMIN') {
+      return NextResponse.json({ error: 'Forbidden - only SUPERADMIN can manage settings' }, { status: 403 });
     }
 
     // Fetch all settings
@@ -164,10 +164,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // RBAC - only SUPERADMIN and PIMPINAN can update settings
+    // RBAC - only SUPERADMIN can update settings
     const role = (session.user as any)?.role;
-    if (role !== 'SUPERADMIN' && role !== 'PIMPINAN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (role !== 'SUPERADMIN') {
+      return NextResponse.json({ error: 'Forbidden - only SUPERADMIN can update settings' }, { status: 403 });
     }
 
     // Parse body
