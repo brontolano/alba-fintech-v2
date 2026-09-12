@@ -68,9 +68,12 @@ export async function GET(request: NextRequest) {
     if (role === 'STAFF' || role === 'MANAGER') {
       where.unitId = session.user.unitId;
     } else if (role === 'PIMPINAN') {
-      where.units = {
-        lembagaId: session.user.lembagaId,
-      };
+      // Pimpinan sees all transactions from units in their lembaga
+      const unitIds = await prisma.unit.findMany({
+        where: { lembagaId: session.user.lembagaId },
+        select: { id: true },
+      }).then(units => units.map(u => u.id));
+      where.unitId = { in: unitIds };
     }
 
     // Query parameter filtering (SUPERADMIN only can override role-based filters)

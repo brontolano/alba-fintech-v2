@@ -47,12 +47,16 @@ export async function GET(request: NextRequest) {
     if (role === 'STAFF' || role === 'MANAGER') {
       txWhere.unitId = unitId;
     } else if (role === 'PIMPINAN') {
-      txWhere.units = { lembagaId };
+      // Pimpinan sees transactions from units in their lembaga
+      const unitIds = await prisma.unit.findMany({
+        where: { lembagaId },
+        select: { id: true },
+      }).then(units => units.map(u => u.id));
+      txWhere.unitId = { in: unitIds };
     }
 
     // Override with query param if provided
     if (parsed.data.unitId) {
-      delete txWhere.units;
       txWhere.unitId = parsed.data.unitId;
     }
 
