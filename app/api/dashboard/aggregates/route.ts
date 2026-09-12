@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     const role = (session.user as any)?.role;
-    const unitId = (session.user as any)?.unitId;
+    const userUnitId = (session.user as any)?.unitId;
     const lembagaId = (session.user as any)?.lembagaId;
 
     // Build date range filter
@@ -57,20 +57,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause for transactions
-    const txWhere: any = {
+    const txWhere: Record<string, unknown> = {
       status: 'APPROVED',
       ...(startDate ? { date: { gte: startDate } } : {}),
     };
 
     // Role-based filtering
     if (role === 'STAFF' || role === 'MANAGER') {
-      if (!unitId) {
+      if (!userUnitId) {
         return NextResponse.json({ error: 'User tidak memiliki unit' }, { status: 400 });
       }
-      txWhere.unitId = unitId;
+      txWhere.unitId = userUnitId;
     } else if (role === 'PIMPINAN' && lembagaId) {
       // Pimpinan sees transactions from units in their lembaga
-      txWhere.units = { lembagaId };
+      const unitIds = await prisma.unit.findMany({
+        where: { lembagaId },
+        select: { id: true },
+      }).then(units => units.map(u => u.id));
+      txWhere.unitId = { in: unitIds };
     } else if (role === 'SUPERADMIN') {
       // SUPERADMIN sees all transactions (no additional filter)
     } else {
@@ -80,7 +84,6 @@ export async function GET(request: NextRequest) {
 
     // Override with query param if provided
     if (parsed.data.unitId) {
-      delete txWhere.units;
       txWhere.unitId = parsed.data.unitId;
     }
 
@@ -137,7 +140,6 @@ export async function GET(request: NextRequest) {
         unitAggMap[uid].balance -= Number(tx.amount);
       } else if (tx.type === 'TRANSFER') {
         // Transfers don't affect balance directly
-        unitAggMap[uid].transactions += 0; // already counted above
       }
     }
 

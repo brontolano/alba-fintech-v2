@@ -7,7 +7,7 @@ import mysql from 'mysql2/promise';
 
 // Production database from user
 const config = {
-  host: '127.0.0.1',
+  host: 'srv594.hstgr.io',
   port: 3306,
   user: 'u826712707_alba',
   password: 'B-5millahberkah',
