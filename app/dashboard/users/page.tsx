@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Users,
   Plus,
@@ -37,18 +38,7 @@ interface Unit {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'STAFF' as 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF',
-    unitId: '',
-    isActive: true,
-  });
-  const [submitting, setSubmitting] = useState(false);
 
   // Fetch users
   const fetchUsers = async () => {
@@ -67,61 +57,27 @@ export default function UsersPage() {
     }
   };
 
-  // Fetch units
-  const fetchUnits = async () => {
+  const handleDelete = async (id: string) => {
+    if (!confirm('Hapus pengguna ini? Tindakan ini tidak dapat dibatalkan.')) return;
     try {
-      const res = await fetch('/api/units', {
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`/api/users/${id}`,
+      {
+        method: 'DELETE',
       });
-      const data = await res.json();
-      setUnits(data.data ?? []);
-    } catch (err) {
-      console.error('Error fetching units:', err);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Gagal menghapus pengguna');
+      }
+      toast.success('Pengguna berhasil dihapus');
+      setUsers(users.filter((u) => u.id !== id));
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal menghapus pengguna');
     }
   };
 
   useEffect(() => {
     fetchUsers();
-    fetchUnits();
   }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          password: form.password,
-          unitId: form.unitId || undefined,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Gagal membuat pengguna');
-      }
-
-      const result = await res.json();
-      toast.success('Pengguna berhasil dibuat');
-      setUsers([result.data, ...users]);
-      setShowModal(false);
-      setForm({
-        name: '',
-        email: '',
-        password: '',
-        role: 'STAFF',
-        unitId: '',
-        isActive: true,
-      });
-    } catch (err: any) {
-      toast.error(err.message || 'Gagal membuat pengguna');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -169,13 +125,13 @@ export default function UsersPage() {
             Kelola pengguna aplikasi keuangan
           </p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
+        <Link
+          href="/dashboard/users/create"
           className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
         >
           <Plus size={18} />
           <span>Tambah Pengguna</span>
-        </button>
+        </Link>
       </div>
 
       {/* Search */}
@@ -249,13 +205,15 @@ export default function UsersPage() {
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="flex justify-center gap-1">
-                        <button
+                        <Link
+                          href={`/dashboard/users/${user.id}`}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
                           title="Edit"
                         >
                           <Edit size={16} />
-                        </button>
+                        </Link>
                         <button
+                          onClick={() => handleDelete(user.id)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600"
                           title="Hapus"
                         >
@@ -267,114 +225,6 @@ export default function UsersPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-
-      {/* Create User Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md animate-slide-up">
-            <div className="p-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-800">Tambah Pengguna Baru</h2>
-            </div>
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label>
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-                    placeholder="Nama lengkap"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-                    placeholder="nama@contoh.com"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-                  placeholder="Minimal 6 karakter"
-                  required
-                  minLength={6}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                <select
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value as 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF' })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-                >
-                  <option value="STAFF">STAFF - Staff Unit</option>
-                  <option value="MANAGER">MANAGER - Manager Unit</option>
-                  <option value="PIMPINAN">PIMPINAN - Pimpinan Pondok</option>
-                  <option value="SUPERADMIN">SUPERADMIN - Administrator Sistem</option>
-                </select>
-              </div>
-
-              {form.role === 'STAFF' || form.role === 'MANAGER' ? (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Unit</label>
-                  <select
-                    value={form.unitId}
-                    onChange={(e) => setForm({ ...form, unitId: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-                  >
-                    <option value="">Pilih Unit</option>
-                    {units.map((unit) => (
-                      <option key={unit.id} value={unit.id}>
-                        {unit.name} ({unit.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg">
-                  <ShieldCheck size={20} className="text-blue-500" />
-                  <span className="text-sm text-slate-700">
-                    {form.role === 'PIMPINAN'
-                      ? 'Pimpinan akan memiliki akses ke seluruh unit'
-                      : 'SuperAdmin memiliki akses penuh ke sistem'}
-                  </span>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !form.name || !form.email || !form.password}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
-                >
-                  {submitting ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

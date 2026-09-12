@@ -21,15 +21,16 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header user={session.user} />
-      <div className="flex">
-        <Sidebar user={session.user} />
-        <main className="flex-1 overflow-y-auto pb-6">
-          {children}
+    <div className="min-h-screen bg-slate-200 flex justify-center">
+      <div className="w-full max-w-full bg-slate-50 min-h-screen relative flex flex-col shadow-2xl border-x border-slate-200 overflow-hidden">
+        <Header user={session.user} />
+        <main className="flex-1 overflow-y-auto pb-[80px] pt-[56px]">
+          <div className="w-full px-4 py-4">
+            {children}
+          </div>
         </main>
+        <MobileNav user={session.user} />
       </div>
-      <MobileNav user={session.user} />
     </div>
   );
 }

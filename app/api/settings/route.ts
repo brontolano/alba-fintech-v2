@@ -72,6 +72,51 @@ const SETTINGS_DESCRIPTIONS: Record<string, string> = {
   enable_2fa: 'Wajibkan autentikasi dua faktor (true/false)',
 };
 
+/**
+ * Ensure all default settings exist in the database.
+ * Creates any missing rows with default values + upsert.
+ * If the table doesn't exist yet, this is a no-op (caller falls back to defaults).
+ */
+async function ensureDefaultSettings() {
+  try {
+    for (const key of DEFAULT_SETTINGS_KEYS) {
+      await prisma.systemSetting.upsert({
+        where: { key },
+        update: {},
+        create: {
+          key,
+          value: DEFAULT_SETTINGS_VALUES[key] ?? '',
+          description: SETTINGS_DESCRIPTIONS[key] ?? '',
+        },
+      });
+    }
+  } catch (err: any) {
+    // P2021 = table doesn't exist. Log and continue; caller will use defaults.
+    if (err?.code === 'P2021') {
+      console.warn('[Settings API] system_settings table does not exist yet; using defaults');
+    } else {
+      throw err;
+    }
+  }
+}
+
+/**
+ * Build a flat settings object from DB rows, falling back to defaults.
+ */
+function buildSettingsObject(rows: { key: string; value: string | null }[]) {
+  const settings: Record<string, string> = {};
+  const dbKeys = new Set(rows.map((r) => r.key));
+  for (const key of DEFAULT_SETTINGS_KEYS) {
+    if (dbKeys.has(key)) {
+      const row = rows.find((r) => r.key === key);
+      settings[key] = row!.value ?? DEFAULT_SETTINGS_VALUES[key] ?? '';
+    } else {
+      settings[key] = DEFAULT_SETTINGS_VALUES[key] ?? '';
+    }
+  }
+  return settings;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Auth check
@@ -86,22 +131,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - only SUPERADMIN can manage settings' }, { status: 403 });
     }
 
-    // Fetch all settings
-    const settingsList = await prisma.systemSetting.findMany({
-      orderBy: { key: 'asc' },
-    });
+    // Ensure defaults exist in DB (no-op if table doesn't exist)
+    await ensureDefaultSettings();
 
-    // Convert to key-value object
-    const settings: Record<string, string> = {};
-    for (const key of DEFAULT_SETTINGS_KEYS) {
-      const existing = settingsList.find((s) => s.key === key);
-      settings[key] = existing?.value ?? DEFAULT_SETTINGS_VALUES[key] ?? '';
+    // Fetch from database
+    let rows: { key: string; value: string | null }[] = [];
+    try {
+      rows = await prisma.systemSetting.findMany({
+        where: { key: { in: DEFAULT_SETTINGS_KEYS } },
+        select: { key: true, value: true },
+      });
+    } catch (err: any) {
+      // P2021 = table doesn't exist. Fall back to empty rows → all defaults.
+      if (err?.code === 'P2021') {
+        console.warn('[Settings API] system_settings table does not exist yet; returning defaults only');
+        rows = [];
+      } else {
+        throw err;
+      }
     }
+
+    const settings = buildSettingsObject(rows);
 
     return NextResponse.json({
       data: settings,
       summary: {
-        total: settingsList.length,
+        total: DEFAULT_SETTINGS_KEYS.length,
         availableKeys: DEFAULT_SETTINGS_KEYS,
       },
     }, { status: 200 });
@@ -132,24 +187,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid data', details: parsed.error.errors }, { status: 400 });
     }
 
-    // Create or update setting
-    const setting = await prisma.systemSetting.upsert({
-      where: { key: parsed.data.key },
-      update: {
-        value: parsed.data.value,
-        description: parsed.data.description,
-      },
-      create: {
-        key: parsed.data.key,
-        value: parsed.data.value,
-        description: parsed.data.description ?? SETTINGS_DESCRIPTIONS[parsed.data.key] ?? '',
-      },
-    });
+    // Persist to database
+    try {
+      const existing = await prisma.systemSetting.findUnique({
+        where: { key: parsed.data.key },
+      });
 
-    return NextResponse.json({
-      message: 'Setting berhasil disimpan',
-      data: setting,
-    }, { status: 201 });
+      let result;
+      if (existing) {
+        result = await prisma.systemSetting.update({
+          where: { key: parsed.data.key },
+          data: {
+            value: parsed.data.value,
+            description: parsed.data.description ?? existing.description,
+          },
+        });
+      } else {
+        result = await prisma.systemSetting.create({
+          data: {
+            key: parsed.data.key,
+            value: parsed.data.value,
+            description: parsed.data.description ?? SETTINGS_DESCRIPTIONS[parsed.data.key] ?? '',
+          },
+        });
+      }
+
+      return NextResponse.json({
+        message: 'Setting berhasil disimpan',
+        data: { key: result.key, value: result.value, description: result.description },
+      }, { status: 201 });
+    } catch (err: any) {
+      if (err?.code === 'P2021') {
+        console.warn('[Settings API] system_settings table does not exist; cannot persist setting');
+        return NextResponse.json({
+          error: 'Table system_settings belum ada di database. Hubungi administrator.',
+        }, { status: 503 });
+      }
+      throw err;
+    }
   } catch (error) {
     console.error('[Settings API] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -177,25 +252,35 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid data', details: parsed.error.errors }, { status: 400 });
     }
 
-    // Update each setting
-    const updatedSettings: Array<{ key: string; value: string | null }> = [];
-    for (const { key, value } of parsed.data.settings) {
-      const setting = await prisma.systemSetting.upsert({
-        where: { key },
-        update: { value },
-        create: {
-          key,
-          value,
-          description: SETTINGS_DESCRIPTIONS[key] ?? '',
-        },
-      });
-      updatedSettings.push({ key: setting.key, value: setting.value });
-    }
+    // Persist all settings to database (upsert pattern)
+    try {
+      const updatedSettings: Array<{ key: string; value: string | null }> = [];
+      for (const { key, value } of parsed.data.settings) {
+        const result = await prisma.systemSetting.upsert({
+          where: { key },
+          update: { value },
+          create: {
+            key,
+            value,
+            description: SETTINGS_DESCRIPTIONS[key] ?? '',
+          },
+        });
+        updatedSettings.push({ key: result.key, value: result.value });
+      }
 
-    return NextResponse.json({
-      message: `${updatedSettings.length} pengaturan berhasil diperbarui`,
-      data: updatedSettings,
-    }, { status: 200 });
+      return NextResponse.json({
+        message: `${updatedSettings.length} pengaturan berhasil diperbarui`,
+        data: updatedSettings,
+      }, { status: 200 });
+    } catch (err: any) {
+      if (err?.code === 'P2021') {
+        console.warn('[Settings API] system_settings table does not exist; cannot save settings');
+        return NextResponse.json({
+          error: 'Table system_settings belum ada di database. Hubungi administrator.',
+        }, { status: 503 });
+      }
+      throw err;
+    }
   } catch (error) {
     console.error('[Settings API] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

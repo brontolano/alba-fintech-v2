@@ -15,19 +15,25 @@ import { toast } from 'sonner';
 interface ApprovalRequest {
   id: string;
   transactionId: string;
-  unit: {
-    name: string;
-    code: string;
-  };
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
   type: 'INCOME' | 'EXPENSE';
   amount: number;
   description: string;
   reference?: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  createdAt: string;
   approver: {
     name?: string;
     email: string;
+  };
+  transactions: {
+    type: string;
+    amount: number;
+    description: string;
+    reference?: string;
+    units: {
+      name: string;
+      code: string;
+    } | null;
   };
 }
 
@@ -35,6 +41,7 @@ export default function ApprovalsPage() {
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
   const fetchApprovals = async () => {
     setLoading(true);
@@ -121,14 +128,35 @@ export default function ApprovalsPage() {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-slate-200">
-        <button className="px-4 py-2 text-sm font-medium text-emerald-600 border-b-2 border-emerald-600">
-          Pending ({approvals.length})
+        <button
+          onClick={() => setActiveTab('PENDING')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
+            activeTab === 'PENDING'
+              ? 'text-emerald-600 border-emerald-600'
+              : 'text-slate-600 border-transparent hover:text-slate-800'
+          }`}
+        >
+          Pending ({approvals.filter(a => a.status === 'PENDING').length})
         </button>
-        <button className="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">
-          Approved
+        <button
+          onClick={() => setActiveTab('APPROVED')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
+            activeTab === 'APPROVED'
+              ? 'text-emerald-600 border-emerald-600'
+              : 'text-slate-600 border-transparent hover:text-slate-800'
+          }`}
+        >
+          Approved ({approvals.filter(a => a.status === 'APPROVED').length})
         </button>
-        <button className="px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-800">
-          Rejected
+        <button
+          onClick={() => setActiveTab('REJECTED')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
+            activeTab === 'REJECTED'
+              ? 'text-emerald-600 border-emerald-600'
+              : 'text-slate-600 border-transparent hover:text-slate-800'
+          }`}
+        >
+          Rejected ({approvals.filter(a => a.status === 'REJECTED').length})
         </button>
       </div>
 
@@ -139,14 +167,16 @@ export default function ApprovalsPage() {
             <div key={i} className="h-24 bg-slate-100 rounded-xl animate-pulse"></div>
           ))}
         </div>
-      ) : approvals.length === 0 ? (
+      ) : approvals.filter(a => a.status === activeTab).length === 0 ? (
         <div className="text-center py-12">
           <ClipboardList size={48} className="mx-auto text-slate-300 mb-4" />
           <p className="text-slate-500">Tidak ada permintaan persetujuan</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {approvals.map((approval) => (
+          {approvals
+            .filter(a => a.status === activeTab)
+            .map((approval) => (
             <div
               key={approval.id}
               className="bg-white rounded-xl shadow-sm border border-slate-200 p-4"
@@ -159,9 +189,10 @@ export default function ApprovalsPage() {
                     </span>
                     <span className="text-xs text-slate-300">•</span>
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                      {approval.unit.name} ({approval.unit.code})
+                      {approval.transactions.units?.name || 'Unit Tidak Dikenal'}
+                      {approval.transactions.units?.code && ` (${approval.transactions.units.code})`}
                     </span>
-                    {approval.type === 'INCOME' ? (
+                    {approval.transactions.type === 'INCOME' ? (
                       <TrendingUp size={16} className="text-green-500" />
                     ) : (
                       <TrendingDown size={16} className="text-red-500" />

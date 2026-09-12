@@ -1,19 +1,23 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import {
-  LayoutGrid,
-  FileText as FileTextIcon,
   LayoutDashboard,
   Receipt,
-  ShoppingCart,
-  Package,
+  FileText as FileTextIcon,
   ClipboardList,
-  BarChart3,
-  Settings,
-  LogOut,
+  LayoutGrid,
   Users,
+  Package,
+  ShoppingCart,
+  BarChart3,
   Clock,
+  Settings,
+  User,
+  LogOut,
+  ChevronLeft,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -32,130 +36,83 @@ type NavItem = {
   href: string;
   icon: React.ReactNode;
   roles?: string[];
-  divider?: boolean;
 };
+
+// Navigation items with role-based visibility
+const NAV_ITEMS: NavItem[] = [
+  { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
+  { label: 'Transaksi', href: '/dashboard/transactions', icon: <Receipt size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
+  { label: 'Catatan Keuangan', href: '/dashboard/financial-notes', icon: <FileTextIcon size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'] },
+  { label: 'Persetujuan', href: '/dashboard/approvals', icon: <ClipboardList size={20} />, roles: ['SUPERADMIN', 'PIMPINAN'] },
+  { label: 'Unit', href: '/dashboard/units', icon: <LayoutGrid size={20} />, roles: ['SUPERADMIN'] },
+  { label: 'Pengguna', href: '/dashboard/users', icon: <Users size={20} />, roles: ['SUPERADMIN'] },
+  { label: 'Inventori', href: '/dashboard/inventory', icon: <Package size={20} />, roles: ['SUPERADMIN', 'MANAGER', 'STAFF'] },
+  { label: 'POS', href: '/dashboard/pos', icon: <ShoppingCart size={20} />, roles: ['SUPERADMIN', 'MANAGER', 'STAFF'] },
+  { label: 'Laporan', href: '/dashboard/reports', icon: <BarChart3 size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'] },
+  { label: 'Rekonsiliasi', href: '/dashboard/reconciliation', icon: <Clock size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'] },
+  { label: 'Pengaturan', href: '/dashboard/settings', icon: <Settings size={20} />, roles: ['SUPERADMIN'] },
+  { label: 'Profil', href: '/dashboard/profile', icon: <User size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
+  { label: 'Keluar', href: '#', icon: <LogOut size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
+];
 
 export function Sidebar({ user }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const role = user?.role || 'STAFF';
+  const [expanded, setExpanded] = useState(true);
 
-  // Navigation items by role
-  const allNavItems: NavItem[] = [
-    {
-      label: 'Dashboard',
-      href: '/dashboard',
-      icon: <LayoutDashboard size={20} />,
-      roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'],
-    },
-    {
-      label: 'Transaksi',
-      href: '/dashboard/transactions',
-      icon: <Receipt size={20} />,
-      roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'],
-    },
-    {
-      label: 'Catatan Keuangan',
-      href: '/dashboard/financial-notes',
-      icon: <FileTextIcon size={20} />,
-      roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'],
-    },
-    {
-      label: 'Persetujuan',
-      href: '/dashboard/approvals',
-      icon: <ClipboardList size={20} />,
-      roles: ['SUPERADMIN', 'PIMPINAN'],
-    },
-    {
-      divider: true,
-      label: 'Manajemen Unit',
-      href: '/dashboard/units',
-      icon: <LayoutGrid size={20} />,
-      roles: ['SUPERADMIN'],
-    },
-    {
-      label: 'Manajemen Pengguna',
-      href: '/dashboard/users',
-      icon: <Users size={20} />,
-      roles: ['SUPERADMIN'],
-    },
-    {
-      divider: true,
-      label: 'Inventori',
-      href: '/dashboard/inventory',
-      icon: <Package size={20} />,
-      roles: ['SUPERADMIN', 'MANAGER', 'STAFF'],
-    },
-    {
-      label: 'Point of Sale',
-      href: '/dashboard/pos',
-      icon: <ShoppingCart size={20} />,
-      roles: ['SUPERADMIN', 'MANAGER', 'STAFF'],
-    },
-    {
-      divider: true,
-      label: 'Laporan',
-      href: '/dashboard/reports',
-      icon: <BarChart3 size={20} />,
-      roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'],
-    },
-    {
-      label: 'Rekonsiliasi',
-      href: '/dashboard/reconciliation',
-      icon: <Clock size={20} />,
-      roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'],
-    },
-    {
-      divider: true,
-      label: 'Pengaturan',
-      href: '/dashboard/settings',
-      icon: <Settings size={20} />,
-      roles: ['SUPERADMIN'],
-    },
-  ];
+  // Persist expanded state
+  useEffect(() => {
+    const saved = localStorage.getItem('sidebar:expanded');
+    if (saved !== null) setExpanded(saved === 'true');
+  }, []);
 
-  const visibleNavItems = allNavItems.filter(
-    (item) => !item.roles || item.roles.includes(role)
-  );
+  useEffect(() => {
+    localStorage.setItem('sidebar:expanded', String(expanded));
+  }, [expanded]);
+
+  // Filter items by role
+  const items = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(role));
+  const isActive = (href: string) => pathname === href;
 
   return (
-    <aside className="hidden md:flex md:flex-col md:w-64 md:bg-white md:border-r md:border-slate-200 md:overflow-y-auto md:min-h-screen">
-      <nav className="py-4">
-        {visibleNavItems.map((item, index) => {
-          const isDivider = !item.roles && item.divider;
-          const isActive = pathname === item.href;
-          const showDivider = index > 0 && (isDivider || visibleNavItems[index - 1]?.divider);
+    <aside className="hidden md:flex md:flex-col md:bg-white md:border-r md:border-slate-200 md:overflow-y-auto md:min-h-screen transition-all duration-300 relative" style={{ width: expanded ? '180px' : '56px', minWidth: '56px', maxWidth: '180px' }}>
+      {/* Floating Toggle Button */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="absolute -right-3 top-8 bg-white border border-slate-200 rounded-full p-1.5 shadow-md hover:bg-slate-50 transition-all z-50 flex items-center justify-center"
+        title={expanded ? 'Seminat' : 'Perbanyak'}
+      >
+        <ChevronLeft size={16} className={`text-slate-600 transition-transform duration-300 ${!expanded ? 'rotate-180' : ''}`} />
+      </button>
 
+      <nav className="py-4 flex flex-col gap-0.5 mt-2">
+        {items.map((item) => {
+          const isActiveItem = isActive(item.href);
+          
           return (
-            <div key={item.href}>
-              {showDivider && (
-                <div className="h-px bg-slate-200 my-2 mx-4"></div>
-              )}
-              <button
-                onClick={() => router.push(item.href)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                  isActive
-                    ? 'bg-emerald-50 text-emerald-600 border-r-2 border-emerald-600'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }}`}
-              >
+            <button
+              key={item.href}
+              onClick={() => {
+                if (item.href === '#') {
+                  signOut();
+                } else {
+                  if (!expanded) setExpanded(true);
+                  router.push(item.href);
+                }
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-colors ${
+                isActiveItem ? 'bg-emerald-50 text-emerald-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              <div className="flex items-center gap-3 flex-1">
                 {item.icon}
-                <span className="font-medium">{item.label}</span>
-              </button>
-            </div>
+                <span className={`font-medium text-sm whitespace-nowrap transition-all duration-200 ${expanded ? 'opacity-100' : 'opacity-0'} truncate`}>{item.label}</span>
+              </div>
+            </button>
           );
         })}
       </nav>
-
-      <div className="mt-auto py-4 border-t border-slate-200">
-        <button
-          onClick={() => router.push('/login')}
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-slate-600 hover:bg-slate-100 transition-colors"
-        >
-          <LogOut size={20} />
-          <span className="font-medium">Keluar</span>
-        </button>
-      </div>
     </aside>
   );
 }

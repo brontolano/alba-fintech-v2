@@ -33,6 +33,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // RBAC - all roles can read units, but filter by scope
+    const role = session.user.role as string;
+
     // Parse query
     const { searchParams } = new URL(request.url);
     const parsed = querySchema.safeParse(Object.fromEntries(searchParams));
@@ -43,9 +46,18 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: any = { isActive: true };
     
-    if (parsed.data.lembagaId) {
-      where.lembagaId = parsed.data.lembagaId;
+    // Role-based filtering - STAFF and MANAGER see only their unit
+    if (role === 'MANAGER' || role === 'STAFF') {
+      where.id = session.user.unitId;
+    } else if (role === 'PIMPINAN') {
+      where.lembagaId = session.user.lembagaId;
+    } else if (role === 'SUPERADMIN') {
+      // SUPERADMIN sees all units
+      if (parsed.data.lembagaId) {
+        where.lembagaId = parsed.data.lembagaId;
+      }
     }
+
     if (parsed.data.isRetail !== undefined) {
       where.isRetail = parsed.data.isRetail === 'true';
     }
@@ -58,7 +70,6 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         lembaga: true,
-        parent: true,
         _count: {
           select: {
             users: true,
@@ -122,7 +133,6 @@ export async function POST(request: NextRequest) {
       },
       include: {
         lembaga: true,
-        parent: true,
       },
     });
 

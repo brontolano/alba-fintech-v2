@@ -24,6 +24,7 @@ export default function LembagaPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
+  const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({
     name: '',
     code: '',
@@ -55,21 +56,29 @@ export default function LembagaPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await fetch('/api/lembaga', {
-        method: 'POST',
+      const url = editMode ? '/api/lembaga' : '/api/lembaga';
+      const method = editMode ? 'PATCH' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal membuat lembaga');
+        throw new Error(err.error || 'Gagal menyimpan lembaga');
       }
 
       const result = await res.json();
-      toast.success('Lembaga berhasil dibuat');
-      setLembagas([result.data, ...lembagas]);
+      toast.success(editMode ? 'Lembaga berhasil diperbarui' : 'Lembaga berhasil dibuat');
+      if (editMode) {
+        setLembagas(lembagas.map(l => l.id === result.data.id ? result.data : l));
+      } else {
+        setLembagas([result.data, ...lembagas]);
+      }
       setShowModal(false);
+      setEditMode(false);
       setForm({
         name: '',
         code: '',
@@ -78,9 +87,38 @@ export default function LembagaPage() {
         isActive: true,
       });
     } catch (err: any) {
-      toast.error(err.message || 'Gagal membuat lembaga');
+      toast.error(err.message || 'Gagal menyimpan lembaga');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEdit = async (lembaga: Lembaga) => {
+    setForm({
+      name: lembaga.name,
+      code: lembaga.code,
+      description: lembaga.description || '',
+      address: lembaga.address || '',
+      isActive: lembaga.isActive,
+    });
+    setEditMode(true);
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Yakin hapus ${name}?`)) return;
+    try {
+      const res = await fetch(`/api/lembaga/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Gagal hapus lembaga');
+      }
+      toast.success('Lembaga berhasil dihapus');
+      setLembagas(lembagas.filter(l => l.id !== id));
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal hapus lembaga');
     }
   };
 
@@ -167,12 +205,14 @@ export default function LembagaPage() {
                   <button
                     className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
                     title="Edit"
+                    onClick={() => handleEdit(lembaga)}
                   >
                     <Edit size={16} />
                   </button>
                   <button
                     className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600"
                     title="Hapus"
+                    onClick={() => handleDelete(lembaga.id, lembaga.name)}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -204,12 +244,14 @@ export default function LembagaPage() {
         </div>
       )}
 
-      {/* Create Modal */}
+      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md animate-slide-up">
             <div className="p-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-800">Tambah Lembaga Baru</h2>
+              <h2 className="text-lg font-semibold text-slate-800">
+                {editMode ? 'Edit Lembaga' : 'Tambah Lembaga Baru'}
+              </h2>
             </div>
             <form onSubmit={handleSubmit} className="p-4 space-y-4">
               <div>

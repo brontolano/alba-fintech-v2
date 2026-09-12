@@ -182,8 +182,8 @@ export default function ReconciliationPage() {
       // Bulk update financial notes for this unit as reconciled
       const notesToReconcile = financialNotes.filter((n) => n.unitId === taskId && !n.isReconciled);
 
-      for (const note of notesToReconcile) {
-        await fetch(`/api/financial-notes/${note.id}`, {
+      const promises = notesToReconcile.map((note) =>
+        fetch(`/api/financial-notes/${note.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -191,7 +191,13 @@ export default function ReconciliationPage() {
             reconciledAt: new Date().toISOString(),
             status: 'APPROVED',
           }),
-        });
+        })
+      );
+
+      const results = await Promise.all(promises);
+      const failed = results.filter((res) => !res.ok);
+      if (failed.length > 0) {
+        throw new Error(`${failed.length} catatan gagal direkonsiliasi`);
       }
 
       toast.success(`Rekonsiliasi unit berhasil diselesaikan`);
@@ -201,6 +207,49 @@ export default function ReconciliationPage() {
     } catch (err: any) {
       toast.error(err.message || 'Gagal menyelesaikan rekonsiliasi');
     }
+  };
+
+  const handleExportCSV = () => {
+    if (filteredTasks.length === 0) {
+      toast.error('Tidak ada data untuk diekspor');
+      return;
+    }
+
+    const rows: string[][] = [
+      ['Tanggal', 'Unit', 'Manager', 'Staff', 'Pemasukan', 'Pengeluaran', 'Saldo Sistem', 'Cash On Hand', 'Variansi', 'Status'],
+    ];
+
+    filteredTasks.forEach((task) => {
+      rows.push([
+        task.date,
+        task.unit,
+        task.manager,
+        task.staff,
+        String(task.income),
+        String(task.expense),
+        String(task.systemBalance),
+        String(task.cashOnHand),
+        String(task.variance),
+        task.status,
+      ]);
+    });
+
+    rows.push([]);
+    rows.push(['Total Pemasukan', String(totalIncome)]);
+    rows.push(['Total Pengeluaran', String(totalExpense)]);
+    rows.push(['Total Variansi', String(totalVariance)]);
+    rows.push(['Selesai', String(reconciledCount)]);
+    rows.push(['Pending', String(pendingCount)]);
+
+    const csvContent = rows.map((row) => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rekonsiliasi-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('CSV berhasil diunduh');
   };
 
   return (
@@ -215,18 +264,16 @@ export default function ReconciliationPage() {
             Rekonsiliasi harian per unit
           </p>
         </div>
-        <div className="flex items-center gap-2">
+      </div>
+      <div className="flex items-center gap-2">
           <button
-            onClick={() => window.print()}
+            onClick={handleExportCSV}
             className="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition text-sm"
           >
             <Download size={16} />
-            <span>Export Laporan</span>
+            <span>Export CSV</span>
           </button>
-        </div>
       </div>
-
-      {/* Filters */}
       <div className="mb-6 bg-white rounded-xl shadow-sm border border-slate-200 p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">

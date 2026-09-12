@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ShoppingCart,
   Plus,
@@ -13,6 +14,7 @@ import {
   Package,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSession } from 'next-auth/react';
 
 interface CartItem {
   id: string;
@@ -20,6 +22,7 @@ interface CartItem {
   price: number;
   quantity: number;
   image?: string;
+  category?: string;
 }
 
 interface InventoryItem {
@@ -29,6 +32,7 @@ interface InventoryItem {
   category: string | null;
   unitPrice: number;
   currentStock: number;
+  imageUrl?: string | null;
 }
 
 interface InventoryResponse {
@@ -40,6 +44,8 @@ interface InventoryResponse {
 }
 
 export default function POSPage() {
+  const router = useRouter();
+  const { data: session } = useSession();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -55,7 +61,7 @@ export default function POSPage() {
     const fetchProducts = async () => {
       try {
         // Fetch inventory items to use as POS products
-        const res = await fetch('/api/inventory?isActive=true');
+        const res = await fetch('/api/inventory?isActive=true&limit=100');
         if (!res.ok) throw new Error('Gagal memuat produk');
         const data: InventoryResponse = await res.json();
         const inventoryItems = data.data ?? [];
@@ -65,8 +71,9 @@ export default function POSPage() {
           id: item.id,
           name: item.name,
           price: Number(item.unitPrice),
-          quantity: item.currentStock,
-          image: undefined,
+          quantity: item.currentStock ?? 0,  // Handle null safely
+          image: item.imageUrl || undefined,
+          category: item.category ?? undefined,
         }));
 
         setProducts(mappedProducts);
@@ -99,14 +106,18 @@ export default function POSPage() {
     const matchesSearch =
       product.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory =
-      selectedCategory === 'all' ||
-      products.find((p) => p.id === product.id)?.name.includes(selectedCategory) ||
-      true; // category filter applied via the categories list below
+      selectedCategory === 'all' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
   const addToCart = (product: CartItem) => {
     const existingItem = cart.find((item) => item.id === product.id);
+    const currentStock = products.find((p) => p.id === product.id)?.quantity ?? 0;
+    const cartQty = existingItem?.quantity ?? 0;
+    if (cartQty >= currentStock) {
+      toast.error('Stok tidak mencukupi');
+      return;
+    }
     if (existingItem) {
       setCart(
         cart.map((item) =>
@@ -132,6 +143,12 @@ export default function POSPage() {
     if (newQuantity <= 0) {
       setCart(cart.filter((item) => item.id !== id));
     } else {
+      // Validate against stock
+      const product = products.find((p) => p.id === id);
+      if (product && newQuantity > product.quantity) {
+        toast.error('Stok tidak mencukupi');
+        return;
+      }
       setCart(
         cart.map((item) =>
           item.id === id ? { ...item, quantity: newQuantity } : item
@@ -164,9 +181,28 @@ export default function POSPage() {
     }).format(amount);
 
   const handleCheckout = async () => {
+    if (!session) {
+      toast.error('Anda harus login terlebih dahulu');
+      router.push('/login');
+      return;
+    }
+
     if (cart.length === 0) {
       toast.error('Keranjang kosong');
       return;
+    }
+
+    // Validate stock on client-side before submitting
+    for (const cartItem of cart) {
+      const product = products.find(p => p.id === cartItem.id);
+      if (product && cartItem.quantity > product.quantity) {
+        toast.error(`Stok tidak mencukupi untuk ${product.name}. Tersedia: ${product.quantity}`);
+        return;
+      }
+      if (cartItem.quantity <= 0) {
+        toast.error(`Quantity tidak valid untuk ${cartItem.name}`);
+        return;
+      }
     }
 
     try {
@@ -176,7 +212,9 @@ export default function POSPage() {
         body: JSON.stringify({
           type: 'INCOME',
           amount: total,
+          unitId: session?.user?.unitId,
           description: `Penjualan ${cart.length} item${customerName ? ` untuk ${customerName}` : ''}`,
+          paymentMethod,
           orderItems: cart.map((item) => ({
             itemId: item.id,
             itemName: item.name,
@@ -188,7 +226,8 @@ export default function POSPage() {
       });
 
       if (!res.ok) {
-        throw new Error('Gagal memproses transaksi');
+        const err = await res.json();
+        throw new Error(err.error || 'Gagal memproses transaksi');
       }
 
       toast.success('Transaksi berhasil disimpan!');
@@ -247,8 +286,17 @@ export default function POSPage() {
                 disabled={product.quantity === 0}
                 className="bg-white rounded-lg border border-slate-200 p-3 text-left hover:shadow-md transition-shadow disabled:opacity-50"
               >
-                <div className="flex items-center justify-center w-12 h-12 bg-slate-100 rounded-lg mx-auto mb-2">
-                  <Package size={24} className="text-slate-500" />
+                <div className="flex items-center justify-center w-12 h-12 bg-slate-100 rounded-lg mx-auto mb-2 overflow-hidden">
+                  {product.image ? (
+                    <img 
+                      src={product.image} 
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <Package size={24} className="text-slate-500" />
+                  )}
                 </div>
                 <h3 className="font-medium text-slate-800 text-sm">
                   {product.name}

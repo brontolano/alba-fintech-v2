@@ -14,6 +14,7 @@ import { BarChart } from '@/components/charts/BarChart';
 import { DoughnutChart } from '@/components/charts/DoughnutChart';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { useSession } from 'next-auth/react';
 
 interface MonthlyDataItem {
   month: string;
@@ -63,6 +64,7 @@ interface Unit {
 }
 
 export default function ReportsPage() {
+  const { data: session } = useSession();
   const [reportData, setReportData] = useState<ReportsResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -70,6 +72,15 @@ export default function ReportsPage() {
     period: '6months',
     unitId: '',
   });
+
+  // Set default unit filter for MANAGER/STAFF
+  useEffect(() => {
+    if (session?.user?.role === 'MANAGER' || session?.user?.role === 'STAFF') {
+      if (session?.user?.unitId) {
+        setFilters((prev) => ({ ...prev, unitId: session.user.unitId || '' }));
+      }
+    }
+  }, [session]);
 
   const fetchReportData = async () => {
     setLoading(true);
@@ -209,18 +220,31 @@ export default function ReportsPage() {
   const handleExportCSV = () => {
     if (!reportData) return;
 
-    const csvContent = [
-      ['Unit', 'Nama', 'Pemasukan', 'Pengeluaran', 'Persentase'],
-      ...reportData.unitDistributionData.map((u) => [
-        u.id,
-        u.name,
-        u.income,
-        u.expense,
-        `${u.percentage}%`,
-      ]),
-    ]
-      .map((row) => row.join(','))
-      .join('\n');
+    const rows: string[][] = [];
+
+    // Section 1: Unit Distribution
+    rows.push(['=== Distribusi Unit ===']);
+    rows.push(['Unit ID', 'Nama', 'Pemasukan', 'Pengeluaran', 'Persentase']);
+    reportData.unitDistributionData.forEach((u) => {
+      rows.push([u.id, u.name, String(u.income), String(u.expense), `${u.percentage}%`]);
+    });
+
+    // Section 2: Monthly Data
+    rows.push([]);
+    rows.push(['=== Data Bulanan ===']);
+    rows.push(['Bulan', 'Pemasukan', 'Pengeluaran', 'Transfer']);
+    reportData.monthlyData.forEach((m) => {
+      rows.push([m.month, String(m.income), String(m.expense), String(m.transfer || 0)]);
+    });
+
+    // Section 3: Summary
+    rows.push([]);
+    rows.push(['=== Ringkasan ===']);
+    rows.push(['Total Transaksi', String(reportData.summary.totalTransactions)]);
+    rows.push(['Total Unit', String(reportData.summary.totalUnits)]);
+    rows.push(['Periode', reportData.summary.period]);
+
+    const csvContent = rows.map((row) => row.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);

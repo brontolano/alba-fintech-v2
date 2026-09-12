@@ -51,7 +51,23 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 font-sans;
+    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+    -webkit-tap-highlight-color: transparent;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #__next {
+    min-height: 100vh;
+    -webkit-transform: translateZ(0);
+  }
+
+  @supports (padding: env(safe-area-inset-top)) {
+    html {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
   }
 
   :root {
@@ -98,4 +114,16 @@
 /* Glass effect */
 .backdrop-blur {
   backdrop-filter: blur(10px);
+}
+
+/* Compact mode */
+body.compact {
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+body.compact .container,
+body.compact .p-6,
+body.compact .px-6,
+body.compact .py-4 {
+  @apply p-3 px-3 py-2;
 }

@@ -4,7 +4,7 @@
 [![Prisma](https://img.shields.io/badge/Prisma-5.22.0-2D2743?style=for-the-badge&logo=prisma)](https://prisma.io/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4472C4?style=for-the-badge&logo=mysql)](https://mysql.com/)
 [![NextAuth.js](https://img.shields.io/badge/NextAuth-4.24-0075FF?style=for-the-badge)](https://next-auth.js.org/)
-[![v1.1.0](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/brontolano/alba-fintech-v2)
+[![v1.1.0](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/brontolano/alba-fintech-v3)
 
 ---
 
@@ -137,7 +137,7 @@ slash_commands:
 
 Jika ada kendala teknis, hubungi:
 - **Email:** admin@brontolano.com
-- **GitHub Issues:** https://github.com/brontolano/alba-fintech-v2/issues
+- **GitHub Issues:** https://github.com/brontolano/alba-fintech-v3/issues
 
 ---
 

@@ -164,6 +164,77 @@ async function main() {
     console.log(`👤 Created user: ${userData.email} (${userData.role})`);
   }
 
+  // Create inventory items for retail units
+  const retailUnits = await prisma.unit.findMany({ where: { isRetail: true } });
+  const inventoryItems = [];
+
+  for (const unit of retailUnits) {
+    const items = [
+      {
+        name: 'Nasi Goreng',
+        sku: `NG-${unit.code}`,
+        category: 'Makanan',
+        currentStock: 100,
+        minStock: 10,
+        unitPrice: 15000,
+        purchasePrice: 10000,
+        isActive: true,
+      },
+      {
+        name: 'Mie Goreng',
+        sku: `MG-${unit.code}`,
+        category: 'Makanan',
+        currentStock: 80,
+        minStock: 15,
+        unitPrice: 13000,
+        purchasePrice: 9000,
+        isActive: true,
+      },
+      {
+        name: 'Es Teh Manis',
+        sku: `ET-${unit.code}`,
+        category: 'Minuman',
+        currentStock: 150,
+        minStock: 20,
+        unitPrice: 8000,
+        purchasePrice: 5000,
+        isActive: true,
+      },
+      {
+        name: 'Air Mineral',
+        sku: `AM-${unit.code}`,
+        category: 'Minuman',
+        currentStock: 200,
+        minStock: 30,
+        unitPrice: 5000,
+        purchasePrice: 3000,
+        isActive: true,
+      },
+      {
+        name: 'Bubur Ayam',
+        sku: `BA-${unit.code}`,
+        category: 'Makanan',
+        currentStock: 60,
+        minStock: 8,
+        unitPrice: 12000,
+        purchasePrice: 8000,
+        isActive: true,
+      },
+    ];
+
+    for (const itemData of items) {
+      const item = await prisma.inventoryItem.create({
+        data: {
+          ...itemData,
+          unitId: unit.id,
+        },
+      });
+      inventoryItems.push(item);
+      console.log(`📦 Created inventory item: ${item.name} for ${unit.name}`);
+    }
+  }
+
+  console.log(`📦 Created ${inventoryItems.length} inventory items total`);
   console.log('✅ Seed completed!');
 }
 

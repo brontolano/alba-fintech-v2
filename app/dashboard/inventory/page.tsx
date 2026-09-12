@@ -13,6 +13,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 
 interface InventoryItem {
   id: string;
@@ -50,6 +52,7 @@ interface UnitsResponse {
 }
 
 export default function InventoryPage() {
+  const { data: session } = useSession();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -64,6 +67,26 @@ export default function InventoryPage() {
     unitId: '',
     category: '',
     stockStatus: 'all',
+  });
+
+  // Set default unit filter for MANAGER/STAFF
+  useEffect(() => {
+    if (session?.user?.role === 'MANAGER' || session?.user?.role === 'STAFF') {
+      if (session?.user?.unitId) {
+        setFilters((prev) => ({ ...prev, unitId: session.user.unitId || '' }));
+      }
+    }
+  }, [session]);
+
+  const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [itemForm, setItemForm] = useState({
+    name: '',
+    sku: '',
+    category: '',
+    unitPrice: '',
+    purchasePrice: '',
+    minStock: '',
   });
 
   const fetchUnits = async () => {
@@ -85,7 +108,11 @@ export default function InventoryPage() {
       params.set('limit', limit.toString());
       if (filters.unitId) params.set('unitId', filters.unitId);
       if (filters.category) params.set('category', filters.category);
-      params.set('isActive', 'true'); // Only active items for POS view
+      if (filters.search) params.set('search', filters.search);
+      // Filter by active status (useful for POS view to show only in-stock items)
+      if (filters.stockStatus !== 'all') {
+        params.set('isActive', 'true'); // Only active items when viewing stock status
+      }
 
       const res = await fetch(`/api/inventory?${params.toString()}`);
       if (!res.ok) {
@@ -142,6 +169,39 @@ export default function InventoryPage() {
       fetchInventory();
     } catch (err: any) {
       toast.error(err.message || 'Gagal menghapus barang');
+    }
+  };
+
+  const handleCreateItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/inventory',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: itemForm.name,
+          sku: itemForm.sku,
+          category: itemForm.category || undefined,
+          unitPrice: parseFloat(itemForm.unitPrice),
+          purchasePrice: parseFloat(itemForm.purchasePrice) || undefined,
+          minStock: parseInt(itemForm.minStock) || 0,
+          isActive: true,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Gagal menambah barang');
+      }
+      toast.success('Barang berhasil ditambahkan');
+      setShowModal(false);
+      setItemForm({ name: '', sku: '', category: '', unitPrice: '', purchasePrice: '', minStock: '' });
+      fetchInventory();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal menambah barang');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -217,10 +277,13 @@ export default function InventoryPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">
+          <Link
+            href="/dashboard/inventory/create"
+            className="flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+          >
             <Plus size={18} />
             <span>Tambah Barang</span>
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -424,6 +487,9 @@ export default function InventoryPage() {
                       <td className="py-3 px-4">
                         <div className="flex justify-center gap-1">
                           <button
+                            onClick={() => {
+                              toast.info('Fitur edit barang belum tersedia');
+                            }}
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
                             title="Edit"
                           >
@@ -474,6 +540,115 @@ export default function InventoryPage() {
           </button>
         </div>
       </div>
+
+      {/* Create Item Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4">
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-xl font-semibold text-slate-800">
+                Tambah Barang Baru
+              </h2>
+            </div>
+            <form onSubmit={handleCreateItem} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Nama Barang *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={itemForm.name}
+                    onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    SKU
+                  </label>
+                  <input
+                    type="text"
+                    value={itemForm.sku}
+                    onChange={(e) => setItemForm({ ...itemForm, sku: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Kategori
+                  </label>
+                  <input
+                    type="text"
+                    value={itemForm.category}
+                    onChange={(e) => setItemForm({ ...itemForm, category: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Harga Beli
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={itemForm.purchasePrice}
+                    onChange={(e) => setItemForm({ ...itemForm, purchasePrice: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Harga Jual *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    value={itemForm.unitPrice}
+                    onChange={(e) => setItemForm({ ...itemForm, unitPrice: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Stok Minimum
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={itemForm.minStock}
+                    onChange={(e) => setItemForm({ ...itemForm, minStock: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false);
+                    setItemForm({ name: '', sku: '', category: '', unitPrice: '', purchasePrice: '', minStock: '' });
+                  }}
+                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition text-sm font-medium"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition text-sm font-medium"
+                >
+                  {submitting ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

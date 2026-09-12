@@ -14,6 +14,7 @@ const createInventorySchema = z.object({
   purchasePrice: z.number().positive('Harga beli harus positif').optional(),
   minStock: z.number().int().min(0, 'Stok minimum harus positif').optional(),
   isActive: z.boolean().default(true),
+  imageUrl: z.string().optional().nullable(),
   unitId: z.string().optional(),
 });
 
@@ -21,6 +22,7 @@ const createInventorySchema = z.object({
 const querySchema = z.object({
   unitId: z.string().optional(),
   category: z.string().optional(),
+  search: z.string().optional(),
   isActive: z.string().optional(),
   page: z.string().optional().transform((val) => (val ? parseInt(val) : 1)),
   limit: z.string().optional().transform((val) => (val ? parseInt(val) : 10)),
@@ -36,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     // RBAC
     const role = session.user.role;
-    if (role !== 'SUPERADMIN' && role !== 'MANAGER' && role !== 'STAFF') {
+    if (role !== 'SUPERADMIN' && role !== 'PIMPINAN' && role !== 'MANAGER' && role !== 'STAFF') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -50,16 +52,53 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: any = {};
 
-    // Role-based filtering
+    // Role-based filtering - SUPERADMIN can see all, others filtered by unit or lembaga
     if (role === 'MANAGER' || role === 'STAFF') {
       where.unitId = session.user.unitId;
+    } else if (role === 'PIMPINAN') {
+      // PIMPINAN can see all units within their lembaga
+      const lembagaId = session.user.lembagaId;
+      if (lembagaId) {
+        const userUnits = await prisma.unit.findMany({
+          where: { lembagaId },
+          select: { id: true },
+        });
+        if (userUnits.length > 0) {
+          where.unitId = { in: userUnits.map((u) => u.id) };
+        } else {
+          // No units in lembaga - return empty result
+          return NextResponse.json({
+            data: [],
+            summary: { total: 0, pages: 0 },
+          }, { status: 200 });
+        }
+      } else {
+        // No lembagaId assigned - return empty result
+        return NextResponse.json({
+          data: [],
+          summary: { total: 0, pages: 0 },
+        }, { status: 200 });
+      }
     }
+    // SUPERADMIN has no unit filter, can see all items
 
+    // Allow unit filter override - SUPERADMIN can filter by any unit, others by their own
     if (parsed.data.unitId) {
-      where.unitId = parsed.data.unitId;
+      if (role === 'SUPERADMIN') {
+        where.unitId = parsed.data.unitId;
+      } else if (role === 'MANAGER' || role === 'STAFF') {
+        where.unitId = session.user.unitId;
+      }
+      // PIMPINAN already has lembaga-based filtering above
     }
     if (parsed.data.category) {
       where.category = parsed.data.category;
+    }
+    if (parsed.data.search) {
+      where.OR = [
+        { name: { contains: parsed.data.search } },
+        { sku: { contains: parsed.data.search } },
+      ];
     }
     if (parsed.data.isActive !== undefined) {
       where.isActive = parsed.data.isActive === 'true';
@@ -69,7 +108,7 @@ export async function GET(request: NextRequest) {
     const items = await prisma.inventoryItem.findMany({
       where,
       include: {
-        unit: true,
+        units: true,
       },
       orderBy: {
         name: 'asc',
@@ -87,9 +126,21 @@ export async function GET(request: NextRequest) {
         pages: Math.ceil(total / parsed.data.limit),
       },
     }, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
+    // Handle database/table errors gracefully
+    if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('Table')) {
+      console.error('[Inventory API] Table not found - inventory_items may need migration:', error.message);
+      return NextResponse.json({ 
+        error: 'Tabel inventory belum dibuat. Jalankan migration database.',
+        data: [],
+        summary: { total: 0, pages: 0 }
+      }, { status: 500 });
+    }
     console.error('[Inventory API] Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal Server Error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    }, { status: 500 });
   }
 }
 
@@ -114,10 +165,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid data', details: parsed.error.errors }, { status: 400 });
     }
 
-    // Determine unit
+    // Determine unit - required for all roles
     let unitId = parsed.data.unitId;
-    if (!unitId && role !== 'SUPERADMIN') {
-      unitId = session.user.unitId!;
+    if (!unitId) {
+      if (role === 'SUPERADMIN') {
+        // SUPERADMIN must select a unit
+        return NextResponse.json({ error: 'Unit wajib dipilih' }, { status: 400 });
+      } else {
+        // MANAGER/STAFF use their assigned unit
+        if (!session.user.unitId) {
+          return NextResponse.json({ error: 'Unit pengguna tidak ditemukan' }, { status: 400 });
+        }
+        unitId = session.user.unitId;
+      }
     }
 
     // Create inventory item
@@ -126,21 +186,32 @@ export async function POST(request: NextRequest) {
         name: parsed.data.name,
         sku: parsed.data.sku,
         category: parsed.data.category,
+        imageUrl: parsed.data.imageUrl,
         unitPrice: parsed.data.unitPrice,
         purchasePrice: parsed.data.purchasePrice,
         minStock: parsed.data.minStock || 0,
         isActive: parsed.data.isActive,
-        unitId: unitId!,
+        unitId,
       },
     });
 
     return NextResponse.json({ data: item }, { status: 201 });
   } catch (error: any) {
+    // Handle database/table errors gracefully
+    if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('Table')) {
+      console.error('[Inventory API] Table not found - inventory_items may need migration:', error.message);
+      return NextResponse.json({ 
+        error: 'Tabel inventory belum dibuat. Jalankan migration database.'
+      }, { status: 500 });
+    }
     console.error('[Inventory API] Error:', error);
     if (error.code === 'P2002') {
       return NextResponse.json({ error: 'SKU sudah digunakan' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal Server Error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    }, { status: 500 });
   }
 }
 
@@ -182,7 +253,17 @@ export async function DELETE(request: NextRequest) {
     await prisma.inventoryItem.delete({ where: { id: parsed.data.id } });
     return NextResponse.json({ message: 'Barang berhasil dihapus' }, { status: 200 });
   } catch (error: any) {
+    // Handle database/table errors gracefully
+    if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('Table')) {
+      console.error('[Inventory API] Table not found - inventory_items may need migration:', error.message);
+      return NextResponse.json({ 
+        error: 'Tabel inventory belum dibuat. Jalankan migration database.'
+      }, { status: 500 });
+    }
     console.error('[Inventory API] Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal Server Error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    }, { status: 500 });
   }
 }

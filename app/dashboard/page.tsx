@@ -85,7 +85,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchDashboard(activeRange);
+    fetchDashboard(activeRange, selectedUnit || undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRange, selectedUnit]);
 
@@ -165,58 +165,58 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">
+      <div className="mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-50">
           Dashboard Keuangan
         </h1>
-        <p className="text-slate-600 mt-1">
+        <p className="text-slate-600 dark:text-slate-400 mt-0.5 text-sm">
           {role}
         </p>
       </div>
 
       {/* Date Range Filter */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Calendar size={20} className="text-slate-500" />
-          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+      <div className="mb-5 flex flex-col gap-3">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <Calendar size={18} className="text-slate-500 dark:text-slate-400 flex-shrink-0" />
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 flex-shrink-0">
             <button
               onClick={() => handleRangeChange('today')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+              className={`px-3 py-1 rounded-md text-xs font-medium transition whitespace-nowrap ${
                 activeRange === 'today'
                   ? 'bg-emerald-600 text-white'
-                  : 'text-slate-600 hover:text-slate-800'
+                  : 'text-slate-600 dark:text-slate-300'
               }`}
             >
               Hari Ini
             </button>
             <button
               onClick={() => handleRangeChange('7d')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+              className={`px-3 py-1 rounded-md text-xs font-medium transition whitespace-nowrap ${
                 activeRange === '7d'
                   ? 'bg-emerald-600 text-white'
-                  : 'text-slate-600 hover:text-slate-800'
+                  : 'text-slate-600 dark:text-slate-300'
               }`}
             >
               7 Hari
             </button>
             <button
               onClick={() => handleRangeChange('30d')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+              className={`px-3 py-1 rounded-md text-xs font-medium transition whitespace-nowrap ${
                 activeRange === '30d'
                   ? 'bg-emerald-600 text-white'
-                  : 'text-slate-600 hover:text-slate-800'
+                  : 'text-slate-600 dark:text-slate-300'
               }`}
             >
               30 Hari
             </button>
             <button
               onClick={() => handleRangeChange('90d')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+              className={`px-3 py-1 rounded-md text-xs font-medium transition whitespace-nowrap ${
                 activeRange === '90d'
                   ? 'bg-emerald-600 text-white'
-                  : 'text-slate-600 hover:text-slate-800'
+                  : 'text-slate-600 dark:text-slate-300'
               }`}
             >
               90 Hari
@@ -225,11 +225,11 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative">
+          <div className="relative flex-1">
             <select
               value={selectedUnit}
               onChange={(e) => setSelectedUnit(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
+              className="appearance-none w-full pl-3 pr-8 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
             >
               <option value="">Semua Unit</option>
               {units.map((unit) => (
@@ -238,70 +238,70 @@ export default function DashboardPage() {
                 </option>
               ))}
             </select>
-            <Filter className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+            <Filter className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-300" size={14} />
           </div>
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition text-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition text-xs text-slate-700 dark:text-slate-200"
           >
-            <Download size={16} />
+            <Download size={14} />
             <span>Export</span>
           </button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-emerald-600" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-5">
+        <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-2.5 border border-emerald-100 dark:border-emerald-900 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+              <Wallet className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <p className="text-sm text-emerald-700 font-medium">Total Saldo</p>
-              <p className="text-xl font-bold text-emerald-800">
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">Total Saldo</p>
+              <p className="text-lg font-bold text-emerald-800 dark:text-emerald-200">
                 {formatCurrency(summary.totalBalance)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-green-600" />
+        <div className="bg-green-50 dark:bg-green-950/30 rounded-2xl p-2.5 border border-green-100 dark:border-green-900 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-green-100 dark:bg-green-900 flex items-center justify-center">
+              <TrendingUp className="w-4.5 h-4.5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-sm text-green-700 font-medium">Total Pemasukan</p>
-              <p className="text-xl font-bold text-green-800">
+              <p className="text-xs text-green-700 dark:text-green-300 font-medium">Pemasukan</p>
+              <p className="text-lg font-bold text-green-800 dark:text-green-200">
                 {formatCurrency(summary.totalIncome)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-red-50 rounded-xl p-4 border border-red-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-              <TrendingDown className="w-5 h-5 text-red-600" />
+        <div className="bg-red-50 dark:bg-red-950/30 rounded-2xl p-2.5 border border-red-100 dark:border-red-900 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-red-100 dark:bg-red-900 flex items-center justify-center">
+              <TrendingDown className="w-4.5 h-4.5 text-red-600 dark:text-red-400" />
             </div>
             <div>
-              <p className="text-sm text-red-700 font-medium">Total Pengeluaran</p>
-              <p className="text-xl font-bold text-red-800">
+              <p className="text-xs text-red-700 dark:text-red-300 font-medium">Pengeluaran</p>
+              <p className="text-lg font-bold text-red-800 dark:text-red-200">
                 {formatCurrency(summary.totalExpense)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Receipt className="w-5 h-5 text-blue-600" />
+        <div className="bg-blue-50 dark:bg-blue-950/30 rounded-2xl p-2.5 border border-blue-100 dark:border-blue-900 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+              <Receipt className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm text-blue-700 font-medium">Transaksi Hari Ini</p>
-              <p className="text-xl font-bold text-blue-800">
+              <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">Hari Ini</p>
+              <p className="text-lg font-bold text-blue-800 dark:text-blue-200">
                 {summary.todayTransactions}
               </p>
             </div>
@@ -311,70 +311,72 @@ export default function DashboardPage() {
 
       {/* Virtual Cards per Unit */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">
+        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-50 mb-4">
           Ringkasan per Unit
         </h2>
         {units.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">
-            Tidak ada unit dengan transaksi pada periode ini
+          <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+            <div className="inline-block py-4 max-w-sm">
+              Tidak ada unit dengan transaksi pada periode ini
+            </div>
           </div>
         ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-3">
           {units.map((unit) => {
             const net = unit.income - unit.expense;
             return (
               <div
                 key={unit.id}
-                className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-3 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-slate-800">{unit.name}</h3>
+                <div className="flex items-center justify-between mb-2.5">
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{unit.name}</h3>
                   <span
-                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    className={`px-1.5 py-0.25 rounded-full text-xs font-medium ${
                       unit.type === 'Kantin'
-                        ? 'bg-orange-100 text-orange-700'
+                        ? 'bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300'
                         : unit.type === 'Koperasi'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-slate-100 text-slate-700'
+                        ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                     }`}
                   >
                     {unit.type}
                   </span>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Saldo Terkini</span>
-                    <span className="text-sm font-medium text-slate-800">
+                    <span className="text-slate-500 dark:text-slate-400">Saldo</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
                       {formatCurrency(unit.balance)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Pemasukan</span>
-                    <span className="text-sm font-medium text-green-600">
+                    <span className="text-slate-500 dark:text-slate-400">Pemasukan</span>
+                    <span className="font-medium text-green-600 dark:text-green-400">
                       {formatCurrency(unit.income)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Pengeluaran</span>
-                    <span className="text-sm font-medium text-red-600">
+                    <span className="text-slate-500 dark:text-slate-400">Pengeluaran</span>
+                    <span className="font-medium text-red-600 dark:text-red-400">
                       {formatCurrency(unit.expense)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Transaksi</span>
-                    <span className="text-sm font-medium text-slate-800">
+                    <span className="text-slate-500 dark:text-slate-400">Trx</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
                       {unit.transactions}
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-slate-200">
+                <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-700">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-600">Net Result</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Net</span>
                     <span
                       className={`text-sm font-medium ${
-                        net >= 0 ? 'text-green-600' : 'text-red-600'
+                        net >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}
                     >
                       {net >= 0 ? '+' : ''}{formatCurrency(net)}
@@ -384,7 +386,7 @@ export default function DashboardPage() {
 
                 <Link
                   href={`/dashboard/reports?unit=${unit.id}`}
-                  className="block mt-3 text-center text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                  className="block mt-2.5 text-center text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
                 >
                   Lihat Detail
                 </Link>
@@ -396,32 +398,32 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Transactions Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-800">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-50">
             Transaksi Terbaru
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                <th className="text-left py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
                   Tanggal
                 </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">
+                <th className="text-left py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
                   Unit
                 </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">
+                <th className="text-left py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
                   Keterangan
                 </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">
+                <th className="text-right py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
                   Pemasukan
                 </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">
+                <th className="text-right py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
                   Pengeluaran
                 </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">
+                <th className="text-right py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
                   Saldo
                 </th>
               </tr>
@@ -429,29 +431,29 @@ export default function DashboardPage() {
             <tbody>
               {recentTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-500">
+                  <td colSpan={6} className="py-8 text-center text-slate-500 dark:text-slate-400">
                     Tidak ada transaksi terbaru
                   </td>
                 </tr>
               ) : (
                 recentTransactions.map((tx) => (
-                  <tr key={tx.id} className="border-b border-slate-100">
-                    <td className="py-3 px-4 text-sm text-slate-600">
+                  <tr key={tx.id} className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
                       {format(new Date(tx.date), 'dd MMM yyyy', { locale: id })}
                     </td>
-                    <td className="py-3 px-4 text-sm font-medium text-emerald-600">
+                    <td className="py-2.5 px-3 font-medium text-emerald-600 dark:text-emerald-400">
                       {tx.unitName}
                     </td>
-                    <td className="py-3 px-4 text-sm text-slate-800">
+                    <td className="py-2.5 px-3 text-slate-800 dark:text-slate-200">
                       {tx.description}
                     </td>
-                    <td className="py-3 px-4 text-right text-sm text-green-600">
+                    <td className="py-2.5 px-3 text-right text-green-600 dark:text-green-400">
                       {tx.type === 'INCOME' ? formatCurrency(tx.amount) : '-'}
                     </td>
-                    <td className="py-3 px-4 text-right text-sm text-red-600">
+                    <td className="py-2.5 px-3 text-right text-red-600 dark:text-red-400">
                       {tx.type === 'EXPENSE' ? formatCurrency(tx.amount) : '-'}
                     </td>
-                    <td className="py-3 px-4 text-right text-sm text-slate-600">
+                    <td className="py-2.5 px-3 text-right text-slate-600 dark:text-slate-300">
                       {formatCurrency(tx.amount)}
                     </td>
                   </tr>

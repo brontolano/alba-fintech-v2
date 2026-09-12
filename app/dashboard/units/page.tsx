@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Plus,
   Search,
@@ -27,27 +28,10 @@ interface Unit {
   };
 }
 
-interface CreateForm {
-  name: string;
-  code: string;
-  description: string;
-  type: string;
-  isRetail: boolean;
-}
-
 export default function UnitsPage() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
-  const [form, setForm] = useState<CreateForm>({
-    name: '',
-    code: '',
-    description: '',
-    type: 'UMUM',
-    isRetail: false,
-  });
-  const [submitting, setSubmitting] = useState(false);
 
   // Fetch units
   const fetchUnits = async () => {
@@ -69,42 +53,6 @@ export default function UnitsPage() {
   useEffect(() => {
     fetchUnits();
   }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/units', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          isRetail: form.type === 'KOPERASI' || form.type === 'KANTIN',
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Gagal membuat unit');
-      }
-
-      const result = await res.json();
-      toast.success('Unit berhasil dibuat');
-      setUnits([result.data, ...units]);
-      setShowModal(false);
-      setForm({
-        name: '',
-        code: '',
-        description: '',
-        type: 'UMUM',
-        isRetail: false,
-      });
-    } catch (err: any) {
-      toast.error(err.message || 'Gagal membuat unit');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -132,6 +80,23 @@ export default function UnitsPage() {
     }
   };
 
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Hapus unit "${name}"? Semua data terkait akan kehilangan unit ini.`)) return;
+    try {
+      const res = await fetch(`/api/units/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Gagal menghapus unit');
+      }
+      toast.success('Unit berhasil dihapus');
+      fetchUnits();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal menghapus unit');
+    }
+  };
+
   const filteredUnits = units.filter(
     (unit) =>
       unit.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -149,13 +114,13 @@ export default function UnitsPage() {
             Kelola unit-unit di Pondok Pesantren Al-Basyariyah
           </p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
+        <Link
+          href="/dashboard/units/create"
           className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
         >
           <Plus size={18} />
           <span>Tambah Unit</span>
-        </button>
+        </Link>
       </div>
 
       {/* Search */}
@@ -239,13 +204,15 @@ export default function UnitsPage() {
               </div>
 
               <div className="mt-4 flex justify-end gap-2 border-t border-slate-200 pt-3">
-                <button
+                <Link
+                  href={`/dashboard/units/${unit.id}`}
                   className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
                   title="Edit"
                 >
                   <Edit size={16} />
-                </button>
+                </Link>
                 <button
+                  onClick={() => handleDelete(unit.id, unit.name)}
                   className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600"
                   title="Hapus"
                 >
@@ -254,104 +221,6 @@ export default function UnitsPage() {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Create Unit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md animate-slide-up">
-            <div className="p-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-800">Tambah Unit Baru</h2>
-            </div>
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nama Unit</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-                  placeholder="Nama unit"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kode Unit</label>
-                <input
-                  type="text"
-                  value={form.code}
-                  onChange={(e) => setForm({ ...form, code: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm uppercase"
-                  placeholder="Kode unit"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Jenis Unit</label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-                >
-                  <option value="KPAK">KPAK (Kantor Pelayanan Administrasi Keuangan)</option>
-                  <option value="KOPERASI">Koperasi Buku</option>
-                  <option value="KANTIN">Kantin</option>
-                  <option value="UMUM">Umum</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi (opsional)</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm resize-none"
-                  rows={3}
-                  placeholder="Deskripsi unit"
-                />
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isRetail"
-                    checked={form.isRetail}
-                    onChange={(e) => {
-                      const retail = e.target.checked;
-                      let type = form.type;
-                      if (type === 'UMUM') type = 'KANTIN';
-                      setForm({ ...form, isRetail: retail, type: retail ? (type === 'UMUM' ? 'KANTIN' : type) : form.type });
-                    }}
-                    className="h-4 w-4 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
-                  />
-                  <label htmlFor="isRetail" className="text-sm text-slate-700">
-                    Unit Retail (dengan inventory & POS)
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !form.name || !form.code}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 flex items-center gap-2"
-                >
-                  {submitting ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
     </div>

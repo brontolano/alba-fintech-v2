@@ -22,9 +22,7 @@ export async function GET(request: NextRequest) {
     const role = (session.user as any)?.role;
     if (role !== 'PIMPINAN' && role !== 'MANAGER' && role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Parse query
+    }    // Parse query
     const { searchParams } = new URL(request.url);
     const parsed = querySchema.safeParse(Object.fromEntries(searchParams));
     if (!parsed.success) {
@@ -49,12 +47,12 @@ export async function GET(request: NextRequest) {
     if (role === 'STAFF' || role === 'MANAGER') {
       txWhere.unitId = unitId;
     } else if (role === 'PIMPINAN') {
-      txWhere.unit = { lembagaId };
+      txWhere.units = { lembagaId };
     }
 
     // Override with query param if provided
     if (parsed.data.unitId) {
-      delete txWhere.unit;
+      delete txWhere.units;
       txWhere.unitId = parsed.data.unitId;
     }
 
@@ -63,7 +61,7 @@ export async function GET(request: NextRequest) {
       where: txWhere,
       select: {
         unitId: true,
-        unit: { select: { name: true } },
+        units: { select: { name: true } },
         type: true,
         amount: true,
         date: true,
@@ -99,10 +97,10 @@ export async function GET(request: NextRequest) {
     // Build unit distribution
     const unitAggMap: Record<string, { id: string; name: string; income: number; expense: number }> = {};
     for (const tx of transactions) {
-      if (!tx.unit) continue;
+      if (!tx.units) continue;
       const uid = tx.unitId!;
       if (!unitAggMap[uid]) {
-        unitAggMap[uid] = { id: uid, name: tx.unit.name, income: 0, expense: 0 };
+        unitAggMap[uid] = { id: uid, name: tx.units.name, income: 0, expense: 0 };
       }
       if (tx.type === 'INCOME') {
         unitAggMap[uid].income += Number(tx.amount);

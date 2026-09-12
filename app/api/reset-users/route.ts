@@ -39,14 +39,8 @@ export async function POST(request: NextRequest) {
     console.log('🔄 Starting user reset...');
 
     // Step 1: Delete related data (referential integrity)
-    await prisma.pushSubscription.deleteMany({});
-    console.log('✓ pushSubscriptions deleted');
-
     await prisma.notification.deleteMany({});
     console.log('✓ notifications deleted');
-
-    await prisma.auditLog.deleteMany({});
-    console.log('✓ auditLogs deleted');
 
     await prisma.broadcastRecipient.deleteMany({});
     console.log('✓ broadcastRecipients deleted');

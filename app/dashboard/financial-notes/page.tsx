@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Plus,
   Search,
   Calendar,
   Edit,
   Trash2,
-  Save,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -28,34 +28,14 @@ interface FinancialNote {
   updatedAt: string;
 }
 
-interface CreateForm {
-  title: string;
-  description: string;
-  amount: string;
-  type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
-  date: string;
-  unitId: string;
-  categoryId?: string;
-}
-
 export default function FinancialNotesPage() {
   const [notes, setNotes] = useState<FinancialNote[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
   const [unitFilter, setUnitFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
-  const [form, setForm] = useState<CreateForm>({
-    title: '',
-    description: '',
-    amount: '',
-    type: 'INCOME',
-    date: new Date().toISOString().split('T')[0],
-    unitId: '',
-  });
   const [units, setUnits] = useState<Array<{ id: string; name: string }>>([]);
-  const [submitting, setSubmitting] = useState(false);
 
   // Fetch notes
   const fetchNotes = async () => {
@@ -118,43 +98,6 @@ export default function FinancialNotesPage() {
     0
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/financial-notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          amount: parseFloat(form.amount),
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Gagal menyimpan catatan');
-      }
-
-      const result = await res.json();
-      toast.success('Catatan keuangan berhasil disimpan');
-      setNotes([result.data, ...notes]);
-      setShowModal(false);
-      setForm({
-        title: '',
-        description: '',
-        amount: '',
-        type: 'INCOME',
-        date: new Date().toISOString().split('T')[0],
-        unitId: '',
-      });
-    } catch (err: any) {
-      toast.error(err.message || 'Gagal menyimpan catatan');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus catatan keuangan ini?')) return;
     try {
@@ -184,22 +127,22 @@ export default function FinancialNotesPage() {
             Catat pemasukan dan pengeluaran langsung pimpinan
           </p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
+        <Link
+          href="/dashboard/financial-notes/create"
           className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
         >
           <Plus size={18} />
           <span>Buat Catatan</span>
-        </button>
+        </Link>
       </div>
 
       {/* Filters */}
       <div className="mb-6 bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="relative flex-1 min-w-[240px]">
             <input
               type="text"
-              placeholder="Cari catatan..."
+              placeholder="Cari catatan atau deskripsi..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
@@ -207,39 +150,58 @@ export default function FinancialNotesPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           </div>
 
-          <select
-            value={unitFilter}
-            onChange={(e) => setUnitFilter(e.target.value)}
-            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-          >
-            <option value="">Semua Unit</option>
-            {units.map((unit) => (
-              <option key={unit.id} value={unit.id}>
-                {unit.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap gap-3 items-center w-full lg:w-auto">
+            <select
+              value={unitFilter}
+              onChange={(e) => setUnitFilter(e.target.value)}
+              className="flex-1 lg:flex-none min-w-[140px] px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
+            >
+              <option value="">Semua Unit</option>
+              {units.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.name}
+                </option>
+              ))}
+            </select>
 
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-          >
-            <option value="">Semua Jenis</option>
-            <option value="INCOME">Pemasukan</option>
-            <option value="EXPENSE">Pengeluaran</option>
-            <option value="TRANSFER">Transfer</option>
-          </select>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="flex-1 lg:flex-none min-w-[130px] px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
+            >
+              <option value="">Semua Jenis</option>
+              <option value="INCOME">Pemasukan</option>
+              <option value="EXPENSE">Pengeluaran</option>
+              <option value="TRANSFER">Transfer</option>
+            </select>
+          </div>
 
-          <div className="relative">
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto border-t xl:border-t-0 pt-4 xl:pt-0">
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-slate-500" />
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Tanggal:</span>
+            </div>
             <input
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+              className="w-40 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
             />
-            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           </div>
+
+          {(search || unitFilter || typeFilter || dateFilter) && (
+            <button
+              onClick={() => {
+                setSearch('');
+                setUnitFilter('');
+                setTypeFilter('');
+                setDateFilter('');
+              }}
+              className="text-sm text-red-600 hover:text-red-700 font-medium px-2 py-1 hover:bg-red-50 rounded transition"
+            >
+              Reset
+            </button>
+          )}
         </div>
       </div>
 
@@ -356,111 +318,6 @@ export default function FinancialNotesPage() {
         </div>
       </div>
 
-      {/* Create Note Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-800">Buat Catatan Keuangan</h2>
-            </div>
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Judul</label>
-                  <input
-                    type="text"
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-                    placeholder="Judul catatan"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                  <input
-                    type="date"
-                    value={form.date}
-                    onChange={(e) => setForm({ ...form, date: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Jenis</label>
-                  <select
-                    value={form.type}
-                    onChange={(e) => setForm({ ...form, type: e.target.value as 'INCOME' | 'EXPENSE' | 'TRANSFER' })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-                  >
-                    <option value="INCOME">Pemasukan</option>
-                    <option value="EXPENSE">Pengeluaran</option>
-                    <option value="TRANSFER">Transfer</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah (IDR)</label>
-                  <input
-                    type="number"
-                    value={form.amount}
-                    onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-                    placeholder="0"
-                    required
-                    min="0"
-                    step="any"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Unit</label>
-                <select
-                  value={form.unitId}
-                  onChange={(e) => setForm({ ...form, unitId: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
-                >
-                  <option value="">Pilih Unit (opsional)</option>
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>{unit.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm resize-none"
-                  rows={3}
-                  placeholder="Deskripsi detail catatan keuangan"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 flex items-center gap-2"
-                >
-                  {submitting ? <><Save size={16} className="animate-spin" /> Menyimpan...</> : <><Save size={16} /> Simpan</>}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

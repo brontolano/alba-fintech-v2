@@ -34,14 +34,8 @@ async function main() {
 
   // Hapus tabel-tabel child yang mereferensi User
   // Urutan penting untuk menghindari FK constraint error
-  await prisma.pushSubscription.deleteMany({});
-  console.log('   ✓ PushSubscription deleted');
-
   await prisma.notification.deleteMany({});
   console.log('   ✓ Notification deleted');
-
-  await prisma.auditLog.deleteMany({});
-  console.log('   ✓ AuditLog deleted');
 
   await prisma.broadcastRecipient.deleteMany({});
   console.log('   ✓ BroadcastRecipient deleted');

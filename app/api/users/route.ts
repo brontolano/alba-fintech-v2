@@ -88,10 +88,10 @@ export async function GET(request: NextRequest) {
         lembagaId: true,
         createdAt: true,
         updatedAt: true,
-        unit: {
+        units: {
           select: { id: true, name: true, code: true },
         },
-        lembaga: {
+        lembagas: {
           select: { id: true, name: true, code: true },
         },
       },
@@ -107,8 +107,8 @@ export async function GET(request: NextRequest) {
       lembagaId: user.lembagaId,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      unit: user.unit,
-      lembaga: user.lembaga,
+      units: user.units,
+      lembagas: user.lembagas,
     }));
 
     const total = await prisma.user.count({ where });

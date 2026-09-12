@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     if (role === 'PIMPINAN') {
       // Pimpinan sees all notes within their lembaga
       where.OR = [
-        { unit: { lembagaId: lembagaId } },
+        { units: { lembagaId: lembagaId } },
         { unitId: null }, // Notes not tied to a specific unit
       ];
     } else if (role === 'MANAGER') {
@@ -90,9 +90,9 @@ export async function GET(request: NextRequest) {
     const notes = await prisma.financialNote.findMany({
       where,
       include: {
-        unit: true,
-        category: true,
-        createdBy: {
+        units: true,
+        financial_categories: true,
+        users_financial_notes_createdByIdTousers: {
           select: { name: true, email: true },
         },
       },
@@ -169,8 +169,8 @@ export async function POST(request: NextRequest) {
         createdById: (session.user as any)?.id,
       },
       include: {
-        unit: true,
-        category: true,
+        units: true,
+        financial_categories: true,
       },
     });
 

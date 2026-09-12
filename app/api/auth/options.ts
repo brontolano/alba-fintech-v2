@@ -105,10 +105,10 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           image: user.image,
-          role: user.role,
+          role: user.role ?? 'STAFF',
           unitId: user.unitId,
           lembagaId: user.lembagaId,
-          isActive: user.isActive,
+          isActive: user.isActive ?? false,
         };
       },
     }),
@@ -144,8 +144,8 @@ export const authOptions: NextAuthOptions = {
             select: { role: true, isActive: true },
           });
           if (dbUser) {
-            token.role = dbUser.role;
-            token.isActive = dbUser.isActive;
+            token.role = dbUser.role ?? 'STAFF';
+            token.isActive = dbUser.isActive ?? false;
           } else {
             // User no longer exists — invalidate token
             token.isActive = false;

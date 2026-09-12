@@ -41,16 +41,16 @@ export async function GET(request: NextRequest) {
     const approvals = await prisma.approval.findMany({
       where,
       include: {
-        transaction: {
+        transactions: {
           include: {
-            unit: true,
-            createdBy: {
+            units: true,
+            users_transactions_createdByIdTousers: {
               select: { name: true, email: true },
             },
           },
         },
-        unit: true,
-        approver: {
+        units: true,
+        users: {
           select: { name: true, email: true },
         },
       },
@@ -100,6 +100,12 @@ export async function POST(request: NextRequest) {
     // Check if transaction exists and belongs to user's unit/scope
     const transaction = await prisma.transaction.findUnique({
       where: { id: parsed.data.transactionId },
+      select: {
+        id: true,
+        unitId: true,
+        type: true,
+        amount: true,
+      },
     });
 
     if (!transaction) {
@@ -136,8 +142,18 @@ export async function POST(request: NextRequest) {
         status: 'PENDING',
       },
       include: {
-        transaction: true,
-        unit: true,
+        transactions: {
+          select: {
+            id: true,
+            unitId: true,
+            type: true,
+            amount: true,
+            description: true,
+            date: true,
+            status: true,
+          },
+        },
+        units: true,
       },
     });
 

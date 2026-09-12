@@ -1,5 +1,38 @@
 # AGENTS.md — ALBA Finance v3
 
+<!-- BEGIN:nextjs-agent-rules -->
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+<!-- END:nextjs-agent-rules -->
+
+## Agent Guidelines
+
+### Bahasa
+- Gunakan bahasa Indonesia sehari-hari. Teknis khusus (nama API, error, file path) boleh Inggris.
+- Hindari bertele-tele. Jawaban pendek, fokus aksi.
+
+### File Kunci Sering Dibaca
+| Konteks | Path |
+|---------|------|
+| API Settings | `app/api/settings/route.ts` |
+| Theme page | `app/dashboard/settings/page.tsx` |
+| Prisma client | `lib/prisma.ts` |
+| Schema DB | `prisma/schema.prisma` |
+| Auth options | `app/api/auth/options.ts` |
+
+### Theme Persistence Catatan
+- `system_settings` tabel mungkin **tidak ada** di remote MySQL (srv594.hstgr.io).
+- API `/api/settings` harus handle `P2021` gracefully — fall back ke default values.
+- Client-side theme live preview wajib pakai `useEffect` untuk apply CSS variables (`--primary`, `--ring`) dan `dark` class.
+- Simpan theme di `localStorage` sebagai fallback ketika DB tidak tersedia.
+
+### Session Hygiene
+- Pakai `/compact` setelah ~15 turns untuk hindari konteks melebar.
+- Jangan baca file yang sama berulang kali — cache path di memori.
+
 ## Project Overview
 ALBA Finance v3 adalah sistem manajemen keuangan berbasis web yang dirancang khusus untuk **Pondok Pesantren Al-Basyariyah**. Sistem ini mendukung pencatatan transaksi, manajemen unit, pencatatan keuangan pimpinan, workflow persetujuan, rekonsiliasi keuangan, inventori, dan point of sale (POS).
 
@@ -162,7 +195,39 @@ refactor: short description (Refactor tanpa perubahan behavior)
 ## Deployment
 See `docs/DEPLOY.md` for deployment instructions.
 
+## Database Migration (Remote MySQL)
+Jika tema/settings tidak persisten karena tabel `system_settings` belum ada di remote DB:
+
+**Cara 1 — phpMyAdmin:**
+1. Buka phpMyAdmin untuk database remote (srv594.hstgr.io)
+2. Pilih database `u826712707_alba`
+3. Buka tab "SQL"
+4. Copy-paste seluruh isi `database-update-v2.sql`
+5. Klik "Go" / "Execute"
+
+**Cara 2 — MySQL CLI:**
+```bash
+mysql -h srv594.hstgr.io -u root -p u826712707_alba < database-update-v2.sql
+```
+
+Setelah migrasi, restart dev server agar Prisma client refresh tabel.
+
+## Cost & Context Efficiency Tips
+- Pakai `/compact` setelah ~15 turns untuk hindari konteks melebar di memori.
+- Jangan baca file yang sama berulang kali — cache path di memori.
+- Simpan preferensi tema (theme, primary color, compact mode) di `localStorage` sebagai fallback ketika DB tidak tersedia.
+
 ---
 Developed by Muhammad Hamdan (@brontolano)
 Built with Next.js, Prisma, dan Tailwind CSS
 Inspired by the needs of pesantren financial management
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -17,19 +17,21 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-blue-50">
-      <div className="w-full max-w-md p-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-blue-50 px-4">
+      <div className="w-full max-w-md p-4 sm:p-6">
         <div className="text-center mb-8">
-          <div className="w-24 h-24 mx-auto mb-4 rounded-2xl overflow-hidden border-2 border-white shadow-md">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl overflow-hidden border-2 border-white shadow-md">
             <Image
               src="/logo-baru.png"
               alt="Logo Al-Basyariyah"
-              width={96}
-              height={96}
+              width={80}
+              height={80}
               className="object-contain"
             />
           </div>
-          <h1 className="text-3xl font-bold text-slate-800">ALBA Finance v3</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+            ALBA Finance v3
+          </h1>
           <p className="text-slate-600 mt-2">
             Aplikasi Keuangan Pondok Pesantren Al-Basyariyah
           </p>
@@ -38,7 +40,7 @@ export default async function LoginPage() {
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-8">
+        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
           <h2 className="text-lg font-semibold text-slate-800 mb-6 text-center">
             Masuk ke Sistem
           </h2>

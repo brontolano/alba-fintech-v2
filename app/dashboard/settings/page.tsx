@@ -31,6 +31,19 @@ interface SystemSettings {
   enable_2fa: string;
 }
 
+// Map color names to hex values (for API storage) and HSL (for CSS variables)
+const COLOR_MAP: Record<string, { hex: string; hsl: string }> = {
+  emerald: { hex: '#10b981', hsl: '175.5 59.4% 33.3%' },
+  blue: { hex: '#3b82f6', hsl: '222.2 54.9% 48.4%' },
+  purple: { hex: '#a855f7', hsl: '265.4 70.2% 51.8%' },
+  rose: { hex: '#f43f5e', hsl: '333.4 65.6% 58.4%' },
+};
+
+// Reverse map: hex → color name
+const HEX_TO_COLOR = Object.fromEntries(
+  Object.entries(COLOR_MAP).map(([name, { hex }]) => [hex, name])
+);
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('system');
   const [isExporting, setIsExporting] = useState(false);
@@ -54,6 +67,69 @@ export default function SettingsPage() {
     primaryColor: 'emerald',
     compactMode: false,
   });
+
+  // Apply theme + primary color to DOM
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+
+    // Theme
+    if (appearance.theme === 'dark') {
+      html.classList.add('dark');
+    } else if (appearance.theme === 'light') {
+      html.classList.remove('dark');
+    } else {
+      // system preference
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const applySystemTheme = (e?: MediaQueryListEvent) => {
+        const matches = e ? e.matches : mediaQuery.matches;
+        html.classList.toggle('dark', matches);
+      };
+      applySystemTheme();
+      mediaQuery.addEventListener('change', applySystemTheme);
+
+      // Cleanup event listener on unmount or theme change
+      return () => mediaQuery.removeEventListener('change', applySystemTheme);
+    }
+
+    // Primary color (apply in all theme modes)
+    const colorInfo = COLOR_MAP[appearance.primaryColor] || COLOR_MAP.emerald;
+    html.style.setProperty('--primary', colorInfo.hsl);
+    html.style.setProperty('--ring', colorInfo.hsl);
+
+    // Compact mode
+    if (appearance.compactMode) {
+      body.classList.add('compact');
+    } else {
+      body.classList.remove('compact');
+    }
+  }, [appearance.theme, appearance.primaryColor, appearance.compactMode]);
+
+  // Preview toast when appearance settings change
+  const handleAppearanceChange = (field: 'theme' | 'primaryColor' | 'compactMode', value: any) => {
+    setAppearance(prev => {
+      const updated = { ...prev, [field]: value };
+      // Show immediate preview feedback
+      if (field === 'theme') {
+        toast.success(`Tema diubah ke ${value === 'dark' ? 'Gelap' : value === 'light' ? 'Terang' : 'Sistem'}`, { duration: 1500 });
+      } else if (field === 'primaryColor') {
+        toast.success(`Warna utama diubah ke ${value}`, { duration: 1500 });
+      } else if (field === 'compactMode') {
+        toast.success(value ? 'Mode kompak diaktifkan' : 'Mode kompak dinonaktifkan', { duration: 1500 });
+      }
+      return updated;
+    });
+  };
+
+  // Reset appearance to defaults
+  const resetAppearance = () => {
+    setAppearance({
+      theme: 'light',
+      primaryColor: 'emerald',
+      compactMode: false,
+    });
+    toast.success('Tampilan dikembalikan ke pengaturan default');
+  };
 
   const [system, setSystem] = useState({
     appName: 'ALBA Finance v3',
@@ -94,7 +170,7 @@ export default function SettingsPage() {
       });
       setAppearance({
         theme: data.theme || 'light',
-        primaryColor: data.primary_color || 'emerald',
+        primaryColor: HEX_TO_COLOR[data.primary_color] || 'emerald',
         compactMode: data.compact_mode === 'true',
       });
       setSecurity({
@@ -126,7 +202,7 @@ export default function SettingsPage() {
         { key: 'in_app_notifications', value: notifications.inApp.toString() },
         { key: 'reminders', value: notifications.reminders.toString() },
         { key: 'theme', value: appearance.theme },
-        { key: 'primary_color', value: appearance.primaryColor },
+        { key: 'primary_color', value: COLOR_MAP[appearance.primaryColor]?.hex || COLOR_MAP.emerald.hex },
         { key: 'compact_mode', value: appearance.compactMode.toString() },
         { key: 'enable_2fa', value: security.enable2fa.toString() },
         { key: 'session_timeout', value: security.sessionTimeout },
@@ -140,6 +216,14 @@ export default function SettingsPage() {
 
       if (!res.ok) {
         const err = await res.json();
+        if (err.code === 'P2021' || res.status === 503) {
+          // DB table doesn't exist — settings are still applied live on client
+          toast.warning(
+            'Tema berhasil diterapkan untuk sesi ini. Tabel pengaturan belum ada di database — hubungi administrator untuk migrasi.',
+            { duration: 6000 }
+          );
+          return;
+        }
         throw new Error(err.error || 'Gagal menyimpan pengaturan');
       }
 
@@ -209,11 +293,12 @@ export default function SettingsPage() {
       const res = await fetch('/api/reset-users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: resetPassword }),
+        body: JSON.stringify({ confirm: true, password: resetPassword }),
       });
 
       if (!res.ok) {
-        throw new Error('Gagal mereset data');
+        const data = await res.json();
+        throw new Error(data.error || 'Gagal mereset data');
       }
 
       toast.success('Data berhasil direset');
@@ -345,7 +430,7 @@ export default function SettingsPage() {
                     <button
                       onClick={() => handleSaveTab('system')}
                       disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-[hsl(var(--primary))] text-white rounded-lg hover:brightness-95 transition disabled:opacity-50"
                     >
                       {saving ? (
                         <RefreshCw size={18} className="animate-spin" />
@@ -484,27 +569,40 @@ export default function SettingsPage() {
                           Terima notifikasi melalui email
                         </p>
                       </div>
-                      <label className="relative inline-flex h-6 w-12 items-center rounded-full">
-                        <input
-                          type="checkbox"
-                          checked={notifications.email}
-                          onChange={(e) =>
-                            setNotifications({
-                              ...notifications,
-                              email: e.target.checked,
-                            })
-                          }
-                          className="default-checked:bg-emerald-600"
-                        />
-                        <span className="absolute inset-0 rounded-full bg-slate-200" />
-                        <span
-                          className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                            notifications.email
-                              ? 'translate-x-6'
-                              : 'translate-x-1'
-                          }`}
-                        />
-                      </label>
+                                              <label
+                          role="switch"
+                          aria-checked={notifications.email}
+                          aria-label="Toggle email notifications"
+                          className="relative inline-flex h-6 w-12 items-center rounded-full"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={notifications.email}
+                            onChange={(e) =>
+                              setNotifications({
+                                ...notifications,
+                                email: e.target.checked,
+                              })
+                            }
+                            role="switch"
+                            aria-checked={notifications.email}
+                            className="sr-only"
+                          />
+                          <span
+                            className={`absolute inset-0 rounded-full transition-colors ${
+                              notifications.email
+                                ? 'bg-emerald-600'
+                                : 'bg-slate-200'
+                            }`}
+                          />
+                          <span
+                            className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                              notifications.email
+                                ? 'translate-x-6'
+                                : 'translate-x-1'
+                            }`}
+                          />
+                        </label>
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
@@ -513,27 +611,40 @@ export default function SettingsPage() {
                           Terima notifikasi push di perangkat
                         </p>
                       </div>
-                      <label className="relative inline-flex h-6 w-12 items-center rounded-full">
-                        <input
-                          type="checkbox"
-                          checked={notifications.push}
-                          onChange={(e) =>
-                            setNotifications({
-                              ...notifications,
-                              push: e.target.checked,
-                            })
-                          }
-                          className="default-checked:bg-emerald-600"
-                        />
-                        <span className="absolute inset-0 rounded-full bg-slate-200" />
-                        <span
-                          className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                            notifications.push
-                              ? 'translate-x-6'
-                              : 'translate-x-1'
-                          }`}
-                        />
-                      </label>
+                                              <label
+                          role="switch"
+                          aria-checked={notifications.push}
+                          aria-label="Toggle push notifications"
+                          className="relative inline-flex h-6 w-12 items-center rounded-full"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={notifications.push}
+                            onChange={(e) =>
+                              setNotifications({
+                                ...notifications,
+                                push: e.target.checked,
+                              })
+                            }
+                            role="switch"
+                            aria-checked={notifications.push}
+                            className="sr-only"
+                          />
+                          <span
+                            className={`absolute inset-0 rounded-full transition-colors ${
+                              notifications.push
+                                ? 'bg-emerald-600'
+                                : 'bg-slate-200'
+                            }`}
+                          />
+                          <span
+                            className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                              notifications.push
+                                ? 'translate-x-6'
+                                : 'translate-x-1'
+                            }`}
+                          />
+                        </label>
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
@@ -542,27 +653,40 @@ export default function SettingsPage() {
                           Tampilkan notifikasi di dalam aplikasi
                         </p>
                       </div>
-                      <label className="relative inline-flex h-6 w-12 items-center rounded-full">
-                        <input
-                          type="checkbox"
-                          checked={notifications.inApp}
-                          onChange={(e) =>
-                            setNotifications({
-                              ...notifications,
-                              inApp: e.target.checked,
-                            })
-                          }
-                          className="default-checked:bg-emerald-600"
-                        />
-                        <span className="absolute inset-0 rounded-full bg-slate-200" />
-                        <span
-                          className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                            notifications.inApp
-                              ? 'translate-x-6'
-                              : 'translate-x-1'
-                          }`}
-                        />
-                      </label>
+                                              <label
+                          role="switch"
+                          aria-checked={notifications.inApp}
+                          aria-label="Toggle in-app notifications"
+                          className="relative inline-flex h-6 w-12 items-center rounded-full"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={notifications.inApp}
+                            onChange={(e) =>
+                              setNotifications({
+                                ...notifications,
+                                inApp: e.target.checked,
+                              })
+                            }
+                            role="switch"
+                            aria-checked={notifications.inApp}
+                            className="sr-only"
+                          />
+                          <span
+                            className={`absolute inset-0 rounded-full transition-colors ${
+                              notifications.inApp
+                                ? 'bg-emerald-600'
+                                : 'bg-slate-200'
+                            }`}
+                          />
+                          <span
+                            className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                              notifications.inApp
+                                ? 'translate-x-6'
+                                : 'translate-x-1'
+                            }`}
+                          />
+                        </label>
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
@@ -571,34 +695,47 @@ export default function SettingsPage() {
                           Kirim pengingat untuk transaksi yang belum disetujui
                         </p>
                       </div>
-                      <label className="relative inline-flex h-6 w-12 items-center rounded-full">
-                        <input
-                          type="checkbox"
-                          checked={notifications.reminders}
-                          onChange={(e) =>
-                            setNotifications({
-                              ...notifications,
-                              reminders: e.target.checked,
-                            })
-                          }
-                          className="default-checked:bg-emerald-600"
-                        />
-                        <span className="absolute inset-0 rounded-full bg-slate-200" />
-                        <span
-                          className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                            notifications.reminders
-                              ? 'translate-x-6'
-                              : 'translate-x-1'
-                          }`}
-                        />
-                      </label>
+                                              <label
+                          role="switch"
+                          aria-checked={notifications.reminders}
+                          aria-label="Toggle reminder notifications"
+                          className="relative inline-flex h-6 w-12 items-center rounded-full"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={notifications.reminders}
+                            onChange={(e) =>
+                              setNotifications({
+                                ...notifications,
+                                reminders: e.target.checked,
+                              })
+                            }
+                            role="switch"
+                            aria-checked={notifications.reminders}
+                            className="sr-only"
+                          />
+                          <span
+                            className={`absolute inset-0 rounded-full transition-colors ${
+                              notifications.reminders
+                                ? 'bg-emerald-600'
+                                : 'bg-slate-200'
+                            }`}
+                          />
+                          <span
+                            className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                              notifications.reminders
+                                ? 'translate-x-6'
+                                : 'translate-x-1'
+                            }`}
+                          />
+                        </label>
                     </div>
                   </div>
                   <div className="pt-4 border-t border-slate-200">
                     <button
                       onClick={() => handleSaveTab('notifications')}
                       disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-[hsl(var(--primary))] text-white rounded-lg hover:brightness-95 transition disabled:opacity-50"
                     >
                       {saving ? (
                         <RefreshCw size={18} className="animate-spin" />
@@ -625,7 +762,7 @@ export default function SettingsPage() {
                       <select
                         value={appearance.theme}
                         onChange={(e) =>
-                          setAppearance({ ...appearance, theme: e.target.value })
+                          handleAppearanceChange('theme', e.target.value as 'light' | 'dark' | 'system')
                         }
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
                       >
@@ -641,10 +778,7 @@ export default function SettingsPage() {
                       <select
                         value={appearance.primaryColor}
                         onChange={(e) =>
-                          setAppearance({
-                            ...appearance,
-                            primaryColor: e.target.value,
-                          })
+                          handleAppearanceChange('primaryColor', e.target.value)
                         }
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
                       >
@@ -660,23 +794,20 @@ export default function SettingsPage() {
                         id="compactMode"
                         checked={appearance.compactMode}
                         onChange={(e) =>
-                          setAppearance({
-                            ...appearance,
-                            compactMode: e.target.checked,
-                          })
+                          handleAppearanceChange('compactMode', e.target.checked)
                         }
-                        className="h-4 w-4 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
+                        className="h-4 w-4 text-[hsl(var(--primary))] border-[hsl(var(--primary))] rounded focus:ring-[hsl(var(--primary))]"
                       />
                       <label htmlFor="compactMode" className="text-sm text-slate-700">
                         Mode kompak
                       </label>
                     </div>
                   </div>
-                  <div className="pt-4 border-t border-slate-200">
+                  <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
                     <button
                       onClick={() => handleSaveTab('appearance')}
                       disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-[hsl(var(--primary))] text-white rounded-lg hover:brightness-95 transition disabled:opacity-50"
                     >
                       {saving ? (
                         <RefreshCw size={18} className="animate-spin" />
@@ -684,6 +815,13 @@ export default function SettingsPage() {
                         <Save size={18} />
                       )}
                       <span>{saving ? 'Menyimpan...' : 'Simpan Tampilan'}</span>
+                    </button>
+                    <button
+                      onClick={resetAppearance}
+                      className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 transition"
+                    >
+                      <RefreshCw size={18} />
+                      <span>Reset ke Default</span>
                     </button>
                   </div>
                 </div>
@@ -718,7 +856,7 @@ export default function SettingsPage() {
                         onChange={(e) =>
                           setSecurity({ ...security, enable2fa: e.target.checked })
                         }
-                        className="h-4 w-4 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
+                        className="h-4 w-4 text-[hsl(var(--primary))] border-[hsl(var(--primary))] rounded focus:ring-[hsl(var(--primary))]"
                       />
                       <label htmlFor="requireOTP" className="text-sm text-slate-700">
                         Wajibkan otentikasi dua faktor (2FA) untuk semua pengguna
@@ -744,7 +882,7 @@ export default function SettingsPage() {
                     <button
                       onClick={() => handleSaveTab('security')}
                       disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-[hsl(var(--primary))] text-white rounded-lg hover:brightness-95 transition disabled:opacity-50"
                     >
                       {saving ? (
                         <RefreshCw size={18} className="animate-spin" />
@@ -763,3 +901,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

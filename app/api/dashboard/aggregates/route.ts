@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       txWhere.unitId = unitId;
     } else if (role === 'PIMPINAN' && lembagaId) {
       // Pimpinan sees transactions from units in their lembaga
-      txWhere.unit = { lembagaId };
+      txWhere.units = { lembagaId };
     } else if (role === 'SUPERADMIN') {
       // SUPERADMIN sees all transactions (no additional filter)
     } else {
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
 
     // Override with query param if provided
     if (parsed.data.unitId) {
-      delete txWhere.unit;
+      delete txWhere.units;
       txWhere.unitId = parsed.data.unitId;
     }
 
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         unitId: true,
-        unit: {
+        units: {
           select: { id: true, name: true, type: true, lembagaId: true },
         },
         type: true,
@@ -112,14 +112,14 @@ export async function GET(request: NextRequest) {
     }> = {};
 
     for (const tx of transactions) {
-      if (!tx.unit) continue;
+      if (!tx.units) continue;
 
-      const uid = tx.unit.id;
+      const uid = tx.units.id;
       if (!unitAggMap[uid]) {
         unitAggMap[uid] = {
-          id: tx.unit.id,
-          name: tx.unit.name,
-          type: tx.unit.type,
+          id: tx.units.id,
+          name: tx.units.name,
+          type: tx.units.type || '',
           balance: 0,
           income: 0,
           expense: 0,
@@ -151,11 +151,18 @@ export async function GET(request: NextRequest) {
     // Get recent transactions (limit 10)
     const recentTransactions = await prisma.transaction.findMany({
       where: txWhere,
-      include: {
-        unit: { select: { name: true } },
-        account: { select: { name: true } },
-        category: { select: { name: true } },
-        createdBy: { select: { name: true } },
+      select: {
+        id: true,
+        unitId: true,
+        type: true,
+        amount: true,
+        description: true,
+        date: true,
+        status: true,
+        units: { select: { name: true } },
+        bank_accounts: { select: { name: true } },
+        financial_categories: { select: { name: true } },
+        users_transactions_createdByIdTousers: { select: { name: true } },
       },
       orderBy: { date: 'desc' },
       take: 10,
@@ -165,13 +172,13 @@ export async function GET(request: NextRequest) {
       id: tx.id,
       date: tx.date,
       unitId: tx.unitId,
-      unitName: tx.unit?.name || '-',
+      unitName: tx.units?.name || '-',
       description: tx.description,
       amount: Number(tx.amount),
       type: tx.type,
-      accountName: tx.account?.name || '-',
-      categoryName: tx.category?.name || '-',
-      createdByName: tx.createdBy?.name || '-',
+      accountName: tx.bank_accounts?.name || '-',
+      categoryName: tx.financial_categories?.name || '-',
+      createdByName: tx.users_transactions_createdByIdTousers?.name || '-',
     }));
 
     // Count today's transactions

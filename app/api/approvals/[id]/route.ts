@@ -40,8 +40,18 @@ export async function PATCH(
     const approval = await prisma.approval.findUnique({
       where: { id },
       include: {
-        transaction: true,
-        unit: true,
+        transactions: {
+          select: {
+            id: true,
+            unitId: true,
+            type: true,
+            amount: true,
+            description: true,
+            date: true,
+            status: true,
+          },
+        },
+        units: true,
       },
     });
 
@@ -49,9 +59,20 @@ export async function PATCH(
       return NextResponse.json({ error: 'Persetujuan tidak ditemukan' }, { status: 404 });
     }
 
-    // Check if user can approve this
     if (approval.status !== 'PENDING') {
       return NextResponse.json({ error: 'Persetujuan sudah diproses' }, { status: 400 });
+    }
+
+    // Ownership validation
+    if (role === 'PIMPINAN') {
+      if (approval.approverId !== session.user.id) {
+        return NextResponse.json({ error: 'Anda tidak memiliki izin untuk menyetujui permintaan ini' }, { status: 403 });
+      }
+    }
+    if (role === 'MANAGER') {
+      if (approval.unitId !== session.user.unitId) {
+        return NextResponse.json({ error: 'Anda tidak memiliki izin untuk menyetujui permintaan di unit lain' }, { status: 403 });
+      }
     }
 
     // Update approval and transaction
@@ -74,18 +95,6 @@ export async function PATCH(
           status: newStatus,
           approvedById: session.user.id,
           approvedAt: new Date(),
-        },
-      });
-
-      // Log audit
-      await tx.auditLog.create({
-        data: {
-          userId: session.user.id,
-          action: parsed.data.action.toUpperCase(),
-          entity: 'Transaction',
-          entityId: approval.transactionId,
-          oldData: JSON.stringify({ status: 'PENDING' }),
-          newData: JSON.stringify({ status: newStatus }),
         },
       });
     });
@@ -114,8 +123,38 @@ export async function DELETE(
 
     // RBAC
     const role = session.user.role;
-    if (role !== 'SUPERADMIN' && role !== 'PIMPINAN') {
+    if (role !== 'SUPERADMIN' && role !== 'PIMPINAN' && role !== 'MANAGER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Fetch approval to check ownership
+    const approval = await prisma.approval.findUnique({
+      where: { id },
+      select: { id: true, approverId: true, unitId: true, transactionId: true },
+    });
+
+    if (!approval) {
+      return NextResponse.json({ error: 'Persetujuan tidak ditemukan' }, { status: 404 });
+    }
+
+    // Ownership validation
+    if (role === 'PIMPINAN') {
+      if (approval.approverId !== session.user.id) {
+        return NextResponse.json({ error: 'Anda tidak memiliki izin untuk menghapus persetujuan ini' }, { status: 403 });
+      }
+      // PIMPINAN can only delete approvals for their lembaga
+      const transaction = await prisma.transaction.findUnique({
+        where: { id: approval.transactionId },
+        select: { units: { select: { lembagaId: true } } },
+      });
+      if (transaction?.units?.lembagaId !== session.user.lembagaId) {
+        return NextResponse.json({ error: 'Anda tidak memiliki izin untuk menghapus persetujuan ini' }, { status: 403 });
+      }
+    }
+    if (role === 'MANAGER') {
+      if (approval.unitId !== session.user.unitId) {
+        return NextResponse.json({ error: 'Anda tidak memiliki izin untuk menghapus persetujuan di unit lain' }, { status: 403 });
+      }
     }
 
     // Delete approval

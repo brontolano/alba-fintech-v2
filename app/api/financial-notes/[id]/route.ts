@@ -39,12 +39,12 @@ export async function GET(
     const note = await prisma.financialNote.findUnique({
       where: { id },
       include: {
-        unit: true,
-        category: true,
-        createdBy: {
+        units: true,
+        financial_categories: true,
+        users_financial_notes_createdByIdTousers: {
           select: { name: true, email: true },
         },
-        approvedBy: {
+        users_financial_notes_approvedByIdTousers: {
           select: { name: true, email: true },
         },
       },
@@ -58,7 +58,7 @@ export async function GET(
     const unitId = (session.user as any)?.unitId;
     const lembagaId = (session.user as any)?.lembagaId;
 
-    if (role === 'PIMPINAN' && note.unit && note.unit.lembagaId !== lembagaId && note.unitId !== null) {
+    if (role === 'PIMPINAN' && note.units && note.units.lembagaId !== lembagaId && note.unitId !== null) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     if (role === 'MANAGER' && note.unitId && note.unitId !== unitId) {
@@ -100,7 +100,7 @@ export async function PATCH(
     // Fetch existing note
     const existingNote = await prisma.financialNote.findUnique({
       where: { id },
-      include: { unit: true },
+      include: { units: true },
     });
 
     if (!existingNote) {
@@ -111,7 +111,7 @@ export async function PATCH(
     const unitId = (session.user as any)?.unitId;
     const lembagaId = (session.user as any)?.lembagaId;
 
-    if (role === 'PIMPINAN' && existingNote.unit && existingNote.unit.lembagaId !== lembagaId && existingNote.unitId !== null) {
+    if (role === 'PIMPINAN' && existingNote.units && existingNote.units.lembagaId !== lembagaId && existingNote.unitId !== null) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     if (role === 'MANAGER' && existingNote.unitId && existingNote.unitId !== unitId) {
@@ -125,9 +125,9 @@ export async function PATCH(
         ...parsed.data,
       },
       include: {
-        unit: true,
-        category: true,
-        createdBy: {
+        units: true,
+        financial_categories: true,
+        users_financial_notes_createdByIdTousers: {
           select: { name: true, email: true },
         },
       },
@@ -164,7 +164,7 @@ export async function DELETE(
     // Fetch existing note
     const existingNote = await prisma.financialNote.findUnique({
       where: { id },
-      include: { unit: true },
+      include: { units: true },
     });
 
     if (!existingNote) {
@@ -175,7 +175,7 @@ export async function DELETE(
     const unitId = (session.user as any)?.unitId;
     const lembagaId = (session.user as any)?.lembagaId;
 
-    if (role === 'PIMPINAN' && existingNote.unit && existingNote.unit.lembagaId !== lembagaId && existingNote.unitId !== null) {
+    if (role === 'PIMPINAN' && existingNote.units && existingNote.units.lembagaId !== lembagaId && existingNote.unitId !== null) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     if (role === 'MANAGER' && existingNote.unitId && existingNote.unitId !== unitId) {

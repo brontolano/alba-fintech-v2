@@ -29,10 +29,10 @@ export async function GET(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       include: {
-        unit: {
+        units: {
           select: { id: true, name: true, code: true },
         },
-        lembaga: {
+        lembagas: {
           select: { id: true, name: true, code: true },
         },
       },
@@ -40,6 +40,26 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 });
+    }
+
+    // Get lembaga data
+    let lembagaData = null;
+    if (user.lembagaId && user.lembagas) {
+      lembagaData = {
+        id: user.lembagas.id,
+        name: user.lembagas.name,
+        code: user.lembagas.code,
+      };
+    }
+
+    // Get unit data
+    let unitData = null;
+    if (user.unitId && user.units) {
+      unitData = {
+        id: user.units.id,
+        name: user.units.name,
+        code: user.units.code,
+      };
     }
 
     return NextResponse.json({
@@ -52,8 +72,8 @@ export async function GET(request: NextRequest) {
         lembagaId: user.lembagaId,
         isActive: user.isActive,
         createdAt: user.createdAt,
-        unit: user.unit,
-        lembaga: user.lembaga,
+        unit: unitData,
+        lembaga: lembagaData,
       },
     }, { status: 200 });
   } catch (error) {

@@ -160,8 +160,8 @@ Model utama:
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/brontolano/alba-fintech-v2.git
-cd alba-fintech-v2
+git clone https://github.com/brontolano/alba-fintech-v3.git
+cd alba-fintech-v3
 
 # 2. Install dependencies
 npm install
@@ -405,6 +405,6 @@ All Rights Reserved.
 
 ---
 
-> 🔗 **Repository:** https://github.com/brontolano/alba-fintech-v2  
+> 🔗 **Repository:** https://github.com/brontolano/alba-fintech-v3  
 > 📘 **User Guide:** [README.md](./README.md)  
 > 🐛 **Laporkan bug:** Buka GitHub Issues

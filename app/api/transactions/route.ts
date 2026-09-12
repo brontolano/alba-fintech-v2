@@ -8,6 +8,10 @@ import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 
+// Allowed file types for photo uploads
+const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
+
 // Schema for creating transactions
 const createTransactionSchema = z.object({
   type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
@@ -36,6 +40,7 @@ const querySchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   categoryId: z.string().optional(),
+  search: z.string().optional(),
   page: z.string().optional().transform((val) => (val ? parseInt(val) : 1)),
   limit: z.string().optional().transform((val) => (val ? parseInt(val) : 10)),
 });
@@ -63,7 +68,7 @@ export async function GET(request: NextRequest) {
     if (role === 'STAFF' || role === 'MANAGER') {
       where.unitId = session.user.unitId;
     } else if (role === 'PIMPINAN') {
-      where.unit = {
+      where.units = {
         lembagaId: session.user.lembagaId,
       };
     }
@@ -94,19 +99,35 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Text search on description and reference
+    if (parsed.data.search) {
+      where.OR = [
+        { description: { contains: parsed.data.search, mode: 'insensitive' } },
+        { reference: { contains: parsed.data.search, mode: 'insensitive' } },
+      ];
+    }
+
     // Fetch transactions
     const transactions = await prisma.transaction.findMany({
       where,
-      include: {
-        unit: true,
-        account: true,
-        category: true,
-        createdBy: {
+      select: {
+        id: true,
+        unitId: true,
+        type: true,
+        amount: true,
+        description: true,
+        date: true,
+        status: true,
+        reference: true,
+        units: { select: { name: true } },
+        bank_accounts: { select: { name: true } },
+        financial_categories: { select: { name: true } },
+        users_transactions_createdByIdTousers: {
           select: { name: true, email: true },
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        date: 'desc',  // Order by transaction date, not creation date (for POS)
       },
       skip: (parsed.data.page - 1) * parsed.data.limit,
       take: parsed.data.limit,
@@ -114,8 +135,17 @@ export async function GET(request: NextRequest) {
 
     const total = await prisma.transaction.count({ where });
 
+    // Transform data to match frontend expectations
+    const transformedTransactions = transactions.map(tx => ({
+      ...tx,
+      unitName: tx.units?.name,
+      accountName: tx.bank_accounts?.name,
+      categoryName: tx.financial_categories?.name,
+      createdByName: tx.users_transactions_createdByIdTousers?.name,
+    }));
+
     return NextResponse.json({
-      data: transactions,
+      data: transformedTransactions,
       summary: {
         total,
         pages: Math.ceil(total / parsed.data.limit),
@@ -172,23 +202,41 @@ export async function POST(request: NextRequest) {
       // Handle photo upload
       const photo = formData.get('photo') as File | null;
       if (photo && photo.size > 0) {
+        // Validate file type
+        if (!ALLOWED_PHOTO_TYPES.includes(photo.type)) {
+          return NextResponse.json(
+            { error: 'Tipe file tidak didukung. Hanya JPEG, PNG, dan WebP yang diizinkan.' },
+            { status: 400 }
+          );
+        }
+
+        // Validate file size
+        if (photo.size > MAX_PHOTO_SIZE) {
+          return NextResponse.json(
+            { error: 'Ukuran file terlalu besar. Maksimal 5MB.' },
+            { status: 400 }
+          );
+        }
+
         try {
           const uploadDir = join(process.cwd(), 'public', 'uploads', 'transactions');
-          
+
           if (!fs.existsSync(uploadDir)) {
             await mkdir(uploadDir, { recursive: true });
           }
 
           const buffer = await photo.arrayBuffer();
-          const fileName = `transaction_${uuidv4()}.jpg`;
+          const extension = photo.type.split('/')[1] || 'jpg';
+          const fileName = `transaction_${uuidv4()}.${extension}`;
           const filePath = join(uploadDir, fileName);
-          
+
           const nodeBuffer = Buffer.from(buffer);
           const { promises: fsPromises } = await import('fs');
           await fsPromises.writeFile(filePath, nodeBuffer);
           photoUrl = `/uploads/transactions/${fileName}`;
         } catch (error) {
           console.error('Error uploading photo:', error);
+          return NextResponse.json({ error: 'Gagal mengunggah foto' }, { status: 500 });
         }
       }
     } else {
@@ -217,8 +265,26 @@ export async function POST(request: NextRequest) {
     // Parse orderItems if present
     const orderItemsData = parsedData.orderItems || [];
 
+    // Validate unit settings for POS transactions (orderItems)
+    if (orderItemsData && orderItemsData.length > 0) {
+      const unitSettings = await prisma.unitSetting.findUnique({
+        where: { unitId: parsedData.unitId! },
+      });
+      if (!unitSettings?.inventoryEnabled) {
+        return NextResponse.json(
+          { error: 'Unit tidak memiliki inventory yang diaktifkan untuk POS' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Validate inventory items if provided (for POS transactions)
     for (const item of orderItemsData) {
+      // Auto-calculate totalPrice if not provided or invalid
+      if (item.unitPrice !== undefined && item.quantity !== undefined) {
+        item.totalPrice = Number(item.unitPrice) * Number(item.quantity);
+      }
+      
       if (item.itemId) {
         const inventoryItem = await prisma.inventoryItem.findUnique({
           where: { id: item.itemId },
@@ -228,10 +294,6 @@ export async function POST(request: NextRequest) {
             { error: `Item tidak ditemukan: ${item.itemName || item.itemId}` },
             { status: 400 }
           );
-        }
-        // Auto-calculate total price if not provided
-        if (item.totalPrice === undefined && item.unitPrice && item.quantity) {
-          item.totalPrice = item.unitPrice * item.quantity;
         }
       }
     }
@@ -250,7 +312,7 @@ export async function POST(request: NextRequest) {
         createdById: session.user.id!,
         status: 'PENDING',
         photoUrl: finalPhotoUrl,
-        orderItems: {
+        order_items: {
           create: orderItemsData.map((item: any) => ({
             itemName: item.itemName,
             quantity: item.quantity,
@@ -259,12 +321,6 @@ export async function POST(request: NextRequest) {
             itemId: item.itemId,
           }))
         }
-      },
-      include: {
-        unit: true,
-        account: true,
-        category: true,
-        orderItems: true,
       },
     });
 
