@@ -17,7 +17,11 @@ import {
   BarChart3,
   ClipboardList,
   FileText,
+  Users,
+  Settings,
 } from 'lucide-react';
+
+import { useSession } from 'next-auth/react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -105,9 +109,8 @@ export default function DashboardPage() {
 
   const today = new Date();
 
-  // Determine role-based display (server-side check for label)
-  // Note: In client component, we rely on data from API which already applies RBAC
-  const role = 'Pengguna';
+  const { data: session } = useSession();
+  const role = session?.user?.role || 'USER';
 
   if (loading) {
     return (
@@ -316,30 +319,39 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Feature Shortcut Grid */}
-      <div className="mb-6 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-        {[
-          { href: '/dashboard/transactions', icon: Receipt, label: 'Transaksi' },
-          { href: '/dashboard/financial-notes', icon: FileText, label: 'Nota Keuangan' },
-          { href: '/dashboard/approvals', icon: ClipboardList, label: 'Persetujuan' },
-          { href: '/dashboard/inventory', icon: Package, label: 'Inventori' },
-          { href: '/dashboard/pos', icon: ShoppingCart, label: 'POS' },
-          { href: '/dashboard/reports', icon: BarChart3, label: 'Laporan' },
-        ].map((f) => (
-          <Link
-            key={f.href}
-            href={f.href}
-            className="flex flex-col items-center justify-center gap-1.5 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-800 transition text-center"
-          >
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
-              <f.icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-              {f.label}
-            </span>
-          </Link>
-        ))}
-      </div>
+      {/* Feature Shortcut Grid - role based */}
+      {(() => {
+        const allFeatures = [
+          { href: '/dashboard/transactions', icon: Receipt, label: 'Transaksi', roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
+          { href: '/dashboard/financial-notes', icon: FileText, label: 'Nota Keuangan', roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'] },
+          { href: '/dashboard/approvals', icon: ClipboardList, label: 'Persetujuan', roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'] },
+          { href: '/dashboard/inventory', icon: Package, label: 'Inventori', roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
+          { href: '/dashboard/pos', icon: ShoppingCart, label: 'POS', roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
+          { href: '/dashboard/reports', icon: BarChart3, label: 'Laporan', roles: ['SUPERADMIN', 'PIMPINAN'] },
+          { href: '/dashboard/units', icon: LayoutGrid, label: 'Unit', roles: ['SUPERADMIN', 'PIMPINAN'] },
+          { href: '/dashboard/users', icon: Users, label: 'Pengguna', roles: ['SUPERADMIN', 'PIMPINAN'] },
+          { href: '/dashboard/settings', icon: Settings, label: 'Pengaturan', roles: ['SUPERADMIN'] },
+        ];
+        const features = allFeatures.filter((f) => f.roles.includes(role));
+        return (
+          <div className="mb-6 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            {features.map((f) => (
+              <Link
+                key={f.href}
+                href={f.href}
+                className="flex flex-col items-center justify-center gap-1.5 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-800 transition text-center"
+              >
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
+                  <f.icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  {f.label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Virtual Cards per Unit */}
       <div className="mb-6">
