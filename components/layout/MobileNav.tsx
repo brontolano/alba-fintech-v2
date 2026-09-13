@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { signOut } from 'next-auth/react';
 import {
   LayoutDashboard,
   Receipt,
@@ -14,7 +13,6 @@ import {
   Users,
   LayoutGrid,
   MoreVertical,
-  LogOut,
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -98,30 +96,18 @@ export function MobileNav({ user }: MobileNavProps) {
       icon: <Settings size={20} />,
       roles: ['SUPERADMIN'],
     },
-    {
-      label: 'Keluar',
-      href: '#logout',
-      icon: <LogOut size={20} />,
-      roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'],
-    },
   ];
 
   const visibleNavItems = navItems.filter(
     (item) => !item.roles || item.roles.includes(role)
   );
 
-  // Logout is always separate
-  const logoutItem = visibleNavItems.find((item) => item.href === '#logout');
+  // Logout dipindah ke halaman profil — bottom nav hanya 5 menu fitur utama
   const navItemsExcludingLogout = visibleNavItems.filter((item) => item.href !== '#logout');
 
-  // Limit to 5 main items, rest go to "more" menu
+  // Limit to exactly 5 main items, rest goes to "more" menu
   const mainItems = navItemsExcludingLogout.slice(0, 5);
   const moreItems = navItemsExcludingLogout.slice(5);
-
-  const handleLogout = () => {
-    setMoreOpen(false);
-    signOut();
-  };
 
   const handleMoreClick = (href: string) => {
     setMoreOpen(false);
@@ -174,27 +160,9 @@ export function MobileNav({ user }: MobileNavProps) {
                       <span className="whitespace-nowrap">{item.label}</span>
                     </button>
                   ))}
-                  {logoutItem && (
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-red-50 text-red-600"
-                    >
-                      {logoutItem.icon}
-                      <span className="whitespace-nowrap">{logoutItem.label}</span>
-                    </button>
-                  )}
                 </div>
               )}
             </div>
-          )}
-          {logoutItem && moreItems.length === 0 && (
-            <button
-              onClick={handleLogout}
-              className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors text-red-600 hover:bg-red-50"
-            >
-              <LogOut size={20} />
-              <span className="text-xs mt-1 font-medium">Keluar</span>
-            </button>
           )}
         </div>
       </div>
