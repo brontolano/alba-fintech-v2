@@ -1,4 +1,0 @@
-# DUMMY FILE
-
-File ini hanyalah dummy untuk testing deploy ke `alba.brontolano.com`.
-File ini akan dihapus / replace setelah deploy selesai.
