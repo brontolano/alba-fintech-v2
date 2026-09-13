@@ -1,14 +1,11 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter as FontSans } from 'next/font/google';
 import { Toaster } from 'sonner';
 import SessionProvider from '@/components/providers/session-provider';
 import PerformanceGuard from '@/components/ui/PerformanceGuard';
 
-const fontSans = FontSans({
-  subsets: ['latin'],
-  variable: '--font-sans',
-});
+// Font via CSS local (see globals.css) to avoid build-time network fetch
+const fontSans = { variable: '--font-sans' };
 
 export const metadata: Metadata = {
   title: {
