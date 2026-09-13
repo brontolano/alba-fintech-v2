@@ -11,6 +11,12 @@ import {
   Download,
   Receipt,
   Pencil,
+  LayoutGrid,
+  ShoppingCart,
+  Package,
+  BarChart3,
+  ClipboardList,
+  FileText,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -308,6 +314,31 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Feature Shortcut Grid */}
+      <div className="mb-6 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+        {[
+          { href: '/dashboard/transactions', icon: Receipt, label: 'Transaksi' },
+          { href: '/dashboard/financial-notes', icon: FileText, label: 'Nota Keuangan' },
+          { href: '/dashboard/approvals', icon: ClipboardList, label: 'Persetujuan' },
+          { href: '/dashboard/inventory', icon: Package, label: 'Inventori' },
+          { href: '/dashboard/pos', icon: ShoppingCart, label: 'POS' },
+          { href: '/dashboard/reports', icon: BarChart3, label: 'Laporan' },
+        ].map((f) => (
+          <Link
+            key={f.href}
+            href={f.href}
+            className="flex flex-col items-center justify-center gap-1.5 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-800 transition text-center"
+          >
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
+              <f.icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+              {f.label}
+            </span>
+          </Link>
+        ))}
       </div>
 
       {/* Virtual Cards per Unit */}

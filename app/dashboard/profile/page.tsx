@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User as UserIcon, Mail, Shield, UserCheck, Calendar, MapPin, User, Camera, X } from 'lucide-react';
+import { User as UserIcon, Mail, Shield, UserCheck, Calendar, MapPin, User, Camera, X, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
+import { signOut } from 'next-auth/react';
 import Image from 'next/image';
 
 interface UserProfile {
@@ -320,6 +321,18 @@ export default function ProfilePage() {
               <div className="text-left">
                 <p className="font-medium text-slate-800">Pengaturan</p>
                 <p className="text-xs text-slate-500">Privasi dan notifikasi</p>
+              </div>
+            </button>
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-3 p-4 border border-red-200 rounded-lg hover:bg-red-50 transition col-span-1 md:col-span-3"
+            >
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <LogOut size={20} className="text-red-600" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium text-red-600">Keluar</p>
+                <p className="text-xs text-slate-500">Keluar dari sesi ini</p>
               </div>
             </button>
           </div>
