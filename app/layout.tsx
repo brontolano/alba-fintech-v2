@@ -2,8 +2,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter as FontSans } from 'next/font/google';
 import { Toaster } from 'sonner';
-import { useEffect } from 'react';
 import SessionProvider from '@/components/providers/session-provider';
+import PerformanceGuard from '@/components/ui/PerformanceGuard';
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -50,33 +50,6 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
-
-function PerformanceGuard() {
-  // Hostinger-injected perf script reads window.performance.timing navigationStart
-  // and crashes with "Cannot read properties of undefined (reading 'startTime')"
-  // when timing API unavailable (VM/headless browser). Guard it.
-  useEffect(() => {
-    try {
-      if (typeof window === 'undefined') return;
-      if (!window.performance) {
-        window.performance = {
-          now: () => Date.now(),
-          mark: () => {},
-          measure: () => {},
-          clearMarks: () => {},
-          clearMeasures: () => {},
-          getEntries: () => [],
-          getEntriesByName: () => [],
-          getEntriesByType: () => [],
-          clearResourceTimings: () => {},
-          setResourceTimingBufferSize: () => {},
-        } as any;
-      }
-    } catch {}
-  }, []);
-
-  return null;
 }
 
 // Force dynamic rendering for layout and pages
