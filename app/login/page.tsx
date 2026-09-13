@@ -30,7 +30,7 @@ export default async function LoginPage() {
             />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
-            ALBA Finance v3
+            ALBA Finance v5
           </h1>
           <p className="text-slate-600 mt-2">
             Aplikasi Keuangan Pondok Pesantren Al-Basyariyah
