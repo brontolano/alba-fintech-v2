@@ -21,10 +21,10 @@ interface ApprovalRequest {
   amount: number;
   description: string;
   reference?: string;
-  approver: {
-    name?: string;
-    email: string;
-  };
+  units: {
+    name: string;
+    code: string;
+  } | null;
   transactions: {
     type: string;
     amount: number;
@@ -34,6 +34,10 @@ interface ApprovalRequest {
       name: string;
       code: string;
     } | null;
+  };
+  users: {
+    name?: string | null;
+    email: string;
   };
 }
 
@@ -217,7 +221,7 @@ export default function ApprovalsPage() {
                   <div className="flex items-center gap-2 text-sm text-slate-500">
                     <span>Diajukan oleh:</span>
                     <span className="font-medium">
-                      {approval.approver.name || approval.approver.email}
+                      {approval.users?.name || approval.users?.email}
                     </span>
                   </div>
                 </div>

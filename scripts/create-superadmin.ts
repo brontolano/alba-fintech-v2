@@ -26,7 +26,7 @@ async function main() {
             isActive: true,
         },
     });
-    
+
     console.log('✅ SuperAdmin created:', user.email);
 }
 

@@ -154,6 +154,9 @@ export async function POST(request: NextRequest) {
           },
         },
         units: true,
+        users: {
+          select: { name: true, email: true },
+        },
       },
     });
 
