@@ -404,7 +404,99 @@ export default function InventoryPage() {
 
       {/* Inventory Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile: card list */}
+        <div className="md:hidden">
+          {loading ? (
+            <div className="p-6 text-center text-slate-500">Memuat data...</div>
+          ) : filteredItems.length === 0 ? (
+            <div className="p-6 text-center text-slate-500">Tidak ada barang ditemukan</div>
+          ) : (
+            <div className="divide-y divide-slate-200">
+              {filteredItems.map((item, idx) => {
+                const stockStatus = getStockStatus(item.currentStock, item.minStock);
+                const totalValue = Number(item.currentStock) * Number(item.unitPrice);
+
+                return (
+                  <div key={item.id} className="p-4 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">No</span>
+                      <span className="text-sm text-slate-500">{(currentPage - 1) * limit + idx + 1}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">Nama Barang</span>
+                      <span className="text-sm font-medium text-slate-800 flex items-center gap-2">
+                        <Package className="w-4 h-4 text-slate-500" />
+                        {item.name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">SKU</span>
+                      <span className="text-sm text-slate-600">{item.sku}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">Kategori</span>
+                      <span className="text-sm text-slate-600">{item.category || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">Unit</span>
+                      <span className="text-sm text-slate-600">{item.unit?.name || item.unitName || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">Stok</span>
+                      <span
+                        className={`text-sm font-medium ${
+                          stockStatus === 'good'
+                            ? 'text-green-600'
+                            : stockStatus === 'low'
+                            ? 'text-yellow-600'
+                            : 'text-red-600'
+                        }`}
+                      >
+                        {item.currentStock} / {item.minStock}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">Harga Beli</span>
+                      <span className="text-sm text-slate-600">{formatCurrency(Number(item.purchasePrice))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">Harga Jual</span>
+                      <span className="text-sm text-emerald-600">{formatCurrency(Number(item.unitPrice))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">Nilai</span>
+                      <span className="text-sm text-slate-800 font-medium">{formatCurrency(totalValue)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">Status</span>
+                      <span className="text-sm text-center">{getStockBadge(stockStatus)}</span>
+                    </div>
+                    <div className="pt-2 flex justify-end gap-1">
+                      <button
+                        onClick={() => {
+                          toast.info('Fitur edit barang belum tersedia');
+                        }}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+                        title="Edit"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600"
+                        title="Hapus"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        {/* Desktop: tabel normal */}
+        <div className="hidden md:block">
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">

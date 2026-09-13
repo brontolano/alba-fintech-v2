@@ -235,7 +235,77 @@ export default function FinancialNotesPage() {
 
       {/* Notes Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile: card list */}
+        <div className="md:hidden">
+          {loading ? (
+            <div className="p-6 text-center text-slate-500">Memuat data...</div>
+          ) : filteredNotes.length === 0 ? (
+            <div className="p-6 text-center text-slate-500">Tidak ada catatan keuangan</div>
+          ) : (
+            <div className="divide-y divide-slate-200">
+              {filteredNotes.map((note) => (
+                <div key={note.id} className="p-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Tanggal</span>
+                    <span className="text-sm text-slate-600">
+                      {format(new Date(note.date), 'dd MMM yyyy', { locale: id })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Unit</span>
+                    <span className="text-sm font-medium text-emerald-600">
+                      {note.unitName || note.unitId || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Judul</span>
+                    <span className="text-sm font-medium text-slate-800">{note.title}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Deskripsi</span>
+                    <span className="text-sm text-slate-600">{note.description}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Jumlah</span>
+                    <span className={note.type === 'INCOME' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                      {note.type === 'INCOME' ? '+' : '- '}{formatCurrency(note.amount)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Status</span>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        note.status === 'APPROVED'
+                          ? 'bg-green-100 text-green-700'
+                          : note.status === 'PENDING'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : note.status === 'REJECTED'
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {note.status}
+                    </span>
+                  </div>
+                  <div className="pt-2 flex justify-end gap-1">
+                    <button className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100" title="Edit">
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(note.id)}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600"
+                      title="Hapus"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {/* Desktop: tabel normal */}
+        <div className="hidden md:block">
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">

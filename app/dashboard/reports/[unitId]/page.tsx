@@ -231,7 +231,63 @@ export default function UnitReportPage({ params }: { params: Promise<{ unitId: s
       {/* Transactions Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <h2 className="text-lg font-semibold text-slate-800 p-6 pb-0">Transaksi Terkait</h2>
-        <div className="overflow-x-auto">
+        {/* Mobile: card list */}
+        <div className="md:hidden">
+          {transactions.length === 0 ? (
+            <div className="p-6 text-center text-slate-500">
+              Tidak ada transaksi
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-200">
+              {transactions.map((tx) => (
+                <div key={tx.id} className="p-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Tanggal</span>
+                    <span className="text-sm text-slate-700">
+                      {new Date(tx.date).toLocaleDateString('id-ID')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Deskripsi</span>
+                    <span className="text-sm text-slate-800">{tx.description}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Kategori</span>
+                    <span className="text-sm text-slate-600">{tx.category?.name || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Jumlah</span>
+                    <span
+                      className={`text-sm font-medium ${
+                        tx.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
+                      }`}
+                    >
+                      {tx.type === 'INCOME' ? '+' : '-'} {formatCurrency(tx.amount)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">Status</span>
+                    <span
+                      className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                        tx.status === 'APPROVED'
+                          ? 'bg-green-100 text-green-800'
+                          : tx.status === 'PENDING'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : tx.status === 'REJECTED'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-slate-100 text-slate-800'
+                      }`}
+                    >
+                      {tx.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {/* Desktop: tabel normal */}
+        <div className="hidden md:block">
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -251,22 +307,26 @@ export default function UnitReportPage({ params }: { params: Promise<{ unitId: s
                   <td className="py-3 px-4 text-sm text-slate-800">{tx.description}</td>
                   <td className="py-3 px-4 text-sm text-slate-600">{tx.category?.name || '-'}</td>
                   <td className="py-3 px-4 text-right">
-                    <span className={`font-medium ${
-                      tx.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                    <span
+                      className={`font-medium ${
+                        tx.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
+                      }`}
+                    >
                       {tx.type === 'INCOME' ? '+' : '-'} {formatCurrency(tx.amount)}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-center">
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                      tx.status === 'APPROVED'
-                        ? 'bg-green-100 text-green-800'
-                        : tx.status === 'PENDING'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : tx.status === 'REJECTED'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-slate-100 text-slate-800'
-                    }`}>
+                    <span
+                      className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                        tx.status === 'APPROVED'
+                          ? 'bg-green-100 text-green-800'
+                          : tx.status === 'PENDING'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : tx.status === 'REJECTED'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-slate-100 text-slate-800'
+                      }`}
+                    >
                       {tx.status}
                     </span>
                   </td>
@@ -275,7 +335,7 @@ export default function UnitReportPage({ params }: { params: Promise<{ unitId: s
             </tbody>
           </table>
           {transactions.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
+            <div className="hidden md:block p-8 text-center text-slate-500">
               Tidak ada transaksi
             </div>
           )}

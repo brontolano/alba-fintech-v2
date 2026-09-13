@@ -356,7 +356,75 @@ export default function ReconciliationPage() {
 
           {/* Reconciliation Table */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Mobile: card list */}
+            <div className="md:hidden">
+              {filteredTasks.length === 0 ? (
+                <div className="p-6 text-center text-slate-500">
+                  Tidak ada data rekonsiliasi ditemukan
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-200">
+                  {filteredTasks.map((task) => (
+                    <div key={task.id} className="p-4 space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-500">Tanggal</span>
+                        <span className="text-sm text-slate-600">
+                          {format(new Date(task.date), 'dd MMM yyyy', { locale: id })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-500">Unit</span>
+                        <span className="text-sm font-medium text-emerald-600">{task.unit}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-500">Pemasukan</span>
+                        <span className="text-sm text-green-600">{formatCurrency(task.income)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-500">Pengeluaran</span>
+                        <span className="text-sm text-red-600">{formatCurrency(task.expense)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-500">Sistem</span>
+                        <span className="text-sm text-slate-600">{formatCurrency(task.systemBalance)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-500">Selisih</span>
+                        <span
+                          className={`text-sm font-medium ${
+                            task.variance === 0
+                              ? 'text-slate-800'
+                              : task.variance > 0
+                              ? 'text-red-600'
+                              : 'text-green-600'
+                          }`}
+                        >
+                          {task.variance !== 0 && (task.variance > 0 ? '+ ' : '- ')}
+                          {formatCurrency(Math.abs(task.variance))}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-slate-500">Status</span>
+                        <span className="text-sm">{getStatusBadge(task.status)}</span>
+                      </div>
+                      {task.status === 'PENDING' && (
+                        <div className="pt-2">
+                          <button
+                            onClick={() => handleReconcile(task.id)}
+                            className="w-full h-9 flex items-center justify-center rounded-lg text-emerald-500 hover:bg-emerald-50"
+                            title="Selesaikan Rekonsiliasi"
+                          >
+                            <CheckCircle size={16} /> Selesaikan
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Desktop: tabel normal */}
+            <div className="hidden md:block">
               <table className="w-full">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
