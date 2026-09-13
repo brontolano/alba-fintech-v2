@@ -45,8 +45,24 @@ export default function RootLayout({
           {children}
         </SessionProvider>
         <Toaster position="top-right" closeButton richColors />
+        <PerformanceGuard />
       </body>
     </html>
+  );
+}
+
+function PerformanceGuard() {
+  // Hostinger-injected perf script reads window.performance.timing navigationStart
+  // and crashes with "Cannot read properties of undefined (reading 'startTime')"
+  // when timing API unavailable (VM/headless browser). Guard it.
+  return (
+    <script
+      dangerouslySetInnerHTML={{
+        __html: `
+          (function(){try{var w=window;if(!w.performance){w.performance={now:function(){return Date.now();},mark:function(){},measure:function(){},clearMarks:function(){},clearMeasures:function(){},getEntries:function(){return [];},getEntriesByName:function(){return [];},getEntriesByType:function(){return [];},clearResourceTimings:function(){},setResourceTimingBufferSize:function(){},getEntriesByType=function(){return [];};}}}catch(e){}})();
+        `,
+      }}
+    />
   );
 }
 
