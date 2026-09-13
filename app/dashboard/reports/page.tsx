@@ -427,8 +427,57 @@ export default function ReportsPage() {
                 Laporan Detail per Unit
               </h2>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            {/* Mobile: card list — no horizontal scroll, semua data terlihat */}
+            <div className="md:hidden">
+              {reportData.unitDistributionData.length === 0 ? (
+                <p className="p-6 text-center text-slate-500">
+                  Tidak ada data unit tersedia
+                </p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {reportData.unitDistributionData.map((unit) => {
+                    const profit = unit.income - unit.expense;
+                    return (
+                      <div key={unit.id} className="p-4 space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-xs text-slate-500">Unit</span>
+                          <span className="text-sm font-medium text-slate-800">{unit.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-slate-500">Pemasukan</span>
+                          <span className="text-sm text-green-600">{formatCurrency(unit.income)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-slate-500">Pengeluaran</span>
+                          <span className="text-sm text-red-600">{formatCurrency(unit.expense)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-slate-500">Laba/Rugi</span>
+                          <span className={`text-sm font-medium ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(profit)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-slate-500">Persentase</span>
+                          <span className="text-sm text-slate-600">{unit.percentage}%</span>
+                        </div>
+                        <div className="pt-2">
+                          <Link
+                            href={`/dashboard/reports/${unit.id}`}
+                            className="inline-block text-emerald-600 font-medium text-sm hover:text-emerald-700"
+                          >
+                            Detail
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {/* Desktop: tabel normal */}
+            <div className="hidden md:block">
+              <table className="w-full min-w-[700px]">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Unit</th>
@@ -451,21 +500,21 @@ export default function ReportsPage() {
                       const profit = unit.income - unit.expense;
                       return (
                         <tr key={unit.id} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="py-3 px-4 text-sm font-medium text-slate-800">
+                          <td className="py-3 px-4 text-sm font-medium text-slate-800 whitespace-nowrap">
                             {unit.name}
                           </td>
-                          <td className="py-3 px-4 text-right text-sm text-green-600">
+                          <td className="py-3 px-4 text-right text-sm text-green-600 whitespace-nowrap">
                             {formatCurrency(unit.income)}
                           </td>
-                          <td className="py-3 px-4 text-right text-sm text-red-600">
+                          <td className="py-3 px-4 text-right text-sm text-red-600 whitespace-nowrap">
                             {formatCurrency(unit.expense)}
                           </td>
-                          <td className="py-3 px-4 text-right">
+                          <td className="py-3 px-4 text-right whitespace-nowrap">
                             <span className={profit >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
                               {formatCurrency(profit)}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-right text-sm text-slate-600">
+                          <td className="py-3 px-4 text-right text-sm text-slate-600 whitespace-nowrap">
                             {unit.percentage}%
                           </td>
                           <td className="py-3 px-4 text-center">

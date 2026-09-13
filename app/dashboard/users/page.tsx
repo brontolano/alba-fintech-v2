@@ -160,8 +160,69 @@ export default function UsersPage() {
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          {/* Mobile: card list — semua data terlihat, tidak scroll horizontal */}
+          <div className="md:hidden">
+            <div className="divide-y divide-slate-100">
+              {filteredUsers.map((user, idx) => (
+                <div key={user.id} className="p-4 space-y-2">
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs text-slate-500">#{idx + 1}</span>
+                    <span className="text-xs text-slate-500">{user.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID') : ''}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500">Nama</span>
+                    <span className="text-sm font-medium text-slate-800 block">{user.name || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500">Email</span>
+                    <span className="text-sm text-slate-600 block break-all">{user.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500">Role</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      {getRoleIcon(user.role)}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadge(user.role)}`}>
+                        {user.role}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500">Unit</span>
+                    <span className="text-sm text-slate-600 block">{user.unit?.name || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500">Status</span>
+                    <span
+                      className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                        user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}
+                    >
+                      {user.isActive ? 'Aktif' : 'Non-aktif'}
+                    </span>
+                  </div>
+                  <div className="flex justify-end gap-1 pt-2">
+                    <Link
+                      href={`/dashboard/users/${user.id}`}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+                      title="Edit"
+                    >
+                      <Edit size={16} />
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(user.id)}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600"
+                      title="Hapus"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Desktop: tabel normal */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full min-w-[700px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">#</th>
@@ -176,12 +237,12 @@ export default function UsersPage() {
               <tbody>
                 {filteredUsers.map((user, idx) => (
                   <tr key={user.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-3 px-4 text-sm text-slate-500">{idx + 1}</td>
-                    <td className="py-3 px-4 text-sm font-medium text-slate-800">
+                    <td className="py-3 px-4 text-sm text-slate-500 whitespace-nowrap">{idx + 1}</td>
+                    <td className="py-3 px-4 text-sm font-medium text-slate-800 whitespace-nowrap">
                       {user.name || '-'}
                     </td>
-                    <td className="py-3 px-4 text-sm text-slate-600">{user.email}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 text-sm text-slate-600 whitespace-nowrap">{user.email}</td>
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         {getRoleIcon(user.role)}
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadge(user.role)}`}>
@@ -189,7 +250,7 @@ export default function UsersPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-center text-sm text-slate-600">
+                    <td className="py-3 px-4 text-center text-sm text-slate-600 whitespace-nowrap">
                       {user.unit?.name || '-'}
                     </td>
                     <td className="py-3 px-4 text-center">
