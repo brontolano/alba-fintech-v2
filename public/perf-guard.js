@@ -14,5 +14,6 @@
       setResourceTimingBufferSize:function(){}
     },
     timing:{navigationStart:Date.now()}
-    )}
+    });
+  }
 }catch(e){}})();
