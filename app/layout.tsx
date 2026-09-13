@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter as FontSans } from 'next/font/google';
 import { Toaster } from 'sonner';
 import SessionProvider from '@/components/providers/session-provider';
+import PerformanceGuard from '@/components/ui/PerformanceGuard';
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -41,17 +42,11 @@ export default function RootLayout({
       <body
         className={`${fontSans.variable} font-sans antialiased min-h-screen bg-slate-5 text-slate-900`}
       >
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function(){try{var w=window;if(!w.performance||!w.performance.now||!w.performance.timing){w.performance=Object.assign(w.performance||{},{now:function(){return Date.now();},mark:function(){return {};},measure:function(){return {};},clearMarks:function(){},clearMeasures:function(){},getEntries:function(){return [];},getEntriesByName:function(){return [];},getEntriesByType:function(){return [];},clearResourceTimings:function(){},setResourceTimingBufferSize:function(){}},timing:{navigationStart:Date.now()}})}catch(e){}})();
-            `,
-          }}
-        />
         <SessionProvider>
           {children}
         </SessionProvider>
         <Toaster position="top-right" closeButton richColors />
+        <PerformanceGuard />
       </body>
     </html>
   );
