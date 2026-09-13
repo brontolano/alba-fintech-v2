@@ -173,7 +173,7 @@ try {
   await addColumnIfNotExists('transactions', 'category_id', 'VARCHAR(191)');
   await addColumnIfNotExists('transactions', 'account_id', 'VARCHAR(191)');
   await addColumnIfNotExists('transactions', 'reference', 'VARCHAR(255)');
-  await addColumnIfNotExists('transactions', 'transaction_date', 'DATETIME DEFAULT CURRENT_TIMESTAMP');
+  await addColumnIfNotExists('transactions', 'date', 'DATETIME DEFAULT CURRENT_TIMESTAMP');
   await addColumnIfNotExists('transactions', 'status', 'ENUM("DRAFT","PENDING","APPROVED","REJECTED") DEFAULT "PENDING"');
   await addColumnIfNotExists('transactions', 'created_by_id', 'VARCHAR(191)');
   await addColumnIfNotExists('transactions', 'approved_by_id', 'VARCHAR(191)');
@@ -183,12 +183,12 @@ try {
   await addColumnIfNotExists('transactions', 'photo_url', 'VARCHAR(500)');
   await addColumnIfNotExists('transactions', 'is_pimpinan_note', 'TINYINT DEFAULT 0');
 
-  // Copy data from date to transaction_date if date column exists
-  if (await columnExists('transactions', 'date') && await columnExists('transactions', 'transaction_date')) {
-    const [rows] = await connection.query(`SELECT COUNT(*) as c FROM transactions WHERE transaction_date IS NULL AND date IS NOT NULL`);
+  // Copy data from old transaction_date to date if needed (backward compat)
+  if (await columnExists('transactions', 'transaction_date') && await columnExists('transactions', 'date')) {
+    const [rows] = await connection.query(`SELECT COUNT(*) as c FROM transactions WHERE date IS NULL AND transaction_date IS NOT NULL`);
     if (rows[0].c > 0) {
-      console.log(`  ⚠️  Copy data dari date ke transaction_date...`);
-      await connection.query(`UPDATE transactions SET transaction_date = date WHERE transaction_date IS NULL AND date IS NOT NULL`);
+      console.log(`  ⚠️  Copy data dari transaction_date ke date...`);
+      await connection.query(`UPDATE transactions SET date = transaction_date WHERE date IS NULL AND transaction_date IS NOT NULL`);
     }
   }
 
@@ -200,7 +200,7 @@ try {
   await addIndexIfNotExists('transactions', 'idx_transactions_approved_by_id', 'approved_by_id');
   await addIndexIfNotExists('transactions', 'idx_transactions_status_created_at', 'status, created_at');
   await addIndexIfNotExists('transactions', 'idx_transactions_unit_id_created_at', 'unit_id, created_at');
-  await addIndexIfNotExists('transactions', 'idx_transactions_date_unit_id', 'transaction_date, unit_id');
+  await addIndexIfNotExists('transactions', 'idx_transactions_date_unit_id', 'date, unit_id');
 
   // ============================================
   // 7. TABEL: approvals

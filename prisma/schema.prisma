@@ -129,7 +129,7 @@ model Transaction {
   categoryId                             String?            @db.VarChar(36)
   accountId                              String?            @db.VarChar(36)
   reference                              String?            @db.VarChar(255)
-  date                                   DateTime           @default(now()) @map("transaction_date") @db.DateTime(0)
+  date                                   DateTime           @default(now()) @map("date") @db.DateTime(0)
   status                                 TransactionStatus? @default(PENDING)
   createdById                            String             @db.VarChar(36)
   approvedById                           String?            @db.VarChar(36)
