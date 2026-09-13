@@ -236,6 +236,7 @@ export default function EditUserPage({ params }: Props) {
                 type="password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
+                autoComplete="new-password"
                 className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
                 placeholder="Kosongkan jika tidak ingin mengganti"
                 minLength={6}
