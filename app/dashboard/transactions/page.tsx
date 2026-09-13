@@ -9,6 +9,7 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
+  Edit,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -335,8 +336,8 @@ export default function TransactionsPage() {
                 <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">#</th>
                 <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Tanggal</th>
                 <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Unit</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Ref</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Keterangan</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase hidden sm:table-cell">Ref</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase hidden sm:table-cell">Keterangan</th>
                 <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Jumlah</th>
                 <th className="text-center py-3 px-4 text-xs font-medium text-slate-500 uppercase">Status</th>
                 <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Aksi</th>
@@ -367,10 +368,10 @@ export default function TransactionsPage() {
                     <td className="py-3 px-4 text-sm font-medium text-emerald-600">
                       {tx.unitName || tx.unitId || '-'}
                     </td>
-                    <td className="py-3 px-4 text-sm text-slate-600">
+                    <td className="py-3 px-4 text-sm text-slate-600 hidden sm:table-cell">
                       {tx.reference || '-'}
                     </td>
-                    <td className="py-3 px-4 text-sm text-slate-800">
+                    <td className="py-3 px-4 text-sm text-slate-800 hidden sm:table-cell">
                       {tx.description}
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -395,6 +396,13 @@ export default function TransactionsPage() {
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex justify-end gap-1">
+                        <Link
+                          href={`/dashboard/transactions/${tx.id}/edit`}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+                          title="Edit"
+                        >
+                          <Edit size={16} />
+                        </Link>
                         <Link
                           href={`/dashboard/transactions/${tx.id}`}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"

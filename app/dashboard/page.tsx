@@ -10,6 +10,7 @@ import {
   Filter,
   Download,
   Receipt,
+  Pencil,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -417,21 +418,24 @@ export default function DashboardPage() {
                 <th className="text-left py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
                   Keterangan
                 </th>
-                <th className="text-right py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
+                <th className="text-right py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase hidden sm:table-cell">
                   Pemasukan
                 </th>
-                <th className="text-right py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
+                <th className="text-right py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase hidden sm:table-cell">
                   Pengeluaran
                 </th>
-                <th className="text-right py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
+                <th className="text-right py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase hidden sm:table-cell">
                   Saldo
+                </th>
+                <th className="text-center py-2.5 px-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
+                  Aksi
                 </th>
               </tr>
             </thead>
             <tbody>
               {recentTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={3} className="py-8 text-center text-slate-500 dark:text-slate-400">
                     Tidak ada transaksi terbaru
                   </td>
                 </tr>
@@ -447,14 +451,23 @@ export default function DashboardPage() {
                     <td className="py-2.5 px-3 text-slate-800 dark:text-slate-200">
                       {tx.description}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-green-600 dark:text-green-400">
+                    <td className="py-2.5 px-3 text-right text-green-600 dark:text-green-400 hidden sm:table-cell">
                       {tx.type === 'INCOME' ? formatCurrency(tx.amount) : '-'}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-red-600 dark:text-red-400">
+                    <td className="py-2.5 px-3 text-right text-red-600 dark:text-red-400 hidden sm:table-cell">
                       {tx.type === 'EXPENSE' ? formatCurrency(tx.amount) : '-'}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-slate-600 dark:text-slate-300">
+                    <td className="py-2.5 px-3 text-right text-slate-600 dark:text-slate-300 hidden sm:table-cell">
                       {formatCurrency(tx.amount)}
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
+                      <Link
+                        href={`/dashboard/transactions/${tx.id}/edit`}
+                        className="inline-flex items-center justify-center w-8 h-8 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 rounded-lg transition-colors"
+                        title="Edit transaksi"
+                      >
+                        <Pencil size={16} />
+                      </Link>
                     </td>
                   </tr>
                 ))

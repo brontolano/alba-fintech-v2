@@ -309,7 +309,7 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
         <div className="flex gap-2">
-          {role === 'SUPERADMIN' && transactionId ? (
+          {canEdit && transactionId ? (
             <button
               onClick={() => router.push(`/dashboard/transactions/${transactionId}/edit`)}
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
