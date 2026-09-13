@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter as FontSans } from 'next/font/google';
 import { Toaster } from 'sonner';
+import { useEffect } from 'react';
 import SessionProvider from '@/components/providers/session-provider';
 
 const fontSans = FontSans({
@@ -55,15 +56,27 @@ function PerformanceGuard() {
   // Hostinger-injected perf script reads window.performance.timing navigationStart
   // and crashes with "Cannot read properties of undefined (reading 'startTime')"
   // when timing API unavailable (VM/headless browser). Guard it.
-  return (
-    <script
-      dangerouslySetInnerHTML={{
-        __html: `
-          (function(){try{var w=window;if(!w.performance){w.performance={now:function(){return Date.now();},mark:function(){},measure:function(){},clearMarks:function(){},clearMeasures:function(){},getEntries:function(){return [];},getEntriesByName:function(){return [];},getEntriesByType:function(){return [];},clearResourceTimings:function(){},setResourceTimingBufferSize:function(){},getEntriesByType=function(){return [];};}}}catch(e){}})();
-        `,
-      }}
-    />
-  );
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      if (!window.performance) {
+        window.performance = {
+          now: () => Date.now(),
+          mark: () => {},
+          measure: () => {},
+          clearMarks: () => {},
+          clearMeasures: () => {},
+          getEntries: () => [],
+          getEntriesByName: () => [],
+          getEntriesByType: () => [],
+          clearResourceTimings: () => {},
+          setResourceTimingBufferSize: () => {},
+        } as any;
+      }
+    } catch {}
+  }, []);
+
+  return null;
 }
 
 // Force dynamic rendering for layout and pages
