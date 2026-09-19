@@ -1,31 +1,39 @@
-import './globals.css';
-import type { Metadata } from 'next';
-import { Toaster } from 'sonner';
-import SessionProvider from '@/components/providers/session-provider';
-import PerformanceGuard from '@/components/ui/PerformanceGuard';
+import "./globals.css";
+import type { Metadata } from "next";
+import { Toaster } from "sonner";
+import SessionProvider from "@/components/providers/session-provider";
+import PerformanceGuard from "@/components/ui/PerformanceGuard";
+import AppViewportGuard from "@/components/ui/AppViewportGuard";
 
 // Font via CSS local (see globals.css) to avoid build-time network fetch
-const fontSans = { variable: '--font-sans' };
+const fontSans = { variable: "--font-sans" };
 
 export const metadata: Metadata = {
   title: {
-    default: 'ALBA Finance v3 - Aplikasi Keuangan Pondok Pesantren Al-Basyariyah',
+    default:
+      "ALBA Finance v3 - Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
     template: `%s | ALBA Finance v3`,
   },
-  description: 'Aplikasi Keuangan Pondok Pesantren Al-Basyariyah',
-  keywords: ['keuangan', 'pondok', 'pesantren', 'al-basyariyah', 'keuangan pesantren'],
-  authors: [{ name: 'Pondok Pesantren Al-Basyariyah' }],
+  description: "Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
+  keywords: [
+    "keuangan",
+    "pondok",
+    "pesantren",
+    "al-basyariyah",
+    "keuangan pesantren",
+  ],
+  authors: [{ name: "Pondok Pesantren Al-Basyariyah" }],
   openGraph: {
-    type: 'website',
-    locale: 'id_ID',
+    type: "website",
+    locale: "id_ID",
   },
   robots: {
     index: true,
     follow: true,
   },
-  manifest: '/manifest.json',
+  manifest: "/manifest.json",
   icons: {
-    icon: '/favicon.svg',
+    icon: "/favicon.svg",
   },
 };
 
@@ -36,12 +44,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" suppressHydrationWarning>
+      <head>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"
+        />
+      </head>
       <body
         className={`${fontSans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >
-        <SessionProvider>
-          {children}
-        </SessionProvider>
+        <AppViewportGuard />
+        <SessionProvider>{children}</SessionProvider>
         <Toaster position="top-right" closeButton richColors />
         <PerformanceGuard />
       </body>
@@ -50,4 +63,4 @@ export default function RootLayout({
 }
 
 // Force dynamic rendering for layout and pages
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";

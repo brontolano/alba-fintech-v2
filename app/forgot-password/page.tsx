@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowLeft, Loader2, MessageCircle, ShieldCheck } from 'lucide-react';
+import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowLeft, Loader2, MessageCircle, ShieldCheck } from "lucide-react";
 
 /**
  * Halaman Lupa Kata Sandi — sesuai prototipe Auth:
@@ -13,7 +13,7 @@ import { ArrowLeft, Loader2, MessageCircle, ShieldCheck } from 'lucide-react';
  * yang merespons netral (mode 'unavailable') selama integrasi WhatsApp Gateway belum aktif.
  */
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -22,43 +22,52 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setNotice(null);
     try {
-      const res = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setNotice(data.message ?? 'Permintaan diterima.');
+        setNotice(data.message ?? "Permintaan diterima.");
       } else {
-        setNotice(data.error ?? 'Terjadi kesalahan. Coba lagi.');
+        setNotice(data.error ?? "Terjadi kesalahan. Coba lagi.");
       }
     } catch {
-      setNotice('Tidak dapat menghubungi server. Periksa koneksi lalu coba lagi.');
+      setNotice(
+        "Tidak dapat menghubungi server. Periksa koneksi lalu coba lagi.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <Link
           href="/login"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           Kembali ke Login
         </Link>
 
-        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
+        <div className="bg-card border border-border rounded-2xl shadow-xl p-6 sm:p-8">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-              <MessageCircle className="w-6 h-6 text-emerald-600" aria-hidden="true" />
+            <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <MessageCircle
+                className="w-6 h-6 text-primary"
+                aria-hidden="true"
+              />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">Lupa Kata Sandi</h1>
-              <p className="text-xs text-slate-500">Verifikasi via WhatsApp Pesantren</p>
+              <h1 className="text-xl font-bold text-foreground">
+                Lupa Kata Sandi
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                Verifikasi via WhatsApp Pesantren
+              </p>
             </div>
           </div>
 
@@ -66,7 +75,7 @@ export default function ForgotPasswordPage() {
             <div>
               <label
                 htmlFor="fp-email"
-                className="block text-sm font-medium text-slate-700 mb-1"
+                className="block text-sm font-medium text-foreground mb-1"
               >
                 Email akun Anda
               </label>
@@ -75,21 +84,25 @@ export default function ForgotPasswordPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent focus:outline-none text-sm bg-slate-50"
+                className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary/40 focus:outline-none text-sm bg-background text-foreground placeholder:text-muted-foreground"
                 placeholder="nama@alba.local"
                 required
                 autoComplete="email"
               />
-              <p className="mt-2 text-xs text-slate-400 flex items-start gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-500" aria-hidden="true" />
-                Kode OTP akan dikirim ke nomor WhatsApp pesantren yang terdaftar pada akun ini.
+              <p className="mt-2 text-xs text-muted-foreground flex items-start gap-1.5">
+                <ShieldCheck
+                  className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary"
+                  aria-hidden="true"
+                />
+                Kode OTP akan dikirim ke nomor WhatsApp pesantren yang terdaftar
+                pada akun ini.
               </p>
             </div>
 
             {notice && (
               <div
                 role="status"
-                className="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-800"
+                className="rounded-xl bg-success/10 border border-success/20 px-4 py-3 text-sm text-foreground"
               >
                 {notice}
               </div>
@@ -102,11 +115,15 @@ export default function ForgotPasswordPage() {
             >
               {loading ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" aria-hidden="true" />
+                  <Loader2
+                    size={18}
+                    className="animate-spin"
+                    aria-hidden="true"
+                  />
                   <span>Memproses…</span>
                 </>
               ) : (
-                'Kirim Kode OTP'
+                "Kirim Kode OTP"
               )}
             </button>
           </form>

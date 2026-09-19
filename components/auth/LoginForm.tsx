@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
-import Link from 'next/link';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
 
 export default function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -19,23 +19,23 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         redirect: false,
         email,
         password,
       });
 
       if (result?.error) {
-        toast.error('Login gagal', {
+        toast.error("Login gagal", {
           description: result.error,
         });
       } else {
-        toast.success('Login berhasil!');
-        router.push('/dashboard');
+        toast.success("Login berhasil!");
+        router.push("/dashboard");
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan', {
-        description: 'Silakan coba lagi',
+      toast.error("Terjadi kesalahan", {
+        description: "Silakan coba lagi",
       });
     } finally {
       setIsLoading(false);
@@ -47,7 +47,7 @@ export default function LoginForm() {
       <div>
         <label
           htmlFor="email"
-          className="block text-sm font-medium text-slate-700 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           Email
         </label>
@@ -56,7 +56,7 @@ export default function LoginForm() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent focus:outline-none text-sm bg-slate-50"
+          className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary/40 focus:outline-none text-sm bg-background text-foreground placeholder:text-muted-foreground"
           placeholder="Email"
           required
           autoComplete="email"
@@ -66,17 +66,17 @@ export default function LoginForm() {
       <div>
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-slate-700 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           Password
         </label>
         <div className="relative">
           <input
             id="password"
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent focus:outline-none text-sm bg-slate-50"
+            className="w-full px-4 py-3 pr-12 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary/40 focus:outline-none text-sm bg-background text-foreground placeholder:text-muted-foreground"
             placeholder="Password"
             required
             autoComplete="current-password"
@@ -84,14 +84,10 @@ export default function LoginForm() {
           <button
             type="button"
             tabIndex={-1}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             onClick={() => setShowPassword(!showPassword)}
           >
-            {showPassword ? (
-              <EyeOff size={20} />
-            ) : (
-              <Eye size={20} />
-            )}
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
       </div>
