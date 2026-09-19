@@ -41,6 +41,7 @@ export default function AccountPage() {
     try {
       const res = await fetch("/api/users/profile");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal memuat profil");
       setProfile(data.data);
     } catch (err) {
       console.error("Error fetching profile:", err);
@@ -54,6 +55,7 @@ export default function AccountPage() {
     try {
       const res = await fetch("/api/units");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal memuat unit");
       setUnits(data.data ?? []);
     } catch (err) {
       console.error("Error fetching units:", err);

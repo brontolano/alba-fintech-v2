@@ -81,6 +81,10 @@ export default function ProfilePage() {
       const profileRes = await fetch("/api/users/profile");
       const profileData = await profileRes.json();
 
+      if (!profileRes.ok) {
+        throw new Error(profileData.error || "Gagal memuat data profil");
+      }
+
       setData({
         profile: profileData.data,
       });

@@ -25,6 +25,8 @@ interface User {
   lembagaId: string | null;
   unit?: { id: string; name: string; code: string } | null;
   lembaga?: { id: string; name: string; code: string } | null;
+  units?: { id: string; name: string; code: string } | null;
+  lembagas?: { id: string; name: string; code: string } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -220,7 +222,7 @@ export default function UsersPage() {
                         Unit
                       </div>
                       <div className="mt-1 text-muted-foreground">
-                        {user.unit?.name || "-"}
+                        {user.unit?.name || user.units?.name || "-"}
                       </div>
                     </div>
 
@@ -328,7 +330,7 @@ export default function UsersPage() {
                       className="px-4 py-3 text-center text-sm text-muted-foreground"
                       data-label="Unit"
                     >
-                      {user.unit?.name || "-"}
+                      {user.unit?.name || user.units?.name || "-"}
                     </td>
                     <td className="px-4 py-3 text-center" data-label="Status">
                       <span
