@@ -1,57 +1,61 @@
-# See https://help.github.com/en/get-started/getting-started-with-git/ignoring-files
-# for most good practices for various types of directories and files
-
-# Node.js dependencies
+# Dependencies
 node_modules/
+.pnpm-store/
 
-# Production build output
+# Next.js / build output
 .next/
 out/
+.vercel/
+.turbo/
+coverage/
 
-# Environment variables (keep secret!)
+# Environment files
 .env
-.env.local
-.env.development/
-.env.development.local
-.env.test/
-.env.test.local
-.env.production/
-.env.production.local
-.env.production
+.env.*
+!.env.example
+!.env.local.example
+!.env.production.example
 
-# Database
+# Database / local data
 *.db
 *.sqlite
-*.sqlitejournal
+*.sqlite-journal
 dev.db
+dev.db*
 
-# Deployment package
+# Build and deploy artifacts
+build/
+dist/
+*.zip
+*.tar.gz
+*.apk
+*.aab
 deploy-package/
 alba-fintech-deploy.tar.gz
 
-# Logs
+# Logs and temp files
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.tmp
+*.temp
+*.tsbuildinfo
+*.bat
+cookies.txt
+nul
 
-# OS files
+# OS / editor junk
 .DS_Store
 Thumbs.db
-
-# IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
 
-# Claude Code - dokumentasi & memori agent AI (lokal, jangan commit)
+# AI tooling / local workspace artifacts
 .claude/
-!/.claude/plans/
-!/.claude/plans/**
-
-# AI tool / workspace artifacts (local only, jangan commit)
 .freebuff/
 .agents/
 .augment/
@@ -71,35 +75,15 @@ Thumbs.db
 .trae/
 .warp/
 .windsurf/
-
-# Prisma
-/prisma/*.ml
-
-# Temporary files
-*.tmp
-*.temp
-
-# Build info
-*.tsbuildinfo
-
-# Test/temp files
-*.bat
-cookies.txt
-
-# Zip archives (build artifacts)
-*.zip
-
-# Temp build output files
-build-output.txt
-build_check.txt
-tsc_log.txt
-tsc-output.txt
-tsc_errors.txt
-
-# Bug-hunter / scan artifacts (local only)
 .bug-hunter/
 .goose/
-bug-hunter/
+
+# Prisma local artifacts
+prisma/*.ml
+prisma/schema-v3.prisma
+
+# Local scripts / scratch files
+scripts/debug/
 commit-helper.cjs
 fix-git.cjs
 gen-target-files.js
@@ -116,34 +100,30 @@ tmp-curl2.ps1
 tmp-curl3.ps1
 tmp-dash.html
 tmp-save-dash.ps1
+build-output.txt
+build_check.txt
+tsc_log.txt
+tsc-output.txt
+tsc_errors.txt
 
-# Windows / stray files
-nul
-
-# Debug scripts (local only, not committed)
-scripts/debug/
-
-# Junk AI-generated images
-docs/GUIDE/Gemini_Generated_Image_*.jfif
-
-# Mockup docs (local only)
+# Project-local docs / mockups / generated junk
+android-app/
+design-system/
 docs/MOCKUP/
 docs/GUIDE/
-design-system/
 todolist.md
 
-# Duplicate assets (kept in public/ as canonical)
+# Duplicate / canonical asset exclusions
 public/background-01.png
 public/logo.png
 
+# Local app data
 /uploads
-.env.local
-.env.*
-!.env.example
-goose.config.yaml
 recipes/
+secrets.yaml.example
+goose.config.yaml
 database.sql
 database-update-v2.sql
-dev.db*
-prisma/schema-v3.prisma
-secrets.yaml.example
+
+# AI-generated image junk
+docs/GUIDE/Gemini_Generated_Image_*.jfif
