@@ -49,6 +49,7 @@ const HEX_TO_COLOR = Object.fromEntries(
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("system");
   const [isExporting, setIsExporting] = useState(false);
+  const [isBackingUp, setIsBackingUp] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [resetPassword, setResetPassword] = useState("");
@@ -283,6 +284,24 @@ export default function SettingsPage() {
       toast.error("Gagal mengekspor data");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleServerBackup = async () => {
+    setIsBackingUp(true);
+    try {
+      const res = await fetch("/api/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "backup" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal membuat backup server");
+      toast.success(`Backup ${data.fileName} berhasil disimpan di server`);
+    } catch (err: any) {
+      toast.error(err.message || "Gagal membuat backup server");
+    } finally {
+      setIsBackingUp(false);
     }
   };
 
@@ -560,6 +579,37 @@ export default function SettingsPage() {
                       )}
                       <span>
                         {isExporting ? "Mengekspor..." : "Ekspor Data"}
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="rounded-[18px] border border-border bg-background/70 p-4">
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100">
+                        <Database size={20} className="text-violet-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">
+                          Backup ke Server
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Simpan backup di server dan kirim ke Google Drive jika
+                          sudah dikonfigurasi
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleServerBackup}
+                      disabled={isBackingUp}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50"
+                    >
+                      {isBackingUp ? (
+                        <RefreshCw size={18} className="animate-spin" />
+                      ) : (
+                        <Database size={18} />
+                      )}
+                      <span>
+                        {isBackingUp ? "Membuat backup..." : "Backup ke Server"}
                       </span>
                     </button>
                   </div>

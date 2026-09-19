@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/options";
 import prisma from "@/lib/prisma";
 import {
   exportDatabase,
+  createServerBackup,
   importDatabase,
   resetDatabase,
   seedDemoData,
@@ -46,11 +47,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const result =
-      body.action === "demo"
-        ? await seedDemoData(prisma)
-        : body.action === "reset"
-          ? await resetDatabase(prisma)
-          : await importDatabase(prisma, body);
+      body.action === "backup"
+        ? await createServerBackup(prisma)
+        : body.action === "demo"
+          ? await seedDemoData(prisma)
+          : body.action === "reset"
+            ? await resetDatabase(prisma)
+            : await importDatabase(prisma, body);
     return NextResponse.json(result, { status: 200 });
   } catch (error: any) {
     console.error("[Data API] mutation failed", error);

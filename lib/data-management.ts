@@ -1,5 +1,14 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import {
+  mkdir,
+  readFile,
+  readdir,
+  stat,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
+import path from "node:path";
 
 const DEMO_PASSWORD = "Bismillah123!";
 
@@ -154,6 +163,77 @@ export async function exportDatabase(prisma: PrismaClient) {
     if (delegate) result.data[model] = jsonSafe(await delegate.findMany());
   }
   return result;
+}
+
+export async function createServerBackup(prisma: PrismaClient) {
+  const retentionDays = Number(process.env.BACKUP_RETENTION_DAYS || 14);
+  if (!Number.isInteger(retentionDays) || retentionDays < 1) {
+    throw new Error(
+      "BACKUP_RETENTION_DAYS harus berupa bilangan bulat minimal 1",
+    );
+  }
+
+  const directory = path.resolve(process.env.BACKUP_DIRECTORY || "backups");
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const filePath = path.join(directory, `alba-backup-${stamp}.json`);
+  const backup = await exportDatabase(prisma);
+  await writeFile(filePath, JSON.stringify(backup), {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+
+  const scriptUrl = process.env.GOOGLE_APPS_SCRIPT_URL;
+  const scriptSecret = process.env.GOOGLE_APPS_SCRIPT_SECRET;
+  let remote: unknown = null;
+  if (scriptUrl || scriptSecret) {
+    if (!scriptUrl || !scriptSecret) {
+      throw new Error(
+        "GOOGLE_APPS_SCRIPT_URL dan GOOGLE_APPS_SCRIPT_SECRET harus diisi bersama",
+      );
+    }
+    const response = await fetch(scriptUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret: scriptSecret,
+        fileName: path.basename(filePath),
+        contentBase64: (await readFile(filePath)).toString("base64"),
+        source: "alba-fintech",
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    remote = await response.json();
+    if (!response.ok || !(remote as { ok?: boolean }).ok) {
+      throw new Error(
+        (remote as { error?: string }).error ||
+          `Google Apps Script HTTP ${response.status}`,
+      );
+    }
+  }
+
+  const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+  const files = await readdir(directory, { withFileTypes: true });
+  await Promise.all(
+    files
+      .filter(
+        (file) =>
+          file.isFile() &&
+          file.name.startsWith("alba-backup-") &&
+          file.name.endsWith(".json"),
+      )
+      .map(async (file) => {
+        const candidate = path.join(directory, file.name);
+        if ((await stat(candidate)).mtimeMs < cutoff) await unlink(candidate);
+      }),
+  );
+
+  return {
+    message: "Backup database berhasil disimpan di server",
+    fileName: path.basename(filePath),
+    remote,
+    retentionDays,
+  };
 }
 
 async function clearAllData(tx: any, preserveSuperadmins: boolean) {
