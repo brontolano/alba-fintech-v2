@@ -1,23 +1,24 @@
 const CONFIG = {
-  driveFolderId: 'PASTE_GOOGLE_DRIVE_FOLDER_ID',
-  spreadsheetId: 'PASTE_GOOGLE_SHEET_ID',
-  sheetName: 'Backup Log',
-  sharedSecret: 'PASTE_LONG_RANDOM_SHARED_SECRET'
+  driveFolderId: "1TU-sagmevhdzy-dn7FlSs9uktnftJ3nj",
+  spreadsheetId: "1GqytnnaNaPbye6wNVPv7n60fiPe3yC482-4miehuCuI",
+  sheetName: "Backup Log",
+  // Must be a random token, not the Web App URL.
+  sharedSecret: "PASTE_LONG_RANDOM_SHARED_SECRET",
 };
 
 function doPost(e) {
   const startedAt = new Date();
   try {
-    const payload = JSON.parse(e.postData.contents || '{}');
+    const payload = JSON.parse(e.postData.contents || "{}");
     if (payload.secret !== CONFIG.sharedSecret) {
-      return jsonResponse({ ok: false, error: 'Unauthorized' });
+      return jsonResponse({ ok: false, error: "Unauthorized" });
     }
     if (!payload.fileName || !payload.contentBase64) {
-      throw new Error('fileName dan contentBase64 wajib diisi');
+      throw new Error("fileName dan contentBase64 wajib diisi");
     }
 
     const bytes = Utilities.base64Decode(payload.contentBase64);
-    const blob = Utilities.newBlob(bytes, 'application/json', payload.fileName);
+    const blob = Utilities.newBlob(bytes, "application/json", payload.fileName);
     const folder = DriveApp.getFolderById(CONFIG.driveFolderId);
     const file = folder.createFile(blob);
     const sheet = getLogSheet();
@@ -25,25 +26,29 @@ function doPost(e) {
       startedAt,
       payload.fileName,
       bytes.length,
-      'SUCCESS',
+      "SUCCESS",
       file.getId(),
       file.getUrl(),
-      payload.source || 'alba-fintech',
-      ''
+      payload.source || "alba-fintech",
+      "",
     ]);
 
-    return jsonResponse({ ok: true, fileId: file.getId(), fileUrl: file.getUrl() });
+    return jsonResponse({
+      ok: true,
+      fileId: file.getId(),
+      fileUrl: file.getUrl(),
+    });
   } catch (error) {
     try {
       getLogSheet().appendRow([
         startedAt,
-        e?.postData ? 'request' : '',
+        e?.postData ? "request" : "",
         0,
-        'FAILED',
-        '',
-        '',
-        'alba-fintech',
-        String(error)
+        "FAILED",
+        "",
+        "",
+        "alba-fintech",
+        String(error),
       ]);
     } catch (_) {
       // Keep the original error response if Sheet logging is unavailable.
@@ -56,15 +61,52 @@ function getLogSheet() {
   const spreadsheet = SpreadsheetApp.openById(CONFIG.spreadsheetId);
   let sheet = spreadsheet.getSheetByName(CONFIG.sheetName);
   if (!sheet) sheet = spreadsheet.insertSheet(CONFIG.sheetName);
+
+  const headers = [
+    "Timestamp",
+    "File Name",
+    "Bytes",
+    "Status",
+    "Drive File ID",
+    "Drive URL",
+    "Source",
+    "Error",
+  ];
+
+  // Create and format the log table once; repeated backups remain idempotent.
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['Timestamp', 'File Name', 'Bytes', 'Status', 'Drive File ID', 'Drive URL', 'Source', 'Error']);
-    sheet.setFrozenRows(1);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   }
+
+  sheet.setFrozenRows(1);
+  sheet
+    .getRange(1, 1, 1, headers.length)
+    .setFontWeight("bold")
+    .setFontColor("#ffffff")
+    .setBackground("#1f4e78")
+    .setHorizontalAlignment("center");
+  sheet.getRange("A:A").setNumberFormat("yyyy-mm-dd hh:mm:ss");
+  sheet.getRange("C:C").setNumberFormat("#,##0");
+  sheet.getRange("D:D").setHorizontalAlignment("center");
+  sheet.getRange("F:F").setShowHyperlink(true);
+  sheet.setColumnWidths(1, headers.length, 150);
+  sheet.setColumnWidth(2, 280);
+  sheet.setColumnWidth(5, 240);
+  sheet.setColumnWidth(6, 320);
+  sheet.setColumnWidth(8, 360);
+
+  const filter = sheet.getFilter();
+  if (filter) {
+    filter.remove();
+  }
+  const lastRow = Math.max(sheet.getLastRow(), 1);
+  sheet.getRange(1, 1, lastRow, headers.length).createFilter();
+
   return sheet;
 }
 
 function jsonResponse(value) {
-  return ContentService
-    .createTextOutput(JSON.stringify(value))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify(value)).setMimeType(
+    ContentService.MimeType.JSON,
+  );
 }
