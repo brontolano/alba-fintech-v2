@@ -1,10 +1,26 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { User as UserIcon, Mail, Shield, UserCheck, Calendar, MapPin, User, Camera, X, LogOut } from 'lucide-react';
-import { toast } from 'sonner';
-import { signOut } from 'next-auth/react';
-import Image from 'next/image';
+import { useState, useEffect } from "react";
+import {
+  User as UserIcon,
+  Mail,
+  Shield,
+  UserCheck,
+  MapPin,
+  User,
+  Camera,
+  X,
+  LogOut,
+  Building2,
+  CalendarDays,
+  KeyRound,
+  Settings2,
+  CheckCircle2,
+  ArrowUpRight,
+} from "lucide-react";
+import { toast } from "sonner";
+import { signOut } from "next-auth/react";
+import Image from "next/image";
 
 interface UserProfile {
   id: string;
@@ -24,18 +40,30 @@ interface ProfileData {
   profile: UserProfile | null;
 }
 
-const roleLabels: Record<string, { label: string; icon: string; color: string }> = {
-  SUPERADMIN: { label: 'Super Admin', icon: '👑', color: 'purple' },
-  PIMPINAN: { label: 'Pimpinan', icon: '🏢', color: 'emerald' },
-  MANAGER: { label: 'Manager', icon: '🧑‍💼', color: 'blue' },
-  STAFF: { label: 'Staff', icon: '👤', color: 'slate' },
-};
-
-const roleColors = {
-  purple: 'bg-purple-100 text-purple-700',
-  emerald: 'bg-emerald-100 text-emerald-700',
-  blue: 'bg-blue-100 text-blue-700',
-  slate: 'bg-slate-100 text-slate-700',
+const roleLabels: Record<
+  string,
+  { label: string; icon: React.ReactNode; color: string }
+> = {
+  SUPERADMIN: {
+    label: "Super Admin",
+    icon: <UserCheck className="w-3.5 h-3.5" />,
+    color: "primary",
+  },
+  PIMPINAN: {
+    label: "Pimpinan",
+    icon: <Shield className="w-3.5 h-3.5" />,
+    color: "primary",
+  },
+  MANAGER: {
+    label: "Manager",
+    icon: <User className="w-3.5 h-3.5" />,
+    color: "primary",
+  },
+  STAFF: {
+    label: "Staff",
+    icon: <User className="w-3.5 h-3.5" />,
+    color: "primary",
+  },
 };
 
 export default function ProfilePage() {
@@ -50,15 +78,15 @@ export default function ProfilePage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const profileRes = await fetch('/api/users/profile');
+      const profileRes = await fetch("/api/users/profile");
       const profileData = await profileRes.json();
 
       setData({
         profile: profileData.data,
       });
     } catch (err) {
-      console.error('Error fetching data:', err);
-      toast.error('Gagal memuat data profil');
+      console.error("Error fetching data:", err);
+      toast.error("Gagal memuat data profil");
     } finally {
       setLoading(false);
     }
@@ -72,13 +100,13 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Hanya gambar yang diizinkan');
+    if (!file.type.startsWith("image/")) {
+      toast.error("Hanya gambar yang diizinkan");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Ukuran gambar maksimal 5MB');
+      toast.error("Ukuran gambar maksimal 5MB");
       return;
     }
 
@@ -92,16 +120,16 @@ export default function ProfilePage() {
     setUploadingImage(true);
     try {
       const formData = new FormData();
-      formData.append('image', selectedImage);
+      formData.append("image", selectedImage);
 
-      const res = await fetch('/api/users/profile/upload', {
-        method: 'POST',
+      const res = await fetch("/api/users/profile/upload", {
+        method: "POST",
         body: formData,
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal mengunggah gambar');
+        throw new Error(err.error || "Gagal mengunggah gambar");
       }
 
       const result = await res.json();
@@ -109,32 +137,34 @@ export default function ProfilePage() {
         ...prev,
         profile: result.data,
       }));
-      toast.success('Foto profil berhasil diperbarui');
-      URL.revokeObjectURL(previewImage || '');
+      toast.success("Foto profil berhasil diperbarui");
+      URL.revokeObjectURL(previewImage || "");
       setPreviewImage(null);
       setSelectedImage(null);
     } catch (err: any) {
-      toast.error(err.message || 'Gagal mengunggah gambar');
+      toast.error(err.message || "Gagal mengunggah gambar");
     } finally {
       setUploadingImage(false);
     }
   };
 
   const handleRemoveImage = () => {
-    URL.revokeObjectURL(previewImage || '');
+    URL.revokeObjectURL(previewImage || "");
     setPreviewImage(null);
     setSelectedImage(null);
   };
 
   const { profile } = data;
-  const roleInfo = profile ? (roleLabels[profile.role as keyof typeof roleLabels] || roleLabels.STAFF) : roleLabels.STAFF;
+  const roleInfo = profile
+    ? roleLabels[profile.role as keyof typeof roleLabels] || roleLabels.STAFF
+    : roleLabels.STAFF;
 
   if (loading) {
     return (
       <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-slate-100 rounded-xl w-1/3"></div>
-          <div className="h-64 bg-slate-100 rounded-xl"></div>
+        <div className="space-y-4 animate-pulse">
+          <div className="h-8 w-1/3 rounded-xl bg-muted" />
+          <div className="h-64 rounded-[22px] border border-border bg-card/80" />
         </div>
       </div>
     );
@@ -143,251 +173,344 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="p-6">
-        <div className="text-center py-12">
-          <UserIcon size={48} className="mx-auto text-slate-300 mb-4" />
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">Profil Tidak Ditemukan</h3>
-          <p className="text-slate-500">Tidak dapat memuat data profil pengguna</p>
+        <div className="py-12 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+            <UserIcon size={32} className="text-muted-foreground" />
+          </div>
+          <h3 className="mb-2 text-lg font-semibold text-foreground">
+            Profil Tidak Ditemukan
+          </h3>
+          <p className="text-muted-foreground">
+            Tidak dapat memuat data profil pengguna
+          </p>
         </div>
       </div>
     );
   }
 
+  const joinedDate = new Date(profile.createdAt).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Detail Profil</h1>
-        <p className="text-slate-600 mt-1">Lihat dan Kelola Informasi Akun Anda</p>
-      </div>
-
-      <div className="max-w-4xl mx-auto">
-        {/* Profile Header Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex flex-col md:flex-row items-start gap-6">
-            {/* Avatar Section */}
-            <div className="relative">
-              <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center overflow-hidden">
-                {previewImage ? (
-                  <Image
-                    src={previewImage}
-                    alt="Preview"
-                    width={96}
-                    height={96}
-                    className="object-cover"
-                  />
-                ) : profile.image ? (
-                  <Image
-                    src={profile.image}
-                    alt="Profile"
-                    width={96}
-                    height={96}
-                    className="object-cover"
-                  />
-                ) : (
-                  <span className="text-2xl font-bold text-white">
-                    {profile.name?.[0] || 'U'}
-                  </span>
-                )}
-              </div>
-              {previewImage && (
-                <>
-                  <button
-                    onClick={handleRemoveImage}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 cursor-pointer hover:bg-red-600 transition shadow-lg"
-                    title="Batal pilih"
-                  >
-                    <X size={12} />
-                  </button>
-                </>
-              )}
-              <label
-                htmlFor="profile-image"
-                className="absolute -bottom-2 -right-2 bg-emerald-600 text-white rounded-full p-1.5 cursor-pointer hover:bg-emerald-700 transition shadow-lg"
-                title="Ganti foto"
-              >
-                <Camera size={14} />
-                <input
-                  type="file"
-                  id="profile-image"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </label>
-            </div>
-
-            {/* Info Section */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-2xl font-bold text-slate-800">
-                  {profile.name || 'Pengguna'}
-                </h2>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${roleColors[roleInfo.color as keyof typeof roleColors]}`}
-                >
-                  {roleInfo.icon} {roleInfo.label}
-                </span>
-              </div>
-              <p className="text-slate-600 mb-3">{profile.email}</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center gap-2 text-slate-600">
-                  <User size={16} />
-                  <span>{profile.role === 'SUPERADMIN' ? 'Super Admin' : profile.role === 'PIMPINAN' ? 'Pimpinan' : profile.role === 'MANAGER' ? 'Manager' : 'Staff'}</span>
-                </div>
-                {profile.unit && (
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <MapPin size={16} />
-                    <span>{profile.unit.name}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Calendar size={16} />
-                  <span>Bergabung {new Date(profile.createdAt).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}</span>
-                </div>
-                {profile.isActive === false && (
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Shield size={16} className="text-amber-500" />
-                    <span>Akun Non-Aktif</span>
-                  </div>
-                )}
-              </div>
-            </div>
+    <div className="min-h-full bg-background px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              Ruang akun
+            </p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              Detail Profil
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+              Kelola identitas dan akses Anda di ALBA Finance dalam satu tempat.
+            </p>
           </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span
+              className={`h-2 w-2 rounded-full ${profile.isActive ? "bg-emerald-500" : "bg-destructive"}`}
+            />
+            {profile.isActive ? "Akun aktif" : "Akun nonaktif"}
+          </div>
+        </div>
 
-          {previewImage && (
-            <div className="mt-6 p-4 bg-slate-50 rounded-lg">
-              <p className="text-sm text-slate-600 mb-3">
-                Foto baru dipilih. Klik &quot;Simpan Gambar&quot; untuk mengunggah.
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.6fr)]">
+          <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_12px_40px_rgba(16,24,40,0.06)]">
+            <div className="relative bg-gradient-to-br from-primary via-primary to-slate-900 px-6 pb-7 pt-6 text-primary-foreground sm:px-8">
+              <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full border-[18px] border-white/10" />
+              <p className="relative text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
+                Profil pengguna
               </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleSaveImage}
-                  disabled={uploadingImage}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
-                >
-                  <Camera size={16} />
-                  <span>{uploadingImage ? 'Mengunggah...' : 'Simpan Gambar'}</span>
-                </button>
-                <button
-                  onClick={handleRemoveImage}
-                  className="px-4 py-2 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition"
-                >
-                  Batal
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Quick Actions Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Tindakan Cepat</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              onClick={() => window.location.href = '/dashboard/account'}
-              className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
-            >
-              <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <User size={20} className="text-emerald-600" />
-              </div>
-              <div className="text-left">
-                <p className="font-medium text-slate-800">Edit Profil</p>
-                <p className="text-xs text-slate-500">UbahNama Email</p>
-              </div>
-            </button>
-            <button
-              onClick={() => window.location.href = '/dashboard/account'}
-              className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
-            >
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Mail size={20} className="text-blue-600" />
-              </div>
-              <div className="text-left">
-                <p className="font-medium text-slate-800">Ganti Password</p>
-                <p className="text-xs text-slate-500">Amankan akun Anda</p>
-              </div>
-            </button>
-            <button
-              onClick={() => window.location.href = '/dashboard/settings'}
-              className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
-            >
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Shield size={20} className="text-purple-600" />
-              </div>
-              <div className="text-left">
-                <p className="font-medium text-slate-800">Pengaturan</p>
-                <p className="text-xs text-slate-500">Privasi dan notifikasi</p>
-              </div>
-            </button>
-            <button
-              onClick={() => signOut()}
-              className="flex items-center gap-3 p-4 border border-red-200 rounded-lg hover:bg-red-50 transition col-span-1 md:col-span-3"
-            >
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <LogOut size={20} className="text-red-600" />
-              </div>
-              <div className="text-left">
-                <p className="font-medium text-red-600">Keluar</p>
-                <p className="text-xs text-slate-500">Keluar dari sesi ini</p>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* Account Details Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Detail Akun</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-sm font-medium text-slate-700 mb-3">Informasi Pengguna</h4>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider">Nama</p>
-                  <p className="text-slate-800">{profile.name || '-'}</p>
+              <div className="relative mt-7 flex flex-col gap-5 sm:flex-row sm:items-end">
+                <div className="relative shrink-0">
+                  <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border-4 border-white/20 bg-white/15 shadow-xl backdrop-blur-sm">
+                    {previewImage ? (
+                      <Image
+                        src={previewImage}
+                        alt="Preview foto profil"
+                        width={112}
+                        height={112}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : profile.image ? (
+                      <Image
+                        src={profile.image}
+                        alt={`Foto profil ${profile.name || "pengguna"}`}
+                        width={112}
+                        height={112}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-5xl font-bold text-white">
+                        {profile.name?.[0] || "U"}
+                      </span>
+                    )}
+                  </div>
+                  {previewImage && (
+                    <button
+                      onClick={handleRemoveImage}
+                      className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-lg transition hover:scale-105"
+                      title="Batal pilih"
+                      aria-label="Batal pilih foto"
+                    >
+                      <X size={15} />
+                    </button>
+                  )}
+                  <label
+                    htmlFor="profile-image"
+                    className="absolute -bottom-2 -right-2 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 border-primary bg-accent text-accent-foreground shadow-lg transition hover:scale-105"
+                    title="Ganti foto"
+                  >
+                    <Camera size={16} />
+                    <input
+                      type="file"
+                      id="profile-image"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider">Email</p>
-                  <p className="text-slate-800">{profile.email}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider">Role</p>
-                  <p className="text-slate-800 capitalize">{roleInfo.label.toLowerCase()}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider">Status</p>
-                  <span className={`inline px-2 py-0.5 rounded-full text-xs font-medium ${
-                    profile.isActive 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-red-100 text-red-700'
-                  }`}>
-                    {profile.isActive ? 'Aktif' : 'Nonaktif'}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-slate-700 mb-3">Unit & Lembaga</h4>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider">Unit</p>
-                  <p className="text-slate-800">
-                    {profile.unit ? `${profile.unit.name} (${profile.unit.code})` : 'Tidak ada unit'}
+                <div className="min-w-0 pb-1">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <h2 className="truncate text-2xl font-bold sm:text-3xl">
+                      {profile.name || "Pengguna"}
+                    </h2>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                      {roleInfo.icon}
+                      {roleInfo.label}
+                    </span>
+                  </div>
+                  <p className="flex items-center gap-2 truncate text-sm text-white/70">
+                    <Mail size={15} />
+                    {profile.email}
                   </p>
                 </div>
-                {profile.lembaga && (
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wider">Lembaga</p>
-                    <p className="text-slate-800">{profile.lembaga.name} ({profile.lembaga.code})</p>
-                  </div>
-                )}
+              </div>
+            </div>
+
+            {previewImage && (
+              <div className="flex flex-col gap-3 border-b border-border bg-accent/10 px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+                <p className="text-sm text-foreground">
+                  Foto baru siap disimpan.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveImage}
+                    disabled={uploadingImage}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Camera size={15} />
+                    {uploadingImage ? "Mengunggah..." : "Simpan foto"}
+                  </button>
+                  <button
+                    onClick={handleRemoveImage}
+                    className="min-h-10 rounded-lg border border-border px-4 text-sm font-medium text-muted-foreground transition hover:bg-muted"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="grid gap-0 sm:grid-cols-3">
+              <div className="border-b border-border p-6 sm:border-b-0 sm:border-r sm:px-8">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Peran
+                </p>
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Shield size={17} className="text-primary" />
+                  {roleInfo.label}
+                </div>
+              </div>
+              <div className="border-b border-border p-6 sm:border-b-0 sm:border-r sm:px-8">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Unit kerja
+                </p>
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <MapPin size={17} className="text-primary" />
+                  {profile.unit?.name || "Tanpa unit"}
+                </div>
+              </div>
+              <div className="p-6 sm:px-8">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Bergabung
+                </p>
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <CalendarDays size={17} className="text-primary" />
+                  {joinedDate}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside className="rounded-2xl border border-border bg-card p-6 shadow-[0_12px_40px_rgba(16,24,40,0.06)] sm:p-7">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                  Navigasi
+                </p>
+                <h3 className="mt-1 text-xl font-bold text-foreground">
+                  Aksi akun
+                </h3>
+              </div>
+              <ArrowUpRight size={20} className="text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={() => (window.location.href = "/dashboard/account")}
+                className="group flex min-h-14 w-full items-center gap-3 rounded-xl border border-border px-3 text-left transition hover:border-primary/40 hover:bg-primary/5"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <User size={18} />
+                </span>
+                <span className="flex-1">
+                  <strong className="block text-sm text-foreground">
+                    Edit profil
+                  </strong>
+                  <small className="text-xs text-muted-foreground">
+                    Nama dan informasi akun
+                  </small>
+                </span>
+                <ArrowUpRight
+                  size={16}
+                  className="text-muted-foreground transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                />
+              </button>
+              <button
+                onClick={() => (window.location.href = "/dashboard/account")}
+                className="group flex min-h-14 w-full items-center gap-3 rounded-xl border border-border px-3 text-left transition hover:border-primary/40 hover:bg-primary/5"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-accent-foreground">
+                  <KeyRound size={18} />
+                </span>
+                <span className="flex-1">
+                  <strong className="block text-sm text-foreground">
+                    Ganti password
+                  </strong>
+                  <small className="text-xs text-muted-foreground">
+                    Perbarui keamanan akun
+                  </small>
+                </span>
+                <ArrowUpRight
+                  size={16}
+                  className="text-muted-foreground transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                />
+              </button>
+              <button
+                onClick={() => (window.location.href = "/dashboard/settings")}
+                className="group flex min-h-14 w-full items-center gap-3 rounded-xl border border-border px-3 text-left transition hover:border-primary/40 hover:bg-primary/5"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <Settings2 size={18} />
+                </span>
+                <span className="flex-1">
+                  <strong className="block text-sm text-foreground">
+                    Pengaturan
+                  </strong>
+                  <small className="text-xs text-muted-foreground">
+                    Preferensi aplikasi
+                  </small>
+                </span>
+                <ArrowUpRight
+                  size={16}
+                  className="text-muted-foreground transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                />
+              </button>
+            </div>
+            <button
+              onClick={() => signOut()}
+              className="mt-5 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-destructive/25 text-sm font-semibold text-destructive transition hover:bg-destructive/5"
+            >
+              <LogOut size={16} />
+              Keluar dari sesi
+            </button>
+          </aside>
+        </div>
+
+        <section className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-[0_12px_40px_rgba(16,24,40,0.04)] sm:p-8">
+          <div className="mb-6 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                Ringkasan identitas
+              </p>
+              <h3 className="mt-1 text-xl font-bold text-foreground">
+                Detail akun
+              </h3>
+            </div>
+            <CheckCircle2
+              size={22}
+              className={
+                profile.isActive ? "text-emerald-500" : "text-destructive"
+              }
+            />
+          </div>
+          <div className="grid gap-x-10 gap-y-6 md:grid-cols-2">
+            <div className="space-y-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Nama lengkap
+                </p>
+                <p className="mt-1 text-sm font-medium text-foreground">
+                  {profile.name || "-"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Email
+                </p>
+                <p className="mt-1 break-all text-sm font-medium text-foreground">
+                  {profile.email}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Status akun
+                </p>
+                <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+                  <span
+                    className={`h-2 w-2 rounded-full ${profile.isActive ? "bg-emerald-500" : "bg-destructive"}`}
+                  />
+                  {profile.isActive ? "Aktif" : "Nonaktif"}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-5 border-t border-border pt-5 md:border-l md:border-t-0 md:pl-10 md:pt-0">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Unit
+                </p>
+                <p className="mt-1 flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Building2 size={16} className="text-primary" />
+                  {profile.unit
+                    ? `${profile.unit.name} (${profile.unit.code})`
+                    : "Tidak ada unit"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Lembaga
+                </p>
+                <p className="mt-1 text-sm font-medium text-foreground">
+                  {profile.lembaga
+                    ? `${profile.lembaga.name} (${profile.lembaga.code})`
+                    : "Tidak ada lembaga"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Akses
+                </p>
+                <p className="mt-1 text-sm font-medium text-foreground">
+                  {roleInfo.label}
+                </p>
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

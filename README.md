@@ -1,11 +1,11 @@
-# 📘 ALBA Finance v3
+# 📘 ALBA Finance v7
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.3.4-black?style=for-the-badge&logo=nextdotjs)](https://nextjs.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.22.0-2D2743?style=for-the-badge&logo=prisma)](https://prisma.io/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4472C4?style=for-the-badge&logo=mysql)](https://mysql.com/)
 [![NextAuth.js](https://img.shields.io/badge/NextAuth-4.24-0075FF?style=for-the-badge)](https://next-auth.js.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-06B6D4?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
-[![v1.1.0](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/brontolano/alba-fintech-v2)
+[![v7.0.0](https://img.shields.io/badge/version-v7.0.0-blue.svg)](https://github.com/brontolano/alba-fintech-v2)
 
 > Platform manajemen keuangan berbasis web untuk **Pondok Pesantren Al-Basyariyah** (Bandung, Jawa Barat).  
 > Satukan pencatatan transaksi, workflow persetujuan, rekonsiliasi, inventori, dan point of sale (POS) seluruh unit pesantren dalam satu sistem terpusat real-time.

@@ -1,23 +1,29 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   ClipboardList,
   CheckCircle,
   XCircle,
   TrendingUp,
   TrendingDown,
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
-import { toast } from 'sonner';
+  History,
+  RefreshCw,
+  ArrowUpRight,
+  ArrowDownRight,
+  Clock3,
+} from "lucide-react";
+import Link from "next/link";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface ApprovalRequest {
   id: string;
   transactionId: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: string;
-  type: 'INCOME' | 'EXPENSE';
+  type: "INCOME" | "EXPENSE";
   amount: number;
   description: string;
   reference?: string;
@@ -39,26 +45,37 @@ interface ApprovalRequest {
     name?: string | null;
     email: string;
   };
+  submittedBy?: {
+    name?: string | null;
+    email: string;
+    role?: string;
+  };
 }
 
 export default function ApprovalsPage() {
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
+  const [activeTab, setActiveTab] = useState<
+    "PENDING" | "APPROVED" | "REJECTED"
+  >("PENDING");
 
   const fetchApprovals = async () => {
+    setRefreshing(true);
     setLoading(true);
     try {
-      const res = await fetch('/api/approvals', {
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/approvals", {
+        headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
       setApprovals(data.data ?? []);
     } catch (err) {
-      console.error('Error fetching approvals:', err);
-      toast.error('Gagal memuat persetujuan');
+      console.error("Error fetching approvals:", err);
+      toast.error("Gagal memuat persetujuan");
+      setApprovals([]);
     } finally {
+      setRefreshing(false);
       setLoading(false);
     }
   };
@@ -71,20 +88,20 @@ export default function ApprovalsPage() {
     setProcessingId(id);
     try {
       const res = await fetch(`/api/approvals/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'approve' }),
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve" }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal menyetujui');
+        throw new Error(err.error || "Gagal menyetujui");
       }
 
-      toast.success('Transaksi disetujui');
+      toast.success("Transaksi disetujui");
       setApprovals(approvals.filter((a) => a.id !== id));
     } catch (err: any) {
-      toast.error(err.message || 'Gagal menyetujui');
+      toast.error(err.message || "Gagal menyetujui");
     } finally {
       setProcessingId(null);
     }
@@ -94,159 +111,359 @@ export default function ApprovalsPage() {
     setProcessingId(id);
     try {
       const res = await fetch(`/api/approvals/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reject' }),
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reject" }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal menolak');
+        throw new Error(err.error || "Gagal menolak");
       }
 
-      toast.success('Transaksi ditolak');
+      toast.success("Transaksi ditolak");
       setApprovals(approvals.filter((a) => a.id !== id));
     } catch (err: any) {
-      toast.error(err.message || 'Gagal menolak');
+      toast.error(err.message || "Gagal menolak");
     } finally {
       setProcessingId(null);
     }
   };
 
   const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
       minimumFractionDigits: 0,
     }).format(amount);
 
+  const tabMeta = {
+    PENDING: { label: "Pending", accent: "text-emerald-600" },
+    APPROVED: { label: "Disetujui", accent: "text-emerald-600" },
+    REJECTED: { label: "Ditolak", accent: "text-rose-600" },
+  } as const;
+
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Persetujuan Transaksi</h1>
-        <p className="text-slate-600 mt-1">
-          Kelola permintaan persetujuan transaksi keuangan
-        </p>
+    <div className="space-y-5">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-[2rem]">
+            Persetujuan Transaksi
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Kelola permintaan persetujuan transaksi keuangan
+          </p>
+        </div>
+        <Link
+          href="/dashboard/approvals/audit"
+          className="inline-flex items-center gap-2 self-start rounded-full border border-border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted sm:self-auto"
+        >
+          <History size={16} />
+          <span>Riwayat & Audit</span>
+        </Link>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-slate-200">
-        <button
-          onClick={() => setActiveTab('PENDING')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
-            activeTab === 'PENDING'
-              ? 'text-emerald-600 border-emerald-600'
-              : 'text-slate-600 border-transparent hover:text-slate-800'
-          }`}
-        >
-          Pending ({approvals.filter(a => a.status === 'PENDING').length})
-        </button>
-        <button
-          onClick={() => setActiveTab('APPROVED')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
-            activeTab === 'APPROVED'
-              ? 'text-emerald-600 border-emerald-600'
-              : 'text-slate-600 border-transparent hover:text-slate-800'
-          }`}
-        >
-          Approved ({approvals.filter(a => a.status === 'APPROVED').length})
-        </button>
-        <button
-          onClick={() => setActiveTab('REJECTED')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
-            activeTab === 'REJECTED'
-              ? 'text-emerald-600 border-emerald-600'
-              : 'text-slate-600 border-transparent hover:text-slate-800'
-          }`}
-        >
-          Rejected ({approvals.filter(a => a.status === 'REJECTED').length})
-        </button>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {(["PENDING", "APPROVED", "REJECTED"] as const).map((tab) => {
+          const count = approvals.filter((item) => item.status === tab).length;
+          const active = activeTab === tab;
+
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`min-w-[140px] flex-1 rounded-none border-b-2 px-3 py-2 text-left text-sm font-medium transition ${
+                active
+                  ? "border-emerald-500 text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span
+                className={active ? "text-foreground" : "text-muted-foreground"}
+              >
+                {tabMeta[tab].label}
+              </span>
+              <span
+                className={`ml-2 text-base font-bold ${active ? "text-foreground" : "text-muted-foreground"}`}
+              >
+                ({count})
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Approvals List */}
       {loading ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-24 bg-slate-100 rounded-xl animate-pulse"></div>
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-2xl border border-border bg-muted/50"
+            />
           ))}
         </div>
-      ) : approvals.filter(a => a.status === activeTab).length === 0 ? (
-        <div className="text-center py-12">
-          <ClipboardList size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500">Tidak ada permintaan persetujuan</p>
+      ) : approvals.filter((a) => a.status === activeTab).length === 0 ? (
+        <div className="rounded-[22px] border border-dashed border-border bg-card py-12 text-center">
+          <ClipboardList
+            size={48}
+            className="mx-auto mb-4 text-muted-foreground/60"
+          />
+          <p className="text-sm text-muted-foreground">
+            Tidak ada permintaan persetujuan
+          </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {approvals
-            .filter(a => a.status === activeTab)
-            .map((approval) => (
-            <div
-              key={approval.id}
-              className="bg-white rounded-xl shadow-sm border border-slate-200 p-4"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-medium text-slate-500">
-                      {format(new Date(approval.createdAt), 'dd MMM yyyy', { locale: id })}
-                    </span>
-                    <span className="text-xs text-slate-300">•</span>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                      {approval.transactions.units?.name || 'Unit Tidak Dikenal'}
-                      {approval.transactions.units?.code && ` (${approval.transactions.units.code})`}
-                    </span>
-                    {approval.transactions.type === 'INCOME' ? (
-                      <TrendingUp size={16} className="text-green-500" />
-                    ) : (
-                      <TrendingDown size={16} className="text-red-500" />
+        <div className="overflow-hidden rounded-[22px] border border-border bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="hidden md:block">
+            <table className="w-full border-separate border-spacing-0">
+              <thead>
+                <tr className="border-b border-border bg-muted/60">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Tanggal
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Unit
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Deskripsi
+                  </th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Jumlah
+                  </th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Aksi
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {approvals
+                  .filter((a) => a.status === activeTab)
+                  .map((approval) => {
+                    const isIncome = approval.transactions.type === "INCOME";
+                    const statusClass =
+                      approval.status === "PENDING"
+                        ? "bg-amber-100 text-amber-700 border border-amber-200"
+                        : approval.status === "APPROVED"
+                          ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                          : "bg-rose-100 text-rose-700 border border-rose-200";
+
+                    return (
+                      <tr
+                        key={approval.id}
+                        className="border-b border-border transition-colors last:border-b-0 hover:bg-muted/20"
+                      >
+                        <td
+                          className="px-4 py-3 text-sm text-muted-foreground"
+                          data-label="Tanggal"
+                        >
+                          {format(new Date(approval.createdAt), "dd MMM yyyy", {
+                            locale: id,
+                          })}
+                        </td>
+                        <td
+                          className="px-4 py-3 text-sm text-foreground"
+                          data-label="Unit"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary">
+                              {approval.transactions.units?.code || "UNIT"}
+                            </span>
+                            <span className="font-medium text-foreground">
+                              {approval.transactions.units?.name ||
+                                "Unit Tidak Dikenal"}
+                            </span>
+                          </div>
+                        </td>
+                        <td
+                          className="px-4 py-3 text-sm text-foreground"
+                          data-label="Deskripsi"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground">
+                              {approval.description}
+                            </p>
+                            {approval.reference && (
+                              <p className="mt-1 text-[11px] text-muted-foreground">
+                                Ref: {approval.reference}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                        <td
+                          className="px-4 py-3 text-right text-sm"
+                          data-label="Jumlah"
+                        >
+                          <span
+                            className={
+                              isIncome
+                                ? "font-semibold text-emerald-600"
+                                : "font-semibold text-rose-600"
+                            }
+                          >
+                            {isIncome ? "+" : "-"}{" "}
+                            {formatCurrency(approval.amount)}
+                          </span>
+                        </td>
+                        <td
+                          className="px-4 py-3 text-center"
+                          data-label="Status"
+                        >
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${statusClass}`}
+                          >
+                            {approval.status === "PENDING" && (
+                              <Clock3 className="h-3 w-3" />
+                            )}
+                            {approval.status === "APPROVED" && (
+                              <CheckCircle className="h-3 w-3" />
+                            )}
+                            {approval.status === "REJECTED" && (
+                              <XCircle className="h-3 w-3" />
+                            )}
+                            {approval.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center" data-label="Aksi">
+                          {approval.status === "PENDING" ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() =>
+                                  handleApprove(
+                                    approval.id,
+                                    approval.transactionId,
+                                  )
+                                }
+                                disabled={processingId === approval.id}
+                                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <CheckCircle size={12} />
+                                {processingId === approval.id
+                                  ? "..."
+                                  : "Approve"}
+                              </button>
+                              <button
+                                onClick={() => handleReject(approval.id)}
+                                disabled={processingId === approval.id}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <XCircle size={12} />
+                                Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              -
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="divide-y divide-border md:hidden">
+            {approvals
+              .filter((a) => a.status === activeTab)
+              .map((approval) => {
+                const isIncome = approval.transactions.type === "INCOME";
+                const statusClass =
+                  approval.status === "PENDING"
+                    ? "bg-amber-100 text-amber-700 border border-amber-200"
+                    : approval.status === "APPROVED"
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      : "bg-rose-100 text-rose-700 border border-rose-200";
+
+                return (
+                  <div key={approval.id} className="space-y-3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-foreground">
+                          {approval.description}
+                        </div>
+                        <div className="mt-1 text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                          {format(new Date(approval.createdAt), "dd MMM yyyy", {
+                            locale: id,
+                          })}
+                        </div>
+                      </div>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${statusClass}`}
+                      >
+                        {approval.status === "PENDING" && (
+                          <Clock3 className="h-3 w-3" />
+                        )}
+                        {approval.status === "APPROVED" && (
+                          <CheckCircle className="h-3 w-3" />
+                        )}
+                        {approval.status === "REJECTED" && (
+                          <XCircle className="h-3 w-3" />
+                        )}
+                        {approval.status}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                          Unit
+                        </div>
+                        <div className="mt-1 text-foreground">
+                          {approval.transactions.units?.name ||
+                            "Unit Tidak Dikenal"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                          Jumlah
+                        </div>
+                        <div
+                          className={
+                            isIncome
+                              ? "mt-1 font-semibold text-emerald-600"
+                              : "mt-1 font-semibold text-rose-600"
+                          }
+                        >
+                          {isIncome ? "+" : "-"}{" "}
+                          {formatCurrency(approval.amount)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {approval.reference && (
+                      <div className="text-sm text-muted-foreground">
+                        Ref: {approval.reference}
+                      </div>
+                    )}
+
+                    {approval.status === "PENDING" && (
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          onClick={() =>
+                            handleApprove(approval.id, approval.transactionId)
+                          }
+                          disabled={processingId === approval.id}
+                          className="flex-1 rounded-full bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {processingId === approval.id ? "..." : "Approve"}
+                        </button>
+                        <button
+                          onClick={() => handleReject(approval.id)}
+                          disabled={processingId === approval.id}
+                          className="flex-1 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Reject
+                        </button>
+                      </div>
                     )}
                   </div>
-
-                  <p className="font-medium text-slate-800 mb-1">
-                    {approval.description}
-                  </p>
-                  {approval.reference && (
-                    <p className="text-sm text-slate-500">
-                      Referensi: {approval.reference}
-                    </p>
-                  )}
-
-                  <div className="mt-2 mb-2">
-                    <span className="text-lg font-bold text-slate-800">
-                      {formatCurrency(approval.amount)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <span>Diajukan oleh:</span>
-                    <span className="font-medium">
-                      {approval.users?.name || approval.users?.email}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 ml-4">
-                  <button
-                    onClick={() => handleApprove(approval.id, approval.transactionId)}
-                    disabled={processingId === approval.id}
-                    className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-                  >
-                    <CheckCircle size={16} />
-                    <span>Setujui</span>
-                  </button>
-                  <button
-                    onClick={() => handleReject(approval.id)}
-                    disabled={processingId === approval.id}
-                    className="flex items-center gap-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
-                  >
-                    <XCircle size={16} />
-                    <span>Tolak</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+                );
+              })}
+          </div>
         </div>
       )}
     </div>

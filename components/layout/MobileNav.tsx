@@ -1,171 +1,148 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
 import {
-  LayoutDashboard,
-  Receipt,
-  Package,
-  ShoppingCart,
-  BarChart3,
-  ClipboardList,
-  FileText,
+  Home,
+  BarChart2,
+  Wallet,
+  User,
   Settings,
-  Users,
-  LayoutGrid,
-  MoreVertical,
-} from 'lucide-react';
-import { useRouter, usePathname } from 'next/navigation';
+  FileText,
+  ShoppingCart,
+  Package,
+} from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
 
 interface MobileNavProps {
   user: {
     role?: string;
   } | null;
+  className?: string;
 }
-
-type NavItem = {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-  roles?: string[];
-};
 
 export function MobileNav({ user }: MobileNavProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const role = user?.role || 'STAFF';
-  const [moreOpen, setMoreOpen] = useState(false);
 
-  const navItems: NavItem[] = [
-    {
-      label: 'Dashboard',
-      href: '/dashboard',
-      icon: <LayoutDashboard size={20} />,
-      roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'],
-    },
-    {
-      label: 'Transaksi',
-      href: '/dashboard/transactions',
-      icon: <Receipt size={20} />,
-      roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'],
-    },
-    {
-      label: 'Nota',
-      href: '/dashboard/financial-notes',
-      icon: <FileText size={20} />,
-      roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'],
-    },
-    {
-      label: 'Persetujuan',
-      href: '/dashboard/approvals',
-      icon: <ClipboardList size={20} />,
-      roles: ['SUPERADMIN', 'PIMPINAN'],
-    },
-    {
-      label: 'Inventori',
-      href: '/dashboard/inventory',
-      icon: <Package size={20} />,
-      roles: ['SUPERADMIN', 'MANAGER', 'STAFF'],
-    },
-    {
-      label: 'POS',
-      href: '/dashboard/pos',
-      icon: <ShoppingCart size={20} />,
-      roles: ['SUPERADMIN', 'MANAGER', 'STAFF'],
-    },
-    {
-      label: 'Laporan',
-      href: '/dashboard/reports',
-      icon: <BarChart3 size={20} />,
-      roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'],
-    },
-    {
-      label: 'Unit',
-      href: '/dashboard/units',
-      icon: <LayoutGrid size={20} />,
-      roles: ['SUPERADMIN'],
-    },
-    {
-      label: 'Pengguna',
-      href: '/dashboard/users',
-      icon: <Users size={20} />,
-      roles: ['SUPERADMIN'],
-    },
-    {
-      label: 'Pengaturan',
-      href: '/dashboard/settings',
-      icon: <Settings size={20} />,
-      roles: ['SUPERADMIN'],
-    },
-  ];
+  const getNavItems = () => {
+    const role = user?.role;
+    const base = [
+      { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
+      {
+        label: "Analytics",
+        href: "/dashboard/reports",
+        icon: <BarChart2 size={24} />,
+      },
+      {
+        label: "Wallet",
+        href: "/dashboard/transactions",
+        icon: <Wallet size={24} />,
+      },
+      {
+        label: "Profile",
+        href: "/dashboard/profile",
+        icon: <User size={24} />,
+      },
+    ];
 
-  const visibleNavItems = navItems.filter(
-    (item) => !item.roles || item.roles.includes(role)
-  );
-
-  // Logout dipindah ke halaman profil — bottom nav hanya 5 menu fitur utama
-  const navItemsExcludingLogout = visibleNavItems.filter((item) => item.href !== '#logout');
-
-  // Limit to exactly 5 main items, rest goes to "more" menu
-  const mainItems = navItemsExcludingLogout.slice(0, 5);
-  const moreItems = navItemsExcludingLogout.slice(5);
-
-  const handleMoreClick = (href: string) => {
-    setMoreOpen(false);
-    router.push(href);
+    switch (role) {
+      case "SUPERADMIN":
+        return [
+          ...base,
+          {
+            label: "Settings",
+            href: "/dashboard/settings",
+            icon: <Settings size={24} />,
+          },
+        ];
+      case "PIMPINAN":
+        return [
+          { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
+          {
+            label: "Laporan",
+            href: "/dashboard/reports",
+            icon: <BarChart2 size={24} />,
+          },
+          {
+            label: "Catatan",
+            href: "/dashboard/financial-notes",
+            icon: <FileText size={24} />,
+          },
+          {
+            label: "Profile",
+            href: "/dashboard/profile",
+            icon: <User size={24} />,
+          },
+        ];
+      case "MANAGER":
+        return [
+          { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
+          {
+            label: "POS",
+            href: "/dashboard/pos",
+            icon: <ShoppingCart size={24} />,
+          },
+          {
+            label: "Inventory",
+            href: "/dashboard/inventory",
+            icon: <Package size={24} />,
+          },
+          {
+            label: "Profile",
+            href: "/dashboard/profile",
+            icon: <User size={24} />,
+          },
+        ];
+      case "STAFF":
+        return [
+          { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
+          {
+            label: "POS",
+            href: "/dashboard/pos",
+            icon: <ShoppingCart size={24} />,
+          },
+          {
+            label: "Wallet",
+            href: "/dashboard/transactions",
+            icon: <Wallet size={24} />,
+          },
+          {
+            label: "Profile",
+            href: "/dashboard/profile",
+            icon: <User size={24} />,
+          },
+        ];
+      default:
+        return base;
+    }
   };
 
+  const navItems = getNavItems();
+
   return (
-    <>
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 pb-[env(safe-area-inset-bottom)]">
-        <div className="flex justify-around py-2">
-          {mainItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <button
-                key={item.href}
-                onClick={() => router.push(item.href)}
-                className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
-                  isActive
-                    ? 'text-emerald-600 bg-emerald-50'
-                    : 'text-slate-600 hover:bg-slate-100'
-                }`}
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.97))] pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_22px_rgba(15,23,42,0.06)] backdrop-blur-xl dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.96),rgba(15,23,42,0.98))]">
+      <div className="flex h-16 items-center justify-around">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <button
+              key={item.href}
+              onClick={() => router.push(item.href)}
+              className={`relative flex h-full w-full flex-col items-center justify-center transition-all duration-200 ${
+                isActive
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <div
+                className={`${isActive ? "scale-110 rounded-xl bg-primary/10 p-2" : "scale-100 p-2"} transition-all duration-200`}
               >
                 {item.icon}
-                <span className="text-xs mt-1 font-medium">{item.label}</span>
-              </button>
-            );
-          })}
-          {moreItems.length > 0 && (
-            <div className="relative">
-              <button
-                onClick={() => setMoreOpen(!moreOpen)}
-                className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
-                  moreOpen
-                    ? 'text-emerald-600 bg-emerald-50'
-                    : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                <MoreVertical size={20} />
-                <span className="text-xs mt-1 font-medium">Lainnya</span>
-              </button>
-              {moreOpen && (
-                <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-white border border-slate-200 rounded-lg shadow-lg p-1 min-w-[160px] z-50">
-                  {moreItems.map((item) => (
-                    <button
-                      key={item.href}
-                      onClick={() => handleMoreClick(item.href)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-slate-50 text-slate-600"
-                    >
-                      {item.icon}
-                      <span className="whitespace-nowrap">{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
+              <span className="mt-1 text-[10px] font-medium">{item.label}</span>
+            </button>
+          );
+        })}
       </div>
-    </>
+    </div>
   );
 }

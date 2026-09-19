@@ -1,15 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import {
-  ArrowLeft,
-  Save,
-  Upload,
-  X,
-} from 'lucide-react';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { ArrowLeft, Save, Upload, X } from "lucide-react";
+import { toast } from "sonner";
 
 interface Unit {
   id: string;
@@ -25,7 +20,7 @@ interface Category {
 }
 
 interface CreateForm {
-  type: 'INCOME' | 'EXPENSE';
+  type: "INCOME" | "EXPENSE";
   amount: string;
   description: string;
   reference: string;
@@ -36,23 +31,28 @@ interface CreateForm {
   photoFile: File | null;
 }
 
+/** Sentinel yang dipakai Pimpinan untuk mencatat transaksi level lembaga (bukan unit). */
+const LEMBAGA_SENTINEL = "__LEMBAGA__";
+
 export default function CreateTransactionPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const role = session?.user?.role as string | undefined;
   const userUnitId = session?.user?.unitId as string | undefined;
 
+  const isPimpinan = role === "PIMPINAN";
+
   const [units, setUnits] = useState<Unit[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState<CreateForm>({
-    type: 'INCOME',
-    amount: '',
-    description: '',
-    reference: '',
-    unitId: '',
-    categoryId: '',
-    date: new Date().toISOString().split('T')[0],
-    photoUrl: '',
+    type: "INCOME",
+    amount: "",
+    description: "",
+    reference: "",
+    unitId: "",
+    categoryId: "",
+    date: new Date().toISOString().split("T")[0],
+    photoUrl: "",
     photoFile: null,
   });
   const [submitting, setSubmitting] = useState(false);
@@ -60,29 +60,29 @@ export default function CreateTransactionPage() {
 
   const fetchUnits = async () => {
     try {
-      const res = await fetch('/api/units', {
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/units", {
+        headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
       setUnits(data.data ?? []);
       // Auto-select unit for MANAGER/STAFF (single-unit users)
-      if (role && (role === 'MANAGER' || role === 'STAFF') && userUnitId) {
+      if (role && (role === "MANAGER" || role === "STAFF") && userUnitId) {
         setForm((prevForm) => ({ ...prevForm, unitId: userUnitId }));
       }
     } catch (err) {
-      console.error('Error fetching units:', err);
+      console.error("Error fetching units:", err);
     }
   };
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('/api/financial-categories', {
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/financial-categories", {
+        headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
       setCategories(data.data ?? []);
     } catch (err) {
-      console.error('Error fetching categories:', err);
+      console.error("Error fetching categories:", err);
     }
   };
 
@@ -93,40 +93,45 @@ export default function CreateTransactionPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.amount || !form.description || !form.unitId) {
-      toast.error('Harap isi semua field yang wajib');
+    const isLembagaTx = isPimpinan && form.unitId === LEMBAGA_SENTINEL;
+    if (!form.amount || !form.description || (!form.unitId && !isLembagaTx)) {
+      toast.error("Harap isi semua field yang wajib");
       return;
     }
 
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append('type', form.type);
-      formData.append('amount', parseFloat(form.amount).toString());
-      formData.append('description', form.description);
-      formData.append('reference', form.reference);
-      formData.append('unitId', form.unitId);
-      formData.append('categoryId', form.categoryId);
-      formData.append('date', form.date);
+      formData.append("type", form.type);
+      formData.append("amount", parseFloat(form.amount).toString());
+      formData.append("description", form.description);
+      formData.append("reference", form.reference);
+      formData.append("unitId", isLembagaTx ? LEMBAGA_SENTINEL : form.unitId);
+      formData.append("categoryId", form.categoryId);
+      formData.append("date", form.date);
       if (form.photoFile) {
-        formData.append('photo', form.photoFile);
+        formData.append("photo", form.photoFile);
       }
 
-      const res = await fetch('/api/transactions', {
-        method: 'POST',
+      const res = await fetch("/api/transactions", {
+        method: "POST",
         body: formData,
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal membuat transaksi');
+        throw new Error(err.error || "Gagal membuat transaksi");
       }
 
       const result = await res.json();
-      toast.success('Transaksi berhasil dibuat');
-      router.push('/dashboard/transactions');
+      toast.success(
+        result.data?.status === "APPROVED"
+          ? "Transaksi lembaga tercatat & langsung disetujui"
+          : "Transaksi tersimpan, menunggu persetujuan",
+      );
+      router.push("/dashboard/transactions");
     } catch (err: any) {
-      toast.error(err.message || 'Gagal membuat transaksi');
+      toast.error(err.message || "Gagal membuat transaksi");
     } finally {
       setSubmitting(false);
     }
@@ -143,85 +148,84 @@ export default function CreateTransactionPage() {
   };
 
   const removePhoto = () => {
-    setForm({ ...form, photoFile: null, photoUrl: '' });
+    setForm({ ...form, photoFile: null, photoUrl: "" });
     setPreview(null);
   };
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto max-w-4xl space-y-5">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted hover:text-foreground"
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">
+            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
               Buat Transaksi Baru
             </h1>
-            <p className="text-slate-600 mt-1">
+            <p className="mt-0.5 text-sm text-muted-foreground">
               Formulir transaksi keuangan baru
             </p>
           </div>
         </div>
       </div>
 
-      {/* Form */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div className="rounded-[22px] border border-border bg-card p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Transaction Type */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-foreground">
               Jenis Transaksi
             </label>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
               <label className="flex items-center gap-2">
                 <input
                   type="radio"
                   name="type"
                   value="INCOME"
-                  checked={form.type === 'INCOME'}
+                  checked={form.type === "INCOME"}
                   onChange={(e) =>
-                    setForm({ ...form, type: e.target.value as 'INCOME' | 'EXPENSE' })
+                    setForm({
+                      ...form,
+                      type: e.target.value as "INCOME" | "EXPENSE",
+                    })
                   }
-                  className="text-emerald-600"
+                  className="h-4 w-4 border-border text-primary focus:ring-primary/20"
                 />
-                <span className="text-green-600 font-medium">
-                  Pemasukan
-                </span>
+                <span className="font-medium text-emerald-600">Pemasukan</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
                   type="radio"
                   name="type"
                   value="EXPENSE"
-                  checked={form.type === 'EXPENSE'}
+                  checked={form.type === "EXPENSE"}
                   onChange={(e) =>
-                    setForm({ ...form, type: e.target.value as 'INCOME' | 'EXPENSE' })
+                    setForm({
+                      ...form,
+                      type: e.target.value as "INCOME" | "EXPENSE",
+                    })
                   }
-                  className="text-emerald-600"
+                  className="h-4 w-4 border-border text-primary focus:ring-primary/20"
                 />
-                <span className="text-red-600 font-medium">
-                  Pengeluaran
-                </span>
+                <span className="font-medium text-red-600">Pengeluaran</span>
               </label>
             </div>
           </div>
 
-          {/* Amount & Date */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="mb-1 block text-sm font-medium text-foreground">
                 Jumlah (IDR)
               </label>
               <input
                 type="number"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                 placeholder="0"
                 required
                 min="0"
@@ -229,22 +233,21 @@ export default function CreateTransactionPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="mb-1 block text-sm font-medium text-foreground">
                 Tanggal
               </label>
               <input
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                 required
               />
             </div>
           </div>
 
-          {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Deskripsi
             </label>
             <input
@@ -253,45 +256,46 @@ export default function CreateTransactionPage() {
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               placeholder="Deskripsi transaksi"
               required
             />
           </div>
 
-          {/* Reference */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Referensi (opsional)
             </label>
             <input
               type="text"
               value={form.reference}
-              onChange={(e) =>
-                setForm({ ...form, reference: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+              onChange={(e) => setForm({ ...form, reference: e.target.value })}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               placeholder="No. referensi / bukti transfer"
             />
           </div>
 
-          {/* Unit & Category */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="mb-1 block text-sm font-medium text-foreground">
                 Unit
               </label>
               <select
                 value={form.unitId}
                 onChange={(e) => setForm({ ...form, unitId: e.target.value })}
-                disabled={role === 'MANAGER' || role === 'STAFF'}
-                className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm ${
-                  role === 'MANAGER' || role === 'STAFF'
-                    ? 'bg-slate-100 text-slate-600 cursor-default'
-                    : ''
+                disabled={role === "MANAGER" || role === "STAFF"}
+                className={`w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10 ${
+                  role === "MANAGER" || role === "STAFF"
+                    ? "cursor-default bg-muted text-muted-foreground"
+                    : ""
                 }`}
                 required
               >
+                {isPimpinan && (
+                  <option value={LEMBAGA_SENTINEL}>
+                    🏛️ Transaksi Lembaga (non-unit)
+                  </option>
+                )}
                 <option value="">Pilih Unit</option>
                 {units.map((unit) => (
                   <option key={unit.id} value={unit.id}>
@@ -301,7 +305,7 @@ export default function CreateTransactionPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="mb-1 block text-sm font-medium text-foreground">
                 Kategori
               </label>
               <select
@@ -309,7 +313,7 @@ export default function CreateTransactionPage() {
                 onChange={(e) =>
                   setForm({ ...form, categoryId: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               >
                 <option value="">Pilih Kategori</option>
                 {categories
@@ -323,16 +327,15 @@ export default function CreateTransactionPage() {
             </div>
           </div>
 
-          {/* Photo */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Foto Nota / Bukti
             </label>
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition">
-                <Upload size={18} className="text-slate-500" />
-                <span className="text-sm text-slate-600">
-                  {form.photoFile ? form.photoFile.name : 'Pilih file'}
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 transition hover:border-primary/50">
+                <Upload size={18} className="text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {form.photoFile ? form.photoFile.name : "Pilih file"}
                 </span>
                 <input
                   type="file"
@@ -343,46 +346,94 @@ export default function CreateTransactionPage() {
                 />
               </label>
               {preview && (
-                <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200">
+                <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-border bg-muted">
                   <img
                     src={preview}
                     alt="Preview"
-                    className="object-cover w-full h-full"
+                    className="h-full w-full object-cover"
                   />
                   <button
                     type="button"
                     onClick={removePhoto}
-                    className="absolute top-1 right-1 bg-slate-800/50 rounded-full p-1 text-white"
+                    className="absolute right-1 top-1 rounded-full bg-slate-800/70 p-1 text-white"
                   >
                     <X size={12} />
                   </button>
                 </div>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="mt-1 text-xs text-muted-foreground">
               Bisa ambil foto langsung atau pilih dari galeri. Format: JPG, PNG
             </p>
           </div>
 
-          {/* Submit */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+            {role === "STAFF" && (
+              <>
+                📋 Transaksi akan <b>menunggu persetujuan Manager</b> unit Anda
+                sebelum terhitung di laporan.
+              </>
+            )}
+            {role === "MANAGER" && (
+              <>
+                📋 Transaksi unit akan <b>menunggu persetujuan Pimpinan</b>{" "}
+                lembaga sebelum terhitung di laporan.
+              </>
+            )}
+            {isPimpinan && (
+              <>
+                ✅ Sebagai Pimpinan: transaksi lembaga/unit yang Anda catat{" "}
+                <b>langsung tercatat resmi</b>. Transaksi Manager unit perlu
+                persetujuan Anda di menu <b>Persetujuan</b>.
+              </>
+            )}
+            {role === "SUPERADMIN" && (
+              <>
+                ✅ Sebagai Superadmin, transaksi yang Anda catat{" "}
+                <b>langsung disetujui</b>.
+              </>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 border-t border-border pt-4">
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+              className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
             >
               Batal
             </button>
             <button
               type="submit"
-              disabled={submitting || !form.amount || !form.description || !form.unitId}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+              disabled={
+                submitting ||
+                !form.amount ||
+                !form.description ||
+                (!form.unitId && !isPimpinan)
+              }
+              className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
             >
               {submitting ? (
                 <>
-                  <svg className="animate-spin h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin h-4 w-4 text-current"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   <span>Menyimpan...</span>
                 </>
@@ -399,4 +450,3 @@ export default function CreateTransactionPage() {
     </div>
   );
 }
-

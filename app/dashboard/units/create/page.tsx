@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   ArrowLeft,
   Save,
@@ -11,8 +11,8 @@ import {
   FileText,
   Users,
   LayoutDashboard,
-} from 'lucide-react';
-import { toast } from 'sonner';
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface UnitType {
   value: string;
@@ -20,17 +20,17 @@ interface UnitType {
 }
 
 const unitTypes: UnitType[] = [
-  { value: 'KPAK', label: 'KPAK (Kantor Pelayanan Administrasi Keuangan)' },
-  { value: 'KOPERASI', label: 'Koperasi' },
-  { value: 'KANTIN', label: 'Kantin' },
-  { value: 'UMUM', label: 'Umum' },
+  { value: "KPAK", label: "KPAK (Kantor Pelayanan Administrasi Keuangan)" },
+  { value: "KOPERASI", label: "Koperasi" },
+  { value: "KANTIN", label: "Kantin" },
+  { value: "UMUM", label: "Umum" },
 ];
 
 interface CreateForm {
   name: string;
   code: string;
   description: string;
-  type: 'KPAK' | 'KOPERASI' | 'KANTIN' | 'UMUM';
+  type: "KPAK" | "KOPERASI" | "KANTIN" | "UMUM";
   isRetail: boolean;
   lembagaId: string;
   parentId: string;
@@ -41,50 +41,54 @@ export default function CreateUnitPage() {
   const { data: session } = useSession();
   const role = session?.user?.role as string | undefined;
 
-  const [lembihs, setLembihs] = useState<Array<{ id: string; name: string }>>([]);
-  const [units, setUnits] = useState<Array<{ id: string; name: string; type: string }>>([]);
+  const [lembihs, setLembihs] = useState<Array<{ id: string; name: string }>>(
+    [],
+  );
+  const [units, setUnits] = useState<
+    Array<{ id: string; name: string; type: string }>
+  >([]);
   const [form, setForm] = useState<CreateForm>({
-    name: '',
-    code: '',
-    description: '',
-    type: 'UMUM',
+    name: "",
+    code: "",
+    description: "",
+    type: "UMUM",
     isRetail: false,
-    lembagaId: session?.user?.lembagaId || '',
-    parentId: '',
+    lembagaId: session?.user?.lembagaId || "",
+    parentId: "",
   });
   const [submitting, setSubmitting] = useState(false);
 
   // Check authorization
   useEffect(() => {
-    if (role && role !== 'SUPERADMIN') {
-      toast.error('Akses ditolak. Hanya SuperAdmin yang dapat membuat unit.');
-      router.push('/dashboard/units');
+    if (role && role !== "SUPERADMIN") {
+      toast.error("Akses ditolak. Hanya SuperAdmin yang dapat membuat unit.");
+      router.push("/dashboard/units");
     }
   }, [role, router]);
 
   // Fetch lembaga for dropdown
   const fetchLembihs = async () => {
     try {
-      const res = await fetch('/api/lembaga', {
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/lembaga", {
+        headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
       setLembihs(data.data ?? []);
     } catch (err) {
-      console.error('Error fetching lembihs:', err);
+      console.error("Error fetching lembihs:", err);
     }
   };
 
   // Fetch existing units for parent selection
   const fetchUnits = async () => {
     try {
-      const res = await fetch('/api/units', {
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/units", {
+        headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
       setUnits(data.data ?? []);
     } catch (err) {
-      console.error('Error fetching units:', err);
+      console.error("Error fetching units:", err);
     }
   };
 
@@ -96,98 +100,105 @@ export default function CreateUnitPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.code || !form.lembagaId) {
-      toast.error('Harap isi semua field yang wajib');
+      toast.error("Harap isi semua field yang wajib");
       return;
     }
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/units', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/units", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal membuat unit');
+        throw new Error(err.error || "Gagal membuat unit");
       }
 
-      toast.success('Unit berhasil dibuat');
-      router.push('/dashboard/units');
+      toast.success("Unit berhasil dibuat");
+      router.push("/dashboard/units");
     } catch (err: any) {
-      toast.error(err.message || 'Gagal membuat unit');
+      toast.error(err.message || "Gagal membuat unit");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center mb-6">
+    <div className="mx-auto max-w-4xl space-y-5">
+      <div className="flex items-center gap-3">
         <button
-          onClick={() => router.push('/dashboard/units')}
-          className="mr-4 p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition"
+          onClick={() => router.push("/dashboard/units")}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Buat Unit Baru</h1>
-          <p className="text-slate-600 mt-1">
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            Buat Unit Baru
+          </h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             Tambahkan unit operasional baru untuk lembaga
           </p>
         </div>
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-[22px] border border-border bg-card p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
+      >
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Nama Unit *
             </label>
             <div className="relative">
-              <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <Building
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={16}
+              />
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 pl-10 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                 placeholder="Misal: Kantin Umi"
                 required
               />
             </div>
           </div>
 
-          {/* Code */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Kode Unit *
             </label>
             <div className="relative">
-              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <Tag
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={16}
+              />
               <input
                 type="text"
                 value={form.code}
                 onChange={(e) => setForm({ ...form, code: e.target.value })}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 pl-10 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                 placeholder="Misal: KANTIN-UMI"
                 required
               />
             </div>
           </div>
 
-          {/* Lembih */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Lembaga *
             </label>
             <select
               value={form.lembagaId}
               onChange={(e) => setForm({ ...form, lembagaId: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               required
             >
               <option value="">Pilih Lembaga</option>
@@ -199,15 +210,16 @@ export default function CreateUnitPage() {
             </select>
           </div>
 
-          {/* Type */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Jenis Unit *
             </label>
             <select
               value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value as any })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
+              onChange={(e) =>
+                setForm({ ...form, type: e.target.value as any })
+              }
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             >
               {unitTypes.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -217,53 +229,56 @@ export default function CreateUnitPage() {
             </select>
           </div>
 
-          {/* Is Retail */}
-          <div className="flex items-center pt-6 space-x-3">
+          <div className="flex items-center space-x-3 pt-6">
             <input
               type="checkbox"
               id="isRetail"
               checked={form.isRetail}
               onChange={(e) => setForm({ ...form, isRetail: e.target.checked })}
-              className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
             />
-            <label htmlFor="isRetail" className="text-sm text-slate-700">
+            <label htmlFor="isRetail" className="text-sm text-muted-foreground">
               Unit ritel (menjual langsung ke konsumen)
             </label>
           </div>
 
-          {/* Parent Unit */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Unit Induk (Opsional)
             </label>
             <select
               value={form.parentId}
-              onChange={(e) => setForm({ ...form, parentId: e.target.value || '' })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
+              onChange={(e) =>
+                setForm({ ...form, parentId: e.target.value || "" })
+              }
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             >
               <option value="">Tidak ada induk (unit mandiri)</option>
               {units
-                .filter((u) => u.id !== '' && u.type !== form.type)
+                .filter((u) => u.id !== "" && u.type !== form.type)
                 .map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name} ({u.type})
                   </option>
-                ))
-              }
+                ))}
             </select>
           </div>
 
-          {/* Description */}
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Deskripsi
             </label>
             <div className="relative">
-              <FileText className="absolute left-3 top-3 text-slate-400" size={16} />
+              <FileText
+                className="absolute left-3 top-3 text-muted-foreground"
+                size={16}
+              />
               <textarea
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm resize-none"
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
+                className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 pl-10 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                 rows={3}
                 placeholder="Deskripsi singkat tentang unit ini..."
               />
@@ -271,19 +286,18 @@ export default function CreateUnitPage() {
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex justify-end gap-3 pt-6 border-t border-slate-200 mt-6">
+        <div className="mt-6 flex justify-end gap-3 border-t border-border pt-6">
           <button
             type="button"
-            onClick={() => router.push('/dashboard/units')}
-            className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+            onClick={() => router.push("/dashboard/units")}
+            className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
           >
             Batal
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 flex items-center gap-2"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
           >
             {submitting ? (
               <>

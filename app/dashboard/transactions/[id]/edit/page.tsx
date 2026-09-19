@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { ArrowLeft, Save } from 'lucide-react';
-import { toast } from 'sonner';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { ArrowLeft, Save } from "lucide-react";
+import { toast } from "sonner";
 
 interface Unit {
   id: string;
@@ -20,7 +20,7 @@ interface Category {
 }
 
 interface EditForm {
-  type: 'INCOME' | 'EXPENSE';
+  type: "INCOME" | "EXPENSE";
   amount: string;
   description: string;
   reference: string;
@@ -53,14 +53,14 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [form, setForm] = useState<EditForm>({
-    type: 'INCOME',
-    amount: '',
-    description: '',
-    reference: '',
-    unitId: '',
-    categoryId: '',
-    date: new Date().toISOString().split('T')[0],
-    photoUrl: '',
+    type: "INCOME",
+    amount: "",
+    description: "",
+    reference: "",
+    unitId: "",
+    categoryId: "",
+    date: new Date().toISOString().split("T")[0],
+    photoUrl: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -76,14 +76,14 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   const fetchData = async () => {
     try {
       const [uRes, cRes] = await Promise.all([
-        fetch('/api/units'),
-        fetch('/api/financial-categories'),
+        fetch("/api/units"),
+        fetch("/api/financial-categories"),
       ]);
       const uData = await uRes.json();
       const cData = await cRes.json();
       setUnits(uData.data ?? []);
       setCategories(cData.data ?? []);
-      if (role && (role === 'MANAGER' || role === 'STAFF') && userUnitId) {
+      if (role && (role === "MANAGER" || role === "STAFF") && userUnitId) {
         setForm((prev) => ({ ...prev, unitId: userUnitId }));
       }
     } catch (err) {
@@ -94,23 +94,25 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   const fetchTransaction = async (id: string) => {
     try {
       const res = await fetch(`/api/transactions/${id}`);
-      if (!res.ok) throw new Error('Gagal memuat transaksi');
+      if (!res.ok) throw new Error("Gagal memuat transaksi");
       const result = await res.json();
       const tx: Transaction = result.data;
       setTransaction(tx);
       setForm({
-        type: tx.type as 'INCOME' | 'EXPENSE',
+        type: tx.type as "INCOME" | "EXPENSE",
         amount: String(tx.amount),
         description: tx.description,
-        reference: tx.reference || '',
-        unitId: tx.unitId || '',
-        categoryId: tx.categoryId || '',
-        date: tx.date ? new Date(tx.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        photoUrl: tx.photoUrl || '',
+        reference: tx.reference || "",
+        unitId: tx.unitId || "",
+        categoryId: tx.categoryId || "",
+        date: tx.date
+          ? new Date(tx.date).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
+        photoUrl: tx.photoUrl || "",
       });
     } catch (err: any) {
-      toast.error(err.message || 'Gagal memuat transaksi');
-      router.push('/dashboard/transactions');
+      toast.error(err.message || "Gagal memuat transaksi");
+      router.push("/dashboard/transactions");
     } finally {
       setLoading(false);
     }
@@ -129,24 +131,24 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.amount || !form.description) {
-      toast.error('Harap isi semua field yang wajib');
+      toast.error("Harap isi semua field yang wajib");
       return;
     }
     setSubmitting(true);
     try {
       const res = await fetch(`/api/transactions/${transactionId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal memperbarui transaksi');
+        throw new Error(err.error || "Gagal memperbarui transaksi");
       }
-      toast.success('Transaksi berhasil diperbarui');
-      router.push('/dashboard/transactions');
+      toast.success("Transaksi berhasil diperbarui");
+      router.push("/dashboard/transactions");
     } catch (err: any) {
-      toast.error(err.message || 'Gagal memperbarui transaksi');
+      toast.error(err.message || "Gagal memperbarui transaksi");
     } finally {
       setSubmitting(false);
     }
@@ -155,130 +157,172 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   if (loading || !transaction) {
     return (
       <div className="p-6">
-        <div className="text-center py-12 text-slate-500">Memuat data transaksi...</div>
+        <div className="text-center py-12 text-slate-500">
+          Memuat data transaksi...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-slate-800">Edit Transaksi</h1>
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1 text-sm text-slate-600 hover:bg-slate-100 px-3 py-1.5 rounded-lg"
-        >
-          <ArrowLeft size={16} />
-          Kembali
-        </button>
+    <div className="mx-auto max-w-4xl space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            Edit Transaksi
+          </h1>
+        </div>
       </div>
 
-      <form onSubmit={handleUpdate} className="space-y-5 bg-white p-6 rounded-xl shadow-sm border">
+      <form
+        onSubmit={handleUpdate}
+        className="space-y-5 rounded-[22px] border border-border bg-card p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
+      >
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Tipe</label>
-          <div className="flex gap-3">
-            {(['INCOME', 'EXPENSE'] as const).map((t) => (
-              <label key={t} className="flex items-center gap-2 cursor-pointer">
+          <label className="mb-1.5 block text-sm font-medium text-foreground">
+            Tipe
+          </label>
+          <div className="flex flex-wrap gap-3">
+            {(["INCOME", "EXPENSE"] as const).map((t) => (
+              <label key={t} className="flex cursor-pointer items-center gap-2">
                 <input
                   type="radio"
                   name="type"
                   value={t}
                   checked={form.type === t}
                   onChange={() => setForm((f) => ({ ...f, type: t }))}
-                  className="radio radio-sm text-emerald-600"
+                  className="h-4 w-4 border-border text-primary focus:ring-primary/20"
                 />
-                <span className="text-sm text-slate-700">{t === 'INCOME' ? 'Pemasukan' : 'Pengeluaran'}</span>
+                <span className="text-sm text-foreground">
+                  {t === "INCOME" ? "Pemasukan" : "Pengeluaran"}
+                </span>
               </label>
             ))}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Jumlah (Rp)</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">
+            Jumlah (Rp)
+          </label>
           <input
             type="number"
             value={form.amount}
             onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             placeholder="0"
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Unit</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Unit
+            </label>
             <select
               value={form.unitId}
-              onChange={(e) => setForm((f) => ({ ...f, unitId: e.target.value }))}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white"
+              onChange={(e) =>
+                setForm((f) => ({ ...f, unitId: e.target.value }))
+              }
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             >
               <option value="">Pilih unit</option>
               {units.map((u) => (
-                <option key={u.id} value={u.id}>{u.name} ({u.code})</option>
+                <option key={u.id} value={u.id}>
+                  {u.name} ({u.code})
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Kategori</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Kategori
+            </label>
             <select
               value={form.categoryId}
-              onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white"
+              onChange={(e) =>
+                setForm((f) => ({ ...f, categoryId: e.target.value }))
+              }
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             >
               <option value="">Pilih kategori</option>
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.code})
+                </option>
               ))}
             </select>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Tanggal</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">
+            Tanggal
+          </label>
           <input
             type="date"
             value={form.date}
             onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Referensi</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">
+            Referensi
+          </label>
           <input
             type="text"
             value={form.reference}
-            onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+            onChange={(e) =>
+              setForm((f) => ({ ...f, reference: e.target.value }))
+            }
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             placeholder="Nomor referensi opsional"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Deskripsi</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">
+            Deskripsi
+          </label>
           <textarea
             value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+            onChange={(e) =>
+              setForm((f) => ({ ...f, description: e.target.value }))
+            }
+            className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             rows={3}
             placeholder="Deskripsi transaksi"
           />
         </div>
 
-        <div className="flex justify-end gap-3 pt-4">
+        <div className="flex justify-end gap-3 border-t border-border pt-4">
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
+            className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
           >
             Batal
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="px-4 py-2 bg-emerald-600 rounded-lg text-sm text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
           >
-            {submitting ? <>Menyimpan... </> : <><Save size={16} /> Simpan</>}
+            {submitting ? (
+              <>Menyimpan... </>
+            ) : (
+              <>
+                <Save size={16} /> Simpan
+              </>
+            )}
           </button>
         </div>
       </form>

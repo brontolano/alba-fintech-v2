@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { toast } from 'sonner';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Edit,
@@ -16,21 +16,23 @@ import {
   User,
   Tag,
   FileText,
-} from 'lucide-react';
+  Clock,
+} from "lucide-react";
 
 interface TransactionDetail {
   id: string;
   date: string;
   unitId: string | null;
   unitName?: string;
-  type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+  type: "INCOME" | "EXPENSE" | "TRANSFER";
   description: string;
   amount: number;
   categoryName?: string;
-  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
   reference?: string;
   photoUrl?: string;
   createdAt: string;
+  createdById?: string;
   createdByName?: string;
   createdByEmail?: string;
   bank_accounts?: {
@@ -73,15 +75,21 @@ interface CommentForm {
   comment: string;
 }
 
-export default function TransactionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function TransactionDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
   const { data: session } = useSession();
-  const [transaction, setTransaction] = useState<TransactionDetail | null>(null);
+  const [transaction, setTransaction] = useState<TransactionDetail | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [commentForm, setCommentForm] = useState<CommentForm>({ comment: '' });
+  const [commentForm, setCommentForm] = useState<CommentForm>({ comment: "" });
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   // Extract id from params Promise (Next.js App Router)
@@ -105,25 +113,27 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
   const role = session?.user?.role as string;
 
   // Check if user can approve (SUPERADMIN, PIMPINAN, MANAGER)
-  const canApprove = ['SUPERADMIN', 'PIMPINAN', 'MANAGER'].includes(role);
+  const canApprove = ["SUPERADMIN", "PIMPINAN", "MANAGER"].includes(role);
   // Check if user can edit (not if already approved)
-  const canEdit = !transaction?.approvals?.some(a => a.status === 'APPROVED' || a.status === 'PENDING');
+  const canEdit = !transaction?.approvals?.some(
+    (a) => a.status === "APPROVED" || a.status === "PENDING",
+  );
 
   const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
       minimumFractionDigits: 0,
     }).format(amount);
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'INCOME':
-        return 'Pemasukan';
-      case 'EXPENSE':
-        return 'Pengeluaran';
-      case 'TRANSFER':
-        return 'Transfer';
+      case "INCOME":
+        return "Pemasukan";
+      case "EXPENSE":
+        return "Pengeluaran";
+      case "TRANSFER":
+        return "Transfer";
       default:
         return type;
     }
@@ -131,14 +141,14 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'APPROVED':
-        return 'Disetujui';
-      case 'PENDING':
-        return 'Pending';
-      case 'REJECTED':
-        return 'Ditolak';
-      case 'DRAFT':
-        return 'Draft';
+      case "APPROVED":
+        return "Disetujui";
+      case "PENDING":
+        return "Pending";
+      case "REJECTED":
+        return "Ditolak";
+      case "DRAFT":
+        return "Draft";
       default:
         return status;
     }
@@ -146,25 +156,25 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'APPROVED':
-        return 'bg-green-100 text-green-700';
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'REJECTED':
-        return 'bg-red-100 text-red-700';
+      case "APPROVED":
+        return "bg-green-100 text-green-700";
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-700";
+      case "REJECTED":
+        return "bg-red-100 text-red-700";
       default:
-        return 'bg-slate-100 text-slate-700';
+        return "bg-slate-100 text-slate-700";
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'INCOME':
-        return 'text-green-600';
-      case 'EXPENSE':
-        return 'text-red-600';
+      case "INCOME":
+        return "text-green-600";
+      case "EXPENSE":
+        return "text-red-600";
       default:
-        return 'text-blue-600';
+        return "text-blue-600";
     }
   };
 
@@ -175,99 +185,132 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
       const res = await fetch(`/api/transactions/${transactionId}`);
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Gagal memuat transaksi');
+        throw new Error(data.error || "Gagal memuat transaksi");
       }
       const result = await res.json();
       setTransaction(result.data);
     } catch (err: any) {
-      toast.error(err.message || 'Gagal memuat transaksi');
-      router.push('/dashboard/transactions');
+      toast.error(err.message || "Gagal memuat transaksi");
+      router.push("/dashboard/transactions");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm('Yakin hapus transaksi ini? Tindakan ini tidak dapat dibatalkan.')) return;
+    if (
+      !confirm(
+        "Yakin hapus transaksi ini? Tindakan ini tidak dapat dibatalkan.",
+      )
+    )
+      return;
     if (!transactionId) return;
-    
+
     setIsActionLoading(true);
     try {
       const res = await fetch(`/api/transactions/${transactionId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Gagal menghapus transaksi');
+        throw new Error(data.error || "Gagal menghapus transaksi");
       }
-      toast.success('Transaksi berhasil dihapus');
-      router.push('/dashboard/transactions');
+      toast.success("Transaksi berhasil dihapus");
+      router.push("/dashboard/transactions");
     } catch (err: any) {
-      toast.error(err.message || 'Gagal menghapus transaksi');
+      toast.error(err.message || "Gagal menghapus transaksi");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleSubmitForApproval = async () => {
+    if (!transactionId) return;
+    setIsActionLoading(true);
+    try {
+      const res = await fetch("/api/approvals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Gagal mengajukan persetujuan");
+      }
+      const result = await res.json();
+      toast.success(
+        `Pengajuan dikirim ke ${result.data?.users?.name || "penyetuju"}`,
+      );
+      await fetchTransaction();
+    } catch (err: any) {
+      toast.error(err.message || "Gagal mengajukan persetujuan");
     } finally {
       setIsActionLoading(false);
     }
   };
 
   const handleApprove = async () => {
-    const pendingApproval = transaction?.approvals?.find(a => a.status === 'PENDING');
+    const pendingApproval = transaction?.approvals?.find(
+      (a) => a.status === "PENDING",
+    );
     if (!pendingApproval) {
-      toast.error('Tidak ada permintaan persetujuan yang pending');
+      toast.error("Tidak ada permintaan persetujuan yang pending");
       return;
     }
-
     setIsActionLoading(true);
     try {
       const res = await fetch(`/api/approvals/${pendingApproval.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: 'approve',
+          action: "approve",
           comment: commentForm.comment,
         }),
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Gagal menyetujui transaksi');
+        throw new Error(data.error || "Gagal menyetujui transaksi");
       }
-      toast.success('Transaksi berhasil disetujui');
+      toast.success("Transaksi berhasil disetujui");
       setShowApproveModal(false);
-      setCommentForm({ comment: '' });
+      setCommentForm({ comment: "" });
       await fetchTransaction();
     } catch (err: any) {
-      toast.error(err.message || 'Gagal menyetujui transaksi');
+      toast.error(err.message || "Gagal menyetujui transaksi");
     } finally {
       setIsActionLoading(false);
     }
   };
 
   const handleReject = async () => {
-    const pendingApproval = transaction?.approvals?.find(a => a.status === 'PENDING');
+    const pendingApproval = transaction?.approvals?.find(
+      (a) => a.status === "PENDING",
+    );
     if (!pendingApproval) {
-      toast.error('Tidak ada permintaan persetujuan yang pending');
+      toast.error("Tidak ada permintaan persetujuan yang pending");
       return;
     }
 
     setIsActionLoading(true);
     try {
       const res = await fetch(`/api/approvals/${pendingApproval.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: 'reject',
+          action: "reject",
           comment: commentForm.comment,
         }),
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Gagal menolak transaksi');
+        throw new Error(data.error || "Gagal menolak transaksi");
       }
-      toast.success('Transaksi berhasil ditolak');
+      toast.success("Transaksi berhasil ditolak");
       setShowRejectModal(false);
-      setCommentForm({ comment: '' });
+      setCommentForm({ comment: "" });
       fetchTransaction();
     } catch (err: any) {
-      toast.error(err.message || 'Gagal menolak transaksi');
+      toast.error(err.message || "Gagal menolak transaksi");
     } finally {
       setIsActionLoading(false);
     }
@@ -293,168 +336,204 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+    <div className="mx-auto max-w-5xl space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-lg hover:bg-slate-100"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted hover:text-foreground"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Detail Transaksi</h1>
-            <p className="text-slate-600 mt-1">ID: {transaction.id}</p>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Transaksi
+            </p>
+            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              Detail Transaksi
+            </h1>
           </div>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-wrap items-center gap-2">
           {canEdit && transactionId ? (
             <button
-              onClick={() => router.push(`/dashboard/transactions/${transactionId}/edit`)}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+              onClick={() =>
+                router.push(`/dashboard/transactions/${transactionId}/edit`)
+              }
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
             >
-              <Edit size={18} />
+              <Edit size={16} />
               <span>Edit</span>
             </button>
           ) : null}
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className={`flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed`}
+            className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canEdit}
           >
-            <Trash2 size={18} />
+            <Trash2 size={16} />
             <span>Hapus</span>
           </button>
         </div>
       </div>
 
-      {/* Status Badge */}
-      <div className="mb-6">
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(transaction.status)}`}>
-          {getStatusLabel(transaction.status)}
-        </span>
-      </div>
+      <div className="rounded-[22px] border border-border bg-card p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <span
+            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(transaction.status)}`}
+          >
+            {getStatusLabel(transaction.status)}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            ID: {transaction.id}
+          </span>
+        </div>
 
-      {/* Transaction Summary Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Type & Amount */}
-          <div className="border-r border-slate-200 pr-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Receipt size={20} className="text-slate-500" />
-              <span className="text-sm text-slate-500">Tipe</span>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-border bg-background p-4">
+            <div className="mb-3 flex items-center gap-2 text-muted-foreground">
+              <Receipt size={18} />
+              <span className="text-sm font-medium">Tipe</span>
             </div>
-            <div className="flex items-center gap-2 mb-4">
-              <span className={`text-lg font-medium ${getTypeColor(transaction.type)}`}>
-                {getTypeLabel(transaction.type)}
-              </span>
+            <p
+              className={`text-lg font-semibold ${getTypeColor(transaction.type)}`}
+            >
+              {getTypeLabel(transaction.type)}
+            </p>
+            <div className="mt-5 flex items-center gap-2 text-muted-foreground">
+              <Calendar size={18} />
+              <span className="text-sm font-medium">Tanggal</span>
             </div>
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar size={20} className="text-slate-500" />
-              <span className="text-sm text-slate-500">Tanggal</span>
-            </div>
-            <p className="font-medium text-slate-800">
-              {new Date(transaction.date).toLocaleDateString('id-ID')}
+            <p className="mt-2 text-base font-medium text-foreground">
+              {new Date(transaction.date).toLocaleDateString("id-ID")}
             </p>
           </div>
 
-          {/* Amount */}
-          <div className="border-r border-slate-200 pr-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Wallet size={20} className="text-slate-500" />
-              <span className="text-sm text-slate-500">Jumlah</span>
+          <div className="rounded-2xl border border-border bg-background p-4">
+            <div className="mb-3 flex items-center gap-2 text-muted-foreground">
+              <Wallet size={18} />
+              <span className="text-sm font-medium">Jumlah</span>
             </div>
-            <p className={`text-2xl font-bold ${getTypeColor(transaction.type)}`}>
+            <p
+              className={`text-2xl font-bold ${getTypeColor(transaction.type)}`}
+            >
               {formatCurrency(transaction.amount)}
             </p>
           </div>
 
-          {/* Unit & Category */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Tag size={20} className="text-slate-500" />
-              <span className="text-sm text-slate-500">Unit</span>
+          <div className="rounded-2xl border border-border bg-background p-4">
+            <div className="mb-3 flex items-center gap-2 text-muted-foreground">
+              <Tag size={18} />
+              <span className="text-sm font-medium">Unit</span>
             </div>
-            <p className="font-medium text-slate-800">
-              {transaction.unitName || transaction.unitId || '-'}
+            <p className="text-base font-semibold text-foreground">
+              {transaction.unitName || transaction.unitId || "-"}
             </p>
-            <div className="mt-4">
-              <div className="flex items-center gap-2 mb-2">
-                <FileText size={20} className="text-slate-500" />
-                <span className="text-sm text-slate-500">Kategori</span>
-              </div>
-              <p className="font-medium text-slate-800">
-                {transaction.categoryName || (
-                  <span className="text-slate-400">—</span>
-                )}
-              </p>
+            <div className="mt-5 flex items-center gap-2 text-muted-foreground">
+              <FileText size={18} />
+              <span className="text-sm font-medium">Kategori</span>
             </div>
+            <p className="mt-2 text-base font-medium text-foreground">
+              {transaction.categoryName || (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Transaction Details */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Detail Transaksi</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="rounded-[22px] border border-border bg-card p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
+          Detail Transaksi
+        </h2>
+
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <p className="text-sm text-slate-500 mb-1">Deskripsi</p>
-            <p className="font-medium text-slate-800">{transaction.description}</p>
+            <p className="mb-1 text-sm text-muted-foreground">Deskripsi</p>
+            <p className="font-medium text-foreground">
+              {transaction.description}
+            </p>
           </div>
-          
+
           {transaction.reference && (
             <div>
-              <p className="text-sm text-slate-500 mb-1">Referensi</p>
-              <p className="font-medium text-slate-800">{transaction.reference}</p>
-            </div>
-          )}
-          
-          {transaction.bank_accounts && (
-            <div>
-              <p className="text-sm text-slate-500 mb-1">Akun Bank</p>
-              <p className="font-medium text-slate-800">
-                {transaction.bank_accounts.name} ({transaction.bank_accounts.code})
+              <p className="mb-1 text-sm text-muted-foreground">Referensi</p>
+              <p className="font-medium text-foreground">
+                {transaction.reference}
               </p>
             </div>
           )}
-          
+
+          {transaction.bank_accounts && (
+            <div>
+              <p className="mb-1 text-sm text-muted-foreground">Akun Bank</p>
+              <p className="font-medium text-foreground">
+                {transaction.bank_accounts.name} (
+                {transaction.bank_accounts.code})
+              </p>
+            </div>
+          )}
+
           <div>
-            <p className="text-sm text-slate-500 mb-1">Dibuat oleh</p>
-            <p className="font-medium text-slate-800">
-              {transaction.createdByName || transaction.createdByEmail || '-'}
+            <p className="mb-1 text-sm text-muted-foreground">Dibuat oleh</p>
+            <p className="font-medium text-foreground">
+              {transaction.createdByName || transaction.createdByEmail || "-"}
             </p>
           </div>
         </div>
 
-        {/* Order Items (POS) */}
         {transaction.order_items && transaction.order_items.length > 0 && (
           <div className="mt-6">
-            <h3 className="text-sm font-medium text-slate-700 mb-3">Item Pesanan</h3>
-            <div className="bg-slate-50 rounded-lg overflow-hidden">
-              <table className="w-full">
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Item Pesanan
+            </h3>
+            <div className="overflow-hidden rounded-xl border border-border bg-background">
+              <table className="rtable w-full">
                 <thead>
-                  <tr className="bg-slate-100">
-                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Item</th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Qty</th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Harga</th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Total</th>
+                  <tr className="bg-muted/50">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                      Item
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                      Qty
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                      Harga
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                      Total
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {transaction.order_items.map((item) => (
-                    <tr key={item.id} className="border-b border-slate-200 last:border-0">
-                      <td className="py-3 px-4 text-sm text-slate-800">
+                    <tr
+                      key={item.id}
+                      className="border-t border-border last:border-0"
+                    >
+                      <td
+                        className="px-4 py-3 text-sm text-foreground"
+                        data-label="Item"
+                      >
                         {item.itemName}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm text-slate-600">
+                      <td
+                        className="px-4 py-3 text-right text-sm text-muted-foreground"
+                        data-label="Qty"
+                      >
                         {item.quantity}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm text-slate-600">
+                      <td
+                        className="px-4 py-3 text-right text-sm text-muted-foreground"
+                        data-label="Harga"
+                      >
                         {formatCurrency(item.unitPrice)}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm font-medium text-slate-800">
+                      <td
+                        className="px-4 py-3 text-right text-sm font-semibold text-foreground"
+                        data-label="Total"
+                      >
                         {formatCurrency(item.totalPrice)}
                       </td>
                     </tr>
@@ -465,54 +544,62 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
 
-        {/* Photo */}
         {transaction.photoUrl && (
           <div className="mt-6">
-            <h3 className="text-sm font-medium text-slate-700 mb-3">Bukti Foto</h3>
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Bukti Foto
+            </h3>
             <img
               src={`/${transaction.photoUrl}`}
               alt="Transaction receipt"
-              className="max-w-xs rounded-lg border border-slate-200"
+              className="max-w-xs rounded-xl border border-border bg-background object-cover"
               onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
+                (e.target as HTMLImageElement).style.display = "none";
               }}
             />
           </div>
         )}
       </div>
 
-      {/* Approvals History */}
       {transaction.approvals && transaction.approvals.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">History Persetujuan</h2>
+        <div className="rounded-[22px] border border-border bg-card p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
+          <h2 className="mb-4 text-lg font-semibold text-foreground">
+            History Persetujuan
+          </h2>
           <div className="space-y-3">
             {transaction.approvals.map((approval) => (
-              <div key={approval.id} className="p-4 bg-slate-50 rounded-lg">
-                <div className="flex items-center justify-between">
+              <div
+                key={approval.id}
+                className="rounded-2xl border border-border bg-background p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        approval.status === 'APPROVED'
-                          ? 'bg-green-100 text-green-700'
-                          : approval.status === 'REJECTED'
-                          ? 'bg-red-100 text-red-700'
-                          : approval.status === 'PENDING'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-slate-100 text-slate-700'
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                        approval.status === "APPROVED"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : approval.status === "REJECTED"
+                            ? "bg-red-100 text-red-700"
+                            : approval.status === "PENDING"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {getStatusLabel(approval.status)}
                     </span>
-                    <p className="text-sm text-slate-600 mt-1">
-                      oleh {approval.users?.name || approval.users?.email || 'Unknown'}
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      oleh{" "}
+                      {approval.users?.name ||
+                        approval.users?.email ||
+                        "Unknown"}
                     </p>
-                    <p className="text-xs text-slate-500">
-                      {new Date(approval.createdAt).toLocaleString('id-ID')}
+                    <p className="text-xs text-muted-foreground/80">
+                      {new Date(approval.createdAt).toLocaleString("id-ID")}
                     </p>
                   </div>
                 </div>
                 {approval.comment && (
-                  <p className="mt-2 text-sm text-slate-700 bg-white p-2 rounded border border-slate-200">
+                  <p className="mt-3 rounded-xl border border-border bg-card p-3 text-sm text-foreground">
                     {approval.comment}
                   </p>
                 )}
@@ -522,114 +609,136 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      {/* Action Buttons */}
-      {canApprove && transaction.status === 'PENDING' && (
-        <div className="flex gap-3 mb-6">
+      {transaction.status === "PENDING" &&
+        !transaction.approvals?.some((a) => a.status === "PENDING") &&
+        transaction.createdById !== session?.user?.id && (
+          <div>
+            <button
+              onClick={handleSubmitForApproval}
+              disabled={isActionLoading}
+              className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-400 disabled:opacity-50"
+            >
+              <Clock size={16} />
+              <span>Ajukan Persetujuan</span>
+            </button>
+          </div>
+        )}
+
+      {canApprove && transaction.status === "PENDING" && (
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setShowApproveModal(true)}
             disabled={isActionLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
           >
-            <CheckCircle size={18} />
+            <CheckCircle size={16} />
             <span>Setujui</span>
           </button>
           <button
             onClick={() => setShowRejectModal(true)}
             disabled={isActionLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-50"
           >
-            <XCircle size={18} />
+            <XCircle size={16} />
             <span>Tolak</span>
           </button>
         </div>
       )}
 
-      {/* Approve Modal */}
       {showApproveModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">Setujui Transaksi</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-[24px] border border-border bg-card p-6 shadow-2xl">
+            <h3 className="mb-4 text-lg font-semibold text-foreground">
+              Setujui Transaksi
+            </h3>
             <textarea
               value={commentForm.comment}
-              onChange={(e) => setCommentForm({ ...commentForm, comment: e.target.value })}
+              onChange={(e) =>
+                setCommentForm({ ...commentForm, comment: e.target.value })
+              }
               placeholder="Tambahkan komentar (opsional)..."
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none mb-4"
+              className="mb-4 w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               rows={3}
             />
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowApproveModal(false)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+                className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
                 disabled={isActionLoading}
               >
                 Batal
               </button>
               <button
                 onClick={handleApprove}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+                className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
                 disabled={isActionLoading}
               >
-                {isActionLoading ? 'Memproses...' : 'Setujui'}
+                {isActionLoading ? "Memproses..." : "Setujui"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Reject Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">Tolak Transaksi</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-[24px] border border-border bg-card p-6 shadow-2xl">
+            <h3 className="mb-4 text-lg font-semibold text-foreground">
+              Tolak Transaksi
+            </h3>
             <textarea
               value={commentForm.comment}
-              onChange={(e) => setCommentForm({ ...commentForm, comment: e.target.value })}
+              onChange={(e) =>
+                setCommentForm({ ...commentForm, comment: e.target.value })
+              }
               placeholder="Tambahkan komentar (opsional)..."
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none mb-4"
+              className="mb-4 w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               rows={3}
             />
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowRejectModal(false)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+                className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
                 disabled={isActionLoading}
               >
                 Batal
               </button>
               <button
                 onClick={handleReject}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-50"
                 disabled={isActionLoading}
               >
-                {isActionLoading ? 'Memproses...' : 'Tolak'}
+                {isActionLoading ? "Memproses..." : "Tolak"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Delete Confirm Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">Hapus Transaksi</h3>
-            <p className="text-slate-600 mb-4">
-              Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-[24px] border border-border bg-card p-6 shadow-2xl">
+            <h3 className="mb-3 text-lg font-semibold text-foreground">
+              Hapus Transaksi
+            </h3>
+            <p className="mb-5 text-sm text-muted-foreground">
+              Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini
+              tidak dapat dibatalkan.
             </p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+                className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
                 disabled={isActionLoading}
               >
                 Batal
               </button>
               <button
                 onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-50"
                 disabled={isActionLoading}
               >
-                {isActionLoading ? 'Menghapus...' : 'Hapus'}
+                {isActionLoading ? "Menghapus..." : "Hapus"}
               </button>
             </div>
           </div>

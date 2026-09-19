@@ -178,9 +178,14 @@ export async function PATCH(
       }
     }
 
+    // Status tidak boleh diubah via edit biasa — jalur resminya lewat approval.
+    // PIMPINAN/SUPERADMIN boleh override (remedial).
+    const { status: _strippedStatus, ...editableData } = parsed.data;
+    const finalData = role === 'PIMPINAN' || role === 'SUPERADMIN' ? parsed.data : editableData;
+
     const updated = await prisma.transaction.update({
       where: { id },
-      data: { ...parsed.data, updatedAt: new Date() },
+      data: { ...finalData, updatedAt: new Date() },
     });
 
     return NextResponse.json({ data: updated, message: 'Transaksi berhasil diperbarui' });

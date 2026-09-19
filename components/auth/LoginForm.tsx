@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 
 export default function LoginForm() {
@@ -55,8 +56,8 @@ export default function LoginForm() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent focus:outline-none text-sm"
-          placeholder="nama@contoh.com"
+          className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent focus:outline-none text-sm bg-slate-50"
+          placeholder="Email"
           required
           autoComplete="email"
         />
@@ -75,31 +76,41 @@ export default function LoginForm() {
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent focus:outline-none text-sm"
-            placeholder="••••••••"
+            className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent focus:outline-none text-sm bg-slate-50"
+            placeholder="Password"
             required
             autoComplete="current-password"
           />
           <button
             type="button"
             tabIndex={-1}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             onClick={() => setShowPassword(!showPassword)}
           >
             {showPassword ? (
-              <EyeOff size={18} />
+              <EyeOff size={20} />
             ) : (
-              <Eye size={18} />
+              <Eye size={20} />
             )}
           </button>
         </div>
       </div>
 
-      <div className="pt-2">
+      {/* Lupa kata sandi — prototipe: verifikasi OTP via WhatsApp Pesantren */}
+      <div className="flex justify-end -mt-2">
+        <Link
+          href="/forgot-password"
+          className="text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:underline"
+        >
+          Lupa kata sandi?
+        </Link>
+      </div>
+
+      <div className="pt-4">
         <button
           type="submit"
           disabled={isLoading || !email || !password}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-base shadow-lg shadow-emerald-200 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <>

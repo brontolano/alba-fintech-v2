@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Save, Lock, User as UserIcon, Camera, X } from 'lucide-react';
-import { toast } from 'sonner';
-import Image from 'next/image';
+import { useState, useEffect } from "react";
+import { Save, Lock, User as UserIcon, Camera, X } from "lucide-react";
+import { toast } from "sonner";
+import Image from "next/image";
 
 interface UserProfile {
   id: string;
@@ -27,22 +27,24 @@ export default function AccountPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [units, setUnits] = useState<Array<{ id: string; name: string; code: string }>>([]);
+  const [units, setUnits] = useState<
+    Array<{ id: string; name: string; code: string }>
+  >([]);
   const [passwords, setPasswords] = useState({
-    current: '',
-    new: '',
-    confirm: '',
+    current: "",
+    new: "",
+    confirm: "",
   });
 
   const fetchProfile = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/users/profile');
+      const res = await fetch("/api/users/profile");
       const data = await res.json();
       setProfile(data.data);
     } catch (err) {
-      console.error('Error fetching profile:', err);
-      toast.error('Gagal memuat profil');
+      console.error("Error fetching profile:", err);
+      toast.error("Gagal memuat profil");
     } finally {
       setLoading(false);
     }
@@ -50,11 +52,11 @@ export default function AccountPage() {
 
   const fetchUnits = async () => {
     try {
-      const res = await fetch('/api/units');
+      const res = await fetch("/api/units");
       const data = await res.json();
       setUnits(data.data ?? []);
     } catch (err) {
-      console.error('Error fetching units:', err);
+      console.error("Error fetching units:", err);
     }
   };
 
@@ -69,9 +71,9 @@ export default function AccountPage() {
 
     setUpdating(true);
     try {
-      const res = await fetch('/api/users/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/users/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: profile.name,
         }),
@@ -79,12 +81,12 @@ export default function AccountPage() {
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal memperbarui profil');
+        throw new Error(err.error || "Gagal memperbarui profil");
       }
 
-      toast.success('Profil berhasil diperbarui');
+      toast.success("Profil berhasil diperbarui");
     } catch (err: any) {
-      toast.error(err.message || 'Gagal memperbarui profil');
+      toast.error(err.message || "Gagal memperbarui profil");
     } finally {
       setUpdating(false);
     }
@@ -95,14 +97,14 @@ export default function AccountPage() {
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Hanya gambar yang diizinkan');
+    if (!file.type.startsWith("image/")) {
+      toast.error("Hanya gambar yang diizinkan");
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Ukuran gambar maksimal 5MB');
+      toast.error("Ukuran gambar maksimal 5MB");
       return;
     }
 
@@ -117,28 +119,28 @@ export default function AccountPage() {
     setUploadingImage(true);
     try {
       const formData = new FormData();
-      formData.append('image', selectedImage);
+      formData.append("image", selectedImage);
 
-      const res = await fetch('/api/users/profile/upload', {
-        method: 'POST',
+      const res = await fetch("/api/users/profile/upload", {
+        method: "POST",
         body: formData,
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal mengunggah gambar');
+        throw new Error(err.error || "Gagal mengunggah gambar");
       }
 
       const data = await res.json();
       setProfile(data.data);
-      toast.success('Foto profil berhasil diperbarui');
-      
+      toast.success("Foto profil berhasil diperbarui");
+
       // Reset preview
-      URL.revokeObjectURL(previewImage || '');
+      URL.revokeObjectURL(previewImage || "");
       setPreviewImage(null);
       setSelectedImage(null);
     } catch (err: any) {
-      toast.error(err.message || 'Gagal mengunggah gambar');
+      toast.error(err.message || "Gagal mengunggah gambar");
     } finally {
       setUploadingImage(false);
     }
@@ -151,25 +153,25 @@ export default function AccountPage() {
 
   const handleChangePassword = async () => {
     if (!passwords.current || !passwords.new || !passwords.confirm) {
-      toast.error('Harap isi semua field password');
+      toast.error("Harap isi semua field password");
       return;
     }
 
     if (passwords.new !== passwords.confirm) {
-      toast.error('Password baru tidak cocok');
+      toast.error("Password baru tidak cocok");
       return;
     }
 
     if (passwords.new.length < 6) {
-      toast.error('Password minimal 6 karakter');
+      toast.error("Password minimal 6 karakter");
       return;
     }
 
     setUpdating(true);
     try {
-      const res = await fetch('/api/users/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/users/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           currentPassword: passwords.current,
           newPassword: passwords.new,
@@ -178,41 +180,41 @@ export default function AccountPage() {
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal mengganti password');
+        throw new Error(err.error || "Gagal mengganti password");
       }
 
-      toast.success('Password berhasil diganti');
-      setPasswords({ current: '', new: '', confirm: '' });
+      toast.success("Password berhasil diganti");
+      setPasswords({ current: "", new: "", confirm: "" });
     } catch (err: any) {
-      toast.error(err.message || 'Gagal mengganti password');
+      toast.error(err.message || "Gagal mengganti password");
     } finally {
       setUpdating(false);
     }
   };
 
   return (
-    <div className="p-6">
-      {/* Header */}
+    <div className="space-y-5">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Akun Saya</h1>
-        <p className="text-slate-600 mt-1">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Akun Saya
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Kelola profil dan pengaturan akun Anda
         </p>
       </div>
 
       {loading ? (
         <div className="animate-pulse space-y-4">
-          <div className="h-20 bg-slate-100 rounded-xl"></div>
-          <div className="h-20 bg-slate-100 rounded-xl"></div>
-          <div className="h-20 bg-slate-100 rounded-xl"></div>
+          <div className="h-20 rounded-xl bg-muted"></div>
+          <div className="h-20 rounded-xl bg-muted"></div>
+          <div className="h-20 rounded-xl bg-muted"></div>
         </div>
       ) : profile ? (
         <div className="space-y-6">
-          {/* Profile Info */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="flex items-center gap-4 mb-4">
+          <div className="rounded-[22px] border border-border bg-card/90 p-6 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+            <div className="mb-4 flex items-center gap-4">
               <div className="relative">
-                <div className="w-16 h-16 bg-emerald-100 rounded-xl flex items-center justify-center overflow-hidden">
+                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-primary/10">
                   {previewImage ? (
                     <Image
                       src={previewImage}
@@ -230,12 +232,12 @@ export default function AccountPage() {
                       className="object-cover"
                     />
                   ) : (
-                    <UserIcon size={28} className="text-emerald-600" />
+                    <UserIcon size={28} className="text-primary" />
                   )}
                 </div>
                 <label
                   htmlFor="profile-image"
-                  className="absolute -bottom-1 -right-1 bg-emerald-600 text-white rounded-full p-1 cursor-pointer hover:bg-emerald-700 transition"
+                  className="absolute -bottom-1 -right-1 cursor-pointer rounded-full bg-primary p-1 text-primary-foreground transition hover:bg-primary/90"
                   title="Ganti foto"
                 >
                   <Camera size={14} />
@@ -250,7 +252,7 @@ export default function AccountPage() {
                 {previewImage && (
                   <button
                     onClick={handleRemoveImage}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 cursor-pointer hover:bg-red-600 transition"
+                    className="absolute -right-2 -top-2 cursor-pointer rounded-full bg-destructive p-1 text-destructive-foreground transition hover:bg-destructive/90"
                     title="Batal pilih"
                   >
                     <X size={10} />
@@ -258,98 +260,103 @@ export default function AccountPage() {
                 )}
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-800">
-                  {profile.name || 'Pengguna'}
+                <h2 className="text-xl font-bold text-foreground">
+                  {profile.name || "Pengguna"}
                 </h2>
-                <p className="text-slate-600">{profile.email}</p>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                    profile.role === 'SUPERADMIN'
-                      ? 'bg-purple-100 text-purple-700'
-                      : profile.role === 'PIMPINAN'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : profile.role === 'MANAGER'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  {profile.role === 'SUPERADMIN'
-                    ? '👑 Super Admin'
-                    : profile.role === 'PIMPINAN'
-                    ? '🏢 Pimpinan'
-                    : profile.role === 'MANAGER'
-                    ? '🧑‍💼 Manager'
-                    : '👤 Staff'}
+                <p className="text-sm text-muted-foreground">{profile.email}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
+                      profile.role === "SUPERADMIN"
+                        ? "bg-purple-100 text-purple-700"
+                        : profile.role === "PIMPINAN"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : profile.role === "MANAGER"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {profile.role === "SUPERADMIN"
+                      ? "👑 Super Admin"
+                      : profile.role === "PIMPINAN"
+                        ? "🏢 Pimpinan"
+                        : profile.role === "MANAGER"
+                          ? "🧑‍💼 Manager"
+                          : "👤 Staff"}
                   </span>
                   {profile.unit && (
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                    <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                       📍 {profile.unit.name}
                     </span>
                   )}
                 </div>
               </div>
+            </div>
 
             {previewImage && (
-              <div className="mb-4 p-4 bg-slate-50 rounded-lg">
-                <p className="text-sm text-slate-600 mb-2">
-                  Foto baru dipilih. Klik &quot;Simpan Gambar&quot; untuk mengunggah.
+              <div className="mb-4 rounded-xl border border-primary/15 bg-primary/5 p-4">
+                <p className="mb-2 text-sm text-muted-foreground">
+                  Foto baru dipilih. Klik &quot;Simpan Gambar&quot; untuk
+                  mengunggah.
                 </p>
                 <button
                   onClick={handleSaveImage}
                   disabled={uploadingImage}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
                 >
                   <Camera size={16} />
-                  <span>{uploadingImage ? 'Mengunggah...' : 'Simpan Gambar'}</span>
+                  <span>
+                    {uploadingImage ? "Mengunggah..." : "Simpan Gambar"}
+                  </span>
                 </button>
                 <button
                   onClick={handleRemoveImage}
-                  className="ml-2 px-4 py-2 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition"
+                  className="ml-2 rounded-full border border-border px-4 py-2 text-sm text-muted-foreground transition hover:bg-muted"
                 >
                   Batal
                 </button>
               </div>
             )}
 
-            <form onSubmit={handleUpdateProfile} className="space-y-4 mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleUpdateProfile} className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="mb-1 block text-sm font-medium text-foreground">
                     Nama Lengkap
                   </label>
                   <input
                     type="text"
-                    value={profile.name || ''}
+                    value={profile.name || ""}
                     onChange={(e) =>
                       setProfile({ ...profile, name: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="mb-1 block text-sm font-medium text-foreground">
                     Email
                   </label>
                   <input
                     type="email"
                     value={profile.email}
                     disabled
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-sm text-slate-500"
+                    className="w-full rounded-xl border border-border bg-muted px-3 py-2.5 text-sm text-muted-foreground"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-foreground">
                   Unit
                 </label>
-                {profile.role === 'SUPERADMIN' ? (
+                {profile.role === "SUPERADMIN" ? (
                   <select
-                    value={profile.unitId || ''}
+                    value={profile.unitId || ""}
                     onChange={(e) =>
                       setProfile({ ...profile, unitId: e.target.value || null })
                     }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                   >
                     <option value="">Pilih Unit (Tanpa Unit)</option>
                     {units.map((unit) => (
@@ -361,37 +368,36 @@ export default function AccountPage() {
                 ) : (
                   <input
                     type="text"
-                    value={profile.unit?.name || 'Tidak memiliki unit'}
+                    value={profile.unit?.name || "Tidak memiliki unit"}
                     disabled
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-sm text-slate-500"
+                    className="w-full rounded-xl border border-border bg-muted px-3 py-2.5 text-sm text-muted-foreground"
                   />
                 )}
               </div>
 
-              <div className="pt-4 border-t border-slate-200">
+              <div className="border-t border-border pt-4">
                 <button
                   type="submit"
                   disabled={updating}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
                 >
                   <Save size={16} />
-                  <span>{updating ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+                  <span>{updating ? "Menyimpan..." : "Simpan Perubahan"}</span>
                 </button>
               </div>
             </form>
           </div>
 
-          {/* Change Password */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <Lock size={20} className="text-red-600" />
+          <div className="rounded-[22px] border border-border bg-card/90 p-6 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10">
+                <Lock size={20} className="text-destructive" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-800">
+                <h2 className="text-lg font-semibold text-foreground">
                   Ganti Password
                 </h2>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-muted-foreground">
                   Perbarui password akun Anda
                 </p>
               </div>
@@ -399,44 +405,44 @@ export default function AccountPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-foreground">
                   Password Saat Ini
                 </label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={passwords.current}
                   onChange={(e) =>
                     setPasswords({ ...passwords, current: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                   placeholder="••••••••"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-foreground">
                   Password Baru
                 </label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={passwords.new}
                   onChange={(e) =>
                     setPasswords({ ...passwords, new: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                   placeholder="••••••••"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-foreground">
                   Konfirmasi Password Baru
                 </label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={passwords.confirm}
                   onChange={(e) =>
                     setPasswords({ ...passwords, confirm: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                   placeholder="••••••••"
                 />
               </div>
@@ -446,32 +452,33 @@ export default function AccountPage() {
                   id="showPassword"
                   checked={showPassword}
                   onChange={(e) => setShowPassword(e.target.checked)}
-                  className="h-4 w-4 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
                 />
-                <label htmlFor="showPassword" className="text-sm text-slate-700">
+                <label
+                  htmlFor="showPassword"
+                  className="text-sm text-foreground"
+                >
                   Tampilkan password
                 </label>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-200 mt-4">
+            <div className="mt-4 border-t border-border pt-4">
               <button
                 onClick={handleChangePassword}
                 disabled={updating}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-50"
               >
                 <Lock size={16} />
-                <span>
-                  {updating ? 'Mengganti...' : 'Ganti Password'}
-                </span>
+                <span>{updating ? "Mengganti..." : "Ganti Password"}</span>
               </button>
             </div>
           </div>
         </div>
       ) : (
-        <div className="text-center py-12">
-          <UserIcon size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500">Profil tidak ditemukan</p>
+        <div className="py-12 text-center">
+          <UserIcon size={48} className="mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground">Profil tidak ditemukan</p>
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Package,
   Plus,
@@ -11,16 +12,26 @@ import {
   TrendingDown,
   ChevronLeft,
   ChevronRight,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useSession } from 'next-auth/react';
-import Link from 'next/link';
+  ImageIcon,
+  Upload,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useSession } from "next-auth/react";
+import {
+  FinzoList,
+  FinzoListRow,
+  StatCard,
+  finzoInputClass,
+  finzoSelectClass,
+} from "@/components/ui/finzo";
 
 interface InventoryItem {
   id: string;
   name: string;
   sku: string;
   category: string | null;
+  imageUrl: string | null;
   unitId: string | null;
   unitName?: string;
   unit: { id: string; name: string } | null;
@@ -63,17 +74,17 @@ export default function InventoryPage() {
   const limit = 20;
 
   const [filters, setFilters] = useState({
-    search: '',
-    unitId: '',
-    category: '',
-    stockStatus: 'all',
+    search: "",
+    unitId: "",
+    category: "",
+    stockStatus: "all",
   });
 
   // Set default unit filter for MANAGER/STAFF
   useEffect(() => {
-    if (session?.user?.role === 'MANAGER' || session?.user?.role === 'STAFF') {
+    if (session?.user?.role === "MANAGER" || session?.user?.role === "STAFF") {
       if (session?.user?.unitId) {
-        setFilters((prev) => ({ ...prev, unitId: session.user.unitId || '' }));
+        setFilters((prev) => ({ ...prev, unitId: session.user.unitId || "" }));
       }
     }
   }, [session]);
@@ -81,22 +92,52 @@ export default function InventoryPage() {
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [itemForm, setItemForm] = useState({
-    name: '',
-    sku: '',
-    category: '',
-    unitPrice: '',
-    purchasePrice: '',
-    minStock: '',
+    name: "",
+    sku: "",
+    category: "",
+    unitPrice: "",
+    purchasePrice: "",
+    minStock: "",
+    imageUrl: "",
   });
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Upload gagal");
+      setItemForm((prev) => ({ ...prev, imageUrl: json.url }));
+      toast.success("Gambar berhasil diunggah");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setItemForm((prev) => ({ ...prev, imageUrl: "" }));
+  };
 
   const fetchUnits = async () => {
     try {
-      const res = await fetch('/api/units');
-      if (!res.ok) throw new Error('Gagal memuat unit');
+      const res = await fetch("/api/units");
+      if (!res.ok) throw new Error("Gagal memuat unit");
       const data: UnitsResponse = await res.json();
       setUnits(data.data ?? []);
     } catch (err) {
-      console.error('Error fetching units:', err);
+      console.error("Error fetching units:", err);
     }
   };
 
@@ -104,20 +145,19 @@ export default function InventoryPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set('page', currentPage.toString());
-      params.set('limit', limit.toString());
-      if (filters.unitId) params.set('unitId', filters.unitId);
-      if (filters.category) params.set('category', filters.category);
-      if (filters.search) params.set('search', filters.search);
-      // Filter by active status (useful for POS view to show only in-stock items)
-      if (filters.stockStatus !== 'all') {
-        params.set('isActive', 'true'); // Only active items when viewing stock status
+      params.set("page", currentPage.toString());
+      params.set("limit", limit.toString());
+      if (filters.unitId) params.set("unitId", filters.unitId);
+      if (filters.category) params.set("category", filters.category);
+      if (filters.search) params.set("search", filters.search);
+      if (filters.stockStatus !== "all") {
+        params.set("isActive", "true");
       }
 
       const res = await fetch(`/api/inventory?${params.toString()}`);
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal memuat inventori');
+        throw new Error(err.error || "Gagal memuat inventori");
       }
       const data: InventoryResponse = await res.json();
       const fetchedItems = data.data ?? [];
@@ -125,14 +165,16 @@ export default function InventoryPage() {
       setTotalPages(data.summary?.pages ?? 1);
       setTotalItems(data.summary?.total ?? 0);
 
-      // Extract unique categories
-      const cats = Array.from(new Set(fetchedItems
-        .map((item) => item.category)
-        .filter((c): c is string => c !== null && c !== undefined)
-      ));
+      const cats = Array.from(
+        new Set(
+          fetchedItems
+            .map((item) => item.category)
+            .filter((c): c is string => c !== null && c !== undefined),
+        ),
+      );
       setCategories(cats);
     } catch (err: any) {
-      toast.error(err.message || 'Gagal memuat inventori');
+      toast.error(err.message || "Gagal memuat inventori");
     } finally {
       setLoading(false);
     }
@@ -154,21 +196,22 @@ export default function InventoryPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Hapus barang ini? Tindakan ini tidak dapat dibatalkan.')) return;
+    if (!confirm("Hapus barang ini? Tindakan ini tidak dapat dibatalkan."))
+      return;
     try {
-      const res = await fetch('/api/inventory', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/inventory", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal menghapus barang');
+        throw new Error(err.error || "Gagal menghapus barang");
       }
-      toast.success('Barang berhasil dihapus');
+      toast.success("Barang berhasil dihapus");
       fetchInventory();
     } catch (err: any) {
-      toast.error(err.message || 'Gagal menghapus barang');
+      toast.error(err.message || "Gagal menghapus barang");
     }
   };
 
@@ -176,14 +219,14 @@ export default function InventoryPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await fetch('/api/inventory',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/inventory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: itemForm.name,
           sku: itemForm.sku,
           category: itemForm.category || undefined,
+          imageUrl: itemForm.imageUrl || undefined,
           unitPrice: parseFloat(itemForm.unitPrice),
           purchasePrice: parseFloat(itemForm.purchasePrice) || undefined,
           minStock: parseInt(itemForm.minStock) || 0,
@@ -192,181 +235,146 @@ export default function InventoryPage() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal menambah barang');
+        throw new Error(err.error || "Gagal menambah barang");
       }
-      toast.success('Barang berhasil ditambahkan');
+      toast.success("Barang berhasil ditambahkan");
       setShowModal(false);
-      setItemForm({ name: '', sku: '', category: '', unitPrice: '', purchasePrice: '', minStock: '' });
+      setItemForm({
+        name: "",
+        sku: "",
+        category: "",
+        unitPrice: "",
+        purchasePrice: "",
+        minStock: "",
+        imageUrl: "",
+      });
       fetchInventory();
     } catch (err: any) {
-      toast.error(err.message || 'Gagal menambah barang');
+      toast.error(err.message || "Gagal menambah barang");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Client-side search filter
   const filteredItems = items.filter((item) => {
     const matchSearch =
       item.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-      (item.sku || '').toLowerCase().includes(filters.search.toLowerCase());
+      (item.sku || "").toLowerCase().includes(filters.search.toLowerCase());
     const matchStock =
-      filters.stockStatus === 'all'
+      filters.stockStatus === "all"
         ? true
-        : filters.stockStatus === 'low'
-        ? item.currentStock <= item.minStock && item.currentStock > 0
-        : filters.stockStatus === 'out'
-        ? item.currentStock <= 0
-        : item.currentStock > item.minStock;
+        : filters.stockStatus === "low"
+          ? item.currentStock <= item.minStock && item.currentStock > 0
+          : filters.stockStatus === "out"
+            ? item.currentStock <= 0
+            : item.currentStock > item.minStock;
     return matchSearch && matchStock;
   });
 
   const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
       minimumFractionDigits: 0,
     }).format(amount);
 
   const getStockStatus = (current: number, min: number) => {
-    if (current <= 0) return 'out';
-    if (current <= min) return 'low';
-    return 'good';
+    if (current <= 0) return "out";
+    if (current <= min) return "low";
+    return "good";
   };
 
   const getStockBadge = (status: string) => {
     switch (status) {
-      case 'out':
-        return (
-          <span className="px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium">
-            Habis
-          </span>
-        );
-      case 'low':
-        return (
-          <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium">
-            Stok Rendah
-          </span>
-        );
+      case "out":
+        return <StatusBadge label="Habis" tone="danger" />;
+      case "low":
+        return <StatusBadge label="Stok Rendah" tone="warning" />;
       default:
-        return (
-          <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-            Tersedia
-          </span>
-        );
+        return <StatusBadge label="Tersedia" tone="income" />;
     }
   };
 
   const lowStockCount = filteredItems.filter(
-    (item) => getStockStatus(item.currentStock, item.minStock) !== 'good'
+    (item) => getStockStatus(item.currentStock, item.minStock) !== "good",
   ).length;
 
   const totalValue = filteredItems.reduce(
     (sum, item) => sum + Number(item.currentStock) * Number(item.unitPrice),
-    0
+    0,
   );
 
   return (
-    <div className="p-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Inventori Barang</h1>
-          <p className="text-slate-600 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+            Inventori Barang
+          </h1>
+          <p className="text-muted-foreground mt-0.5 text-sm">
             Kelola stok barang untuk unit retail
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/dashboard/inventory/create"
-            className="flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
-          >
-            <Plus size={18} />
-            <span>Tambah Barang</span>
-          </Link>
-        </div>
+        <Link
+          href="/dashboard/inventory/create"
+          className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-[0.98] transition-all self-start sm:self-auto shrink-0"
+        >
+          <Plus size={18} />
+          <span>Tambah Barang</span>
+        </Link>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-slate-600 font-medium mb-1">
-                Total Barang
-              </p>
-              <p className="text-2xl font-bold text-slate-800">
-                {filteredItems.length}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Package className="w-5 h-5 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-slate-600 font-medium mb-1">
-                Stok Rendah
-              </p>
-              <p className="text-2xl font-bold text-yellow-600">{lowStockCount}</p>
-            </div>
-            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <TrendingDown className="w-5 h-5 text-yellow-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-slate-600 font-medium mb-1">
-                Nilai Stok
-              </p>
-              <p className="text-2xl font-bold text-emerald-600">
-                {formatCurrency(totalValue)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-green-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-slate-600 font-medium mb-1">
-                Unit Aktif
-              </p>
-              <p className="text-2xl font-bold text-slate-800">
-                {units.length} Unit Terdaftar
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Package className="w-5 h-5 text-purple-600" />
-            </div>
-          </div>
-        </div>
+      {/* Summary — StatCard Finzo */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard
+          label="Total Barang"
+          value={String(filteredItems.length)}
+          tone="neutral"
+          icon={<Package size={15} />}
+        />
+        <StatCard
+          label="Stok Rendah"
+          value={String(lowStockCount)}
+          tone="negative"
+          icon={<TrendingDown size={15} />}
+        />
+        <StatCard
+          label="Nilai Stok"
+          value={formatCurrency(totalValue)}
+          tone="income"
+          icon={<TrendingUp size={15} />}
+        />
+        <StatCard
+          label="Unit Terdaftar"
+          value={String(units.length)}
+          tone="neutral"
+          icon={<Package size={15} />}
+        />
       </div>
 
       {/* Filters */}
-      <div className="mb-6 bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
+      <div className="bg-card rounded-2xl border border-border shadow-[0_1px_2px_rgba(16,24,40,0.04)] p-4 space-y-3">
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="relative flex-1 min-w-[220px]">
             <input
               type="text"
-              placeholder="Cari barang..."
+              placeholder="Cari barang atau SKU..."
               value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+              onChange={(e) => handleFilterChange("search", e.target.value)}
+              className={`${finzoInputClass} pl-10`}
             />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <Search
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              size={16}
+            />
           </div>
 
           <select
             value={filters.unitId}
-            onChange={(e) => handleFilterChange('unitId', e.target.value)}
-            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+            onChange={(e) => handleFilterChange("unitId", e.target.value)}
+            className={`${finzoSelectClass} min-w-[140px] flex-none w-auto`}
+            aria-label="Filter unit"
           >
             <option value="">Semua Unit</option>
             {units.map((unit) => (
@@ -378,8 +386,9 @@ export default function InventoryPage() {
 
           <select
             value={filters.category}
-            onChange={(e) => handleFilterChange('category', e.target.value)}
-            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+            onChange={(e) => handleFilterChange("category", e.target.value)}
+            className={`${finzoSelectClass} min-w-[140px] flex-none w-auto`}
+            aria-label="Filter kategori"
           >
             <option value="">Semua Kategori</option>
             {categories.map((cat) => (
@@ -391,8 +400,9 @@ export default function InventoryPage() {
 
           <select
             value={filters.stockStatus}
-            onChange={(e) => handleFilterChange('stockStatus', e.target.value)}
-            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+            onChange={(e) => handleFilterChange("stockStatus", e.target.value)}
+            className={`${finzoSelectClass} min-w-[150px] flex-none w-auto`}
+            aria-label="Filter status stok"
           >
             <option value="all">Semua Status Stok</option>
             <option value="low">Stok Rendah</option>
@@ -402,230 +412,264 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* Inventory Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        {/* Mobile: card list */}
-        <div className="md:hidden">
-          {loading ? (
-            <div className="p-6 text-center text-slate-500">Memuat data...</div>
-          ) : filteredItems.length === 0 ? (
-            <div className="p-6 text-center text-slate-500">Tidak ada barang ditemukan</div>
-          ) : (
-            <div className="divide-y divide-slate-200">
-              {filteredItems.map((item, idx) => {
-                const stockStatus = getStockStatus(item.currentStock, item.minStock);
-                const totalValue = Number(item.currentStock) * Number(item.unitPrice);
-
+      {/* Inventory list — premium responsive table */}
+      {loading ? (
+        <div className="rounded-[22px] border border-border bg-card p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="py-12 text-center text-sm text-muted-foreground">
+            Memuat data...
+          </div>
+        </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="rounded-[22px] border border-dashed border-border bg-card p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="py-12 text-center text-sm text-muted-foreground">
+            <Package
+              size={28}
+              className="mx-auto mb-2 text-muted-foreground/60"
+            />
+            Tidak ada barang ditemukan
+          </div>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-[22px] border border-border bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="md:hidden">
+            <div className="divide-y divide-border">
+              {filteredItems.map((item) => {
+                const stockStatus = getStockStatus(
+                  item.currentStock,
+                  item.minStock,
+                );
                 return (
-                  <div key={item.id} className="p-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-xs text-slate-500">No</span>
-                      <span className="text-sm text-slate-500">{(currentPage - 1) * limit + idx + 1}</span>
+                  <div key={item.id} className="space-y-3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        {item.imageUrl ? (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="h-11 w-11 rounded-xl border border-border object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground">
+                            <Package size={18} />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold text-foreground">
+                            {item.name}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {item.sku}
+                          </div>
+                        </div>
+                      </div>
+                      {getStockBadge(stockStatus)}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-slate-500">Nama Barang</span>
-                      <span className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                        <Package className="w-4 h-4 text-slate-500" />
-                        {item.name}
-                      </span>
+
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                          Kategori
+                        </div>
+                        <div className="mt-1 text-muted-foreground">
+                          {item.category || "-"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                          Harga
+                        </div>
+                        <div className="mt-1 font-medium text-foreground">
+                          {formatCurrency(Number(item.unitPrice))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                          Stok
+                        </div>
+                        <div className="mt-1 text-muted-foreground">
+                          {item.currentStock} / {item.minStock}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                          Nilai
+                        </div>
+                        <div className="mt-1 font-medium text-foreground">
+                          {formatCurrency(
+                            Number(item.currentStock) * Number(item.unitPrice),
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-slate-500">SKU</span>
-                      <span className="text-sm text-slate-600">{item.sku}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-slate-500">Kategori</span>
-                      <span className="text-sm text-slate-600">{item.category || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-slate-500">Unit</span>
-                      <span className="text-sm text-slate-600">{item.unit?.name || item.unitName || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-slate-500">Stok</span>
-                      <span
-                        className={`text-sm font-medium ${
-                          stockStatus === 'good'
-                            ? 'text-green-600'
-                            : stockStatus === 'low'
-                            ? 'text-yellow-600'
-                            : 'text-red-600'
-                        }`}
-                      >
-                        {item.currentStock} / {item.minStock}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-slate-500">Harga Beli</span>
-                      <span className="text-sm text-slate-600">{formatCurrency(Number(item.purchasePrice))}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-slate-500">Harga Jual</span>
-                      <span className="text-sm text-emerald-600">{formatCurrency(Number(item.unitPrice))}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-slate-500">Nilai</span>
-                      <span className="text-sm text-slate-800 font-medium">{formatCurrency(totalValue)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-slate-500">Status</span>
-                      <span className="text-sm text-center">{getStockBadge(stockStatus)}</span>
-                    </div>
-                    <div className="pt-2 flex justify-end gap-1">
-                      <button
-                        onClick={() => {
-                          toast.info('Fitur edit barang belum tersedia');
-                        }}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+
+                    <div className="flex justify-end gap-2 border-t border-border pt-3">
+                      <Link
+                        href={`/dashboard/inventory/${item.id}/edit`}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
                         title="Edit"
+                        aria-label={`Edit ${item.name}`}
                       >
-                        <Edit size={16} />
-                      </button>
+                        <Edit size={15} />
+                      </Link>
                       <button
                         onClick={() => handleDelete(item.id)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-rose-50 hover:text-rose-600"
                         title="Hapus"
+                        aria-label={`Hapus ${item.name}`}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </div>
                 );
               })}
             </div>
-          )}
-        </div>
-        {/* Desktop: tabel normal */}
-        <div className="hidden md:block">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">#</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Nama Barang</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">SKU</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Kategori</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-slate-500 uppercase">Unit</th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Stok</th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Harga Beli</th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Harga Jual</th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-slate-500 uppercase">Nilai</th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-slate-500 uppercase">Status</th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-slate-500 uppercase">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={11} className="py-8 text-center text-slate-500">
-                    Memuat data...
-                  </td>
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full border-separate border-spacing-0">
+              <thead>
+                <tr className="border-b border-border bg-muted/60">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Barang
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Kategori
+                  </th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Stok
+                  </th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Harga
+                  </th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Nilai
+                  </th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Aksi
+                  </th>
                 </tr>
-              ) : filteredItems.length === 0 ? (
-                <tr>
-                  <td colSpan={11} className="py-8 text-center text-slate-500">
-                    Tidak ada barang ditemukan
-                  </td>
-                </tr>
-              ) : (
-                filteredItems.map((item, idx) => {
-                  const stockStatus = getStockStatus(item.currentStock, item.minStock);
-                  const totalValue = Number(item.currentStock) * Number(item.unitPrice);
+              </thead>
+              <tbody>
+                {filteredItems.map((item) => {
+                  const stockStatus = getStockStatus(
+                    item.currentStock,
+                    item.minStock,
+                  );
+                  const itemValue =
+                    Number(item.currentStock) * Number(item.unitPrice);
 
                   return (
-                    <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="py-3 px-4 text-sm text-slate-500">
-                        {(currentPage - 1) * limit + idx + 1}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                            <Package className="w-4 h-4 text-slate-500" />
+                    <tr
+                      key={item.id}
+                      className="border-b border-border transition-colors last:border-b-0 hover:bg-muted/30"
+                    >
+                      <td className="px-4 py-3" data-label="Barang">
+                        <div className="flex items-center gap-3">
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="h-10 w-10 rounded-xl border border-border object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground">
+                              <Package size={16} />
+                            </div>
+                          )}
+                          <div>
+                            <div className="text-sm font-semibold text-foreground">
+                              {item.name}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {item.sku}
+                            </div>
                           </div>
-                          <span className="text-sm font-medium text-slate-800">
-                            {item.name}
-                          </span>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-sm text-slate-600">{item.sku}</td>
-                      <td className="py-3 px-4 text-sm text-slate-600">{item.category || '-'}</td>
-                      <td className="py-3 px-4 text-sm text-slate-600">
-                        {item.unit?.name || item.unitName || '-'}
+                      <td
+                        className="px-4 py-3 text-sm text-muted-foreground"
+                        data-label="Kategori"
+                      >
+                        {item.category || "-"}
                       </td>
-                      <td className="py-3 px-4 text-right">
-                        <span
-                          className={`text-sm font-medium ${
-                            stockStatus === 'good'
-                              ? 'text-green-600'
-                              : stockStatus === 'low'
-                              ? 'text-yellow-600'
-                              : 'text-red-600'
-                          }`}
-                        >
-                          {item.currentStock} / {item.minStock}
-                        </span>
+                      <td
+                        className="px-4 py-3 text-right text-sm text-muted-foreground"
+                        data-label="Stok"
+                      >
+                        {item.currentStock} / {item.minStock}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm text-slate-600">
-                        {formatCurrency(Number(item.purchasePrice))}
-                      </td>
-                      <td className="py-3 px-4 text-right text-sm text-emerald-600">
+                      <td
+                        className="px-4 py-3 text-right text-sm font-medium text-foreground"
+                        data-label="Harga"
+                      >
                         {formatCurrency(Number(item.unitPrice))}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm text-slate-800 font-medium">
-                        {formatCurrency(totalValue)}
+                      <td
+                        className="px-4 py-3 text-right text-sm font-medium text-foreground"
+                        data-label="Nilai"
+                      >
+                        {formatCurrency(itemValue)}
                       </td>
-                      <td className="py-3 px-4 text-center">
+                      <td className="px-4 py-3 text-center" data-label="Status">
                         {getStockBadge(stockStatus)}
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="flex justify-center gap-1">
-                          <button
-                            onClick={() => {
-                              toast.info('Fitur edit barang belum tersedia');
-                            }}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+                      <td className="px-4 py-3 text-center" data-label="Aksi">
+                        <div className="flex justify-center gap-2">
+                          <Link
+                            href={`/dashboard/inventory/${item.id}/edit`}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
                             title="Edit"
+                            aria-label={`Edit ${item.name}`}
                           >
-                            <Edit size={16} />
-                          </button>
+                            <Edit size={15} />
+                          </Link>
                           <button
                             onClick={() => handleDelete(item.id)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-rose-50 hover:text-rose-600"
                             title="Hapus"
+                            aria-label={`Hapus ${item.name}`}
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={15} />
                           </button>
                         </div>
                       </td>
                     </tr>
                   );
-                })
-              )}
-            </tbody>
-          </table>
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Pagination */}
-      <div className="mt-6 flex items-center justify-between">
-        <p className="text-sm text-slate-600">
-          Menampilkan {totalItems > 0 ? (currentPage - 1) * limit + 1 : 0}-{Math.min(currentPage * limit, totalItems)} dari {totalItems} barang
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Menampilkan {totalItems > 0 ? (currentPage - 1) * limit + 1 : 0}-
+          {Math.min(currentPage * limit, totalItems)} dari {totalItems} barang
         </p>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1 || loading}
-            className="px-3 py-1 border border-slate-300 rounded-lg text-sm hover:bg-slate-5 flex items-center gap-1 disabled:opacity-50"
+            className="px-3 py-1.5 border border-border rounded-full text-sm text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition"
           >
             <ChevronLeft size={14} />
             Sebelumnya
           </button>
-          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium">
+          <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-semibold">
             {currentPage}
           </span>
           <button
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
             disabled={currentPage >= totalPages || loading}
-            className="px-3 py-1 border border-slate-300 rounded-lg text-sm hover:bg-slate-5 flex items-center gap-1 disabled:opacity-50"
+            className="px-3 py-1.5 border border-border rounded-full text-sm text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition"
           >
             Berikutnya
             <ChevronRight size={14} />
@@ -635,51 +679,103 @@ export default function InventoryPage() {
 
       {/* Create Item Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4">
-            <div className="p-6 border-b border-slate-200">
-              <h2 className="text-xl font-semibold text-slate-800">
+        <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-2xl">
+            <div className="p-5 border-b border-border">
+              <h2 className="text-lg font-semibold text-foreground">
                 Tambah Barang Baru
               </h2>
             </div>
-            <form onSubmit={handleCreateItem} className="p-6 space-y-4">
+            <form onSubmit={handleCreateItem} className="p-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
                     Nama Barang *
                   </label>
                   <input
                     type="text"
                     required
                     value={itemForm.name}
-                    onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                    onChange={(e) =>
+                      setItemForm({ ...itemForm, name: e.target.value })
+                    }
+                    className={finzoInputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
                     SKU
                   </label>
                   <input
                     type="text"
                     value={itemForm.sku}
-                    onChange={(e) => setItemForm({ ...itemForm, sku: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                    onChange={(e) =>
+                      setItemForm({ ...itemForm, sku: e.target.value })
+                    }
+                    className={finzoInputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
+                    Gambar Produk
+                  </label>
+                  <div className="space-y-2">
+                    {!itemForm.imageUrl ? (
+                      <label className="flex min-h-[40px] items-center justify-center gap-2 rounded-full border border-dashed border-border bg-background cursor-pointer hover:bg-muted transition text-sm font-medium text-foreground">
+                        <Upload size={16} />
+                        <span>
+                          {uploading ? "Mengunggah..." : "Pilih File"}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleUpload}
+                          disabled={uploading}
+                          className="hidden"
+                        />
+                      </label>
+                    ) : (
+                      <div className="relative inline-block">
+                        <img
+                          src={itemForm.imageUrl}
+                          alt="Preview"
+                          className="w-20 h-20 object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
+                    <input
+                      type="url"
+                      placeholder="Atau masukkan URL gambar (https://...)"
+                      value={itemForm.imageUrl}
+                      onChange={(e) =>
+                        setItemForm({ ...itemForm, imageUrl: e.target.value })
+                      }
+                      className={finzoInputClass}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
                     Kategori
                   </label>
                   <input
                     type="text"
                     value={itemForm.category}
-                    onChange={(e) => setItemForm({ ...itemForm, category: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                    onChange={(e) =>
+                      setItemForm({ ...itemForm, category: e.target.value })
+                    }
+                    className={finzoInputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
                     Harga Beli
                   </label>
                   <input
@@ -687,12 +783,17 @@ export default function InventoryPage() {
                     min="0"
                     step="0.01"
                     value={itemForm.purchasePrice}
-                    onChange={(e) => setItemForm({ ...itemForm, purchasePrice: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                    onChange={(e) =>
+                      setItemForm({
+                        ...itemForm,
+                        purchasePrice: e.target.value,
+                      })
+                    }
+                    className={finzoInputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
                     Harga Jual *
                   </label>
                   <input
@@ -701,40 +802,52 @@ export default function InventoryPage() {
                     step="0.01"
                     required
                     value={itemForm.unitPrice}
-                    onChange={(e) => setItemForm({ ...itemForm, unitPrice: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                    onChange={(e) =>
+                      setItemForm({ ...itemForm, unitPrice: e.target.value })
+                    }
+                    className={finzoInputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
                     Stok Minimum
                   </label>
                   <input
                     type="number"
                     min="0"
                     value={itemForm.minStock}
-                    onChange={(e) => setItemForm({ ...itemForm, minStock: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                    onChange={(e) =>
+                      setItemForm({ ...itemForm, minStock: e.target.value })
+                    }
+                    className={finzoInputClass}
                   />
                 </div>
               </div>
-              <div className="flex gap-3 pt-4 border-t border-slate-200">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => {
                     setShowModal(false);
-                    setItemForm({ name: '', sku: '', category: '', unitPrice: '', purchasePrice: '', minStock: '' });
+                    setItemForm({
+                      name: "",
+                      sku: "",
+                      category: "",
+                      unitPrice: "",
+                      purchasePrice: "",
+                      minStock: "",
+                      imageUrl: "",
+                    });
                   }}
-                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition text-sm font-medium"
+                  className="flex-1 min-h-[40px] rounded-full border border-border text-sm font-medium text-foreground hover:bg-muted transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition text-sm font-medium"
+                  className="flex-1 min-h-[40px] rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition"
                 >
-                  {submitting ? 'Menyimpan...' : 'Simpan'}
+                  {submitting ? "Menyimpan..." : "Simpan"}
                 </button>
               </div>
             </form>
@@ -742,5 +855,27 @@ export default function InventoryPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/* Badge status stok Finzo-style */
+function StatusBadge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "income" | "warning" | "danger";
+}) {
+  const styles = {
+    income: "bg-primary/10 text-primary",
+    warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    danger: "bg-destructive/10 text-destructive",
+  };
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${styles[tone]}`}
+    >
+      {label}
+    </span>
   );
 }

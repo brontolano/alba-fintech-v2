@@ -1,13 +1,9 @@
-import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/options';
+import HomeClient from '@/components/auth/HomeClient';
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
 
-  if (session) {
-    redirect('/dashboard');
-  }
-
-  redirect('/login');
+  return <HomeClient hasSession={!!session} />;
 }

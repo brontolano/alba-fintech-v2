@@ -1,62 +1,129 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    --background: 223 54% 99%;
-    --foreground: 222.2 47.4% 11.2%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
-    --primary: 175.5 59.4% 33.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 210 40% 99%;
-    --muted-foreground: 215.3 24.5% 52.9%;
-    --accent: 210 40% 99%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --border: 210 40% 93%;
-    --input: 210 40% 93%;
-    --ring: 175.5 59.4% 33.3%;
+    --font-heading: "Poppins", "Inter", sans-serif;
+    --font-body: "Inter", sans-serif;
+    --font-sans: "Inter", sans-serif;
+    --background: 248 250 252;
+    --foreground: 15 23 42;
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
+    --popover: 255 255 255;
+    --popover-foreground: 15 23 42;
+    --primary: 20 184 166;
+    --primary-foreground: 255 255 255;
+    --secondary: 239 246 255;
+    --secondary-foreground: 15 23 42;
+    --muted: 241 245 249;
+    --muted-foreground: 100 116 139;
+    --accent: 16 185 129;
+    --accent-foreground: 255 255 255;
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+    --border: 226 232 240;
+    --input: 226 232 240;
+    --ring: 20 184 166;
+    --success: 16 185 129;
+    --success-foreground: 255 255 255;
+    --warning: 245 158 11;
+    --warning-foreground: 15 23 42;
+    --info: 14 165 233;
+    --info-foreground: 255 255 255;
+    --surface-elevated: 255 255 255;
+    --surface-subtle: 248 250 252;
+    --shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.08);
+    --shadow-strong: 0 18px 48px rgba(15, 23, 42, 0.12);
+    --radius-card: 18px;
+    --radius-button: 12px;
   }
 
   .dark {
-    --background: 222.2 47.4% 11.2%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 47.4% 11.2%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 47.4% 11.2%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 175.5 59.4% 33.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 98%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 210 40% 98%;
-    --muted-foreground: 215.3 24.5% 70%;
-    --accent: 210 40% 98%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --border: 215.3 24.5% 20%;
-    --input: 215.3 24.5% 20%;
-    --ring: 175.5 59.4% 33.3%;
+    --background: 9 14 22;
+    --foreground: 241 245 249;
+    --card: 17 24 39;
+    --card-foreground: 241 245 249;
+    --popover: 17 24 39;
+    --popover-foreground: 241 245 249;
+    --primary: 52 211 153;
+    --primary-foreground: 2 6 23;
+    --secondary: 15 23 42;
+    --secondary-foreground: 241 245 249;
+    --muted: 30 41 59;
+    --muted-foreground: 148 163 184;
+    --accent: 45 212 191;
+    --accent-foreground: 2 6 23;
+    --destructive: 248 113 113;
+    --destructive-foreground: 255 255 255;
+    --border: 51 65 85;
+    --input: 30 41 59;
+    --ring: 52 211 153;
+    --success: 52 211 153;
+    --success-foreground: 2 6 23;
+    --warning: 251 191 36;
+    --warning-foreground: 2 6 23;
+    --info: 96 165 250;
+    --info-foreground: 2 6 23;
+    --surface-elevated: 17 24 39;
+    --surface-subtle: 15 23 42;
+    --shadow-soft: 0 18px 40px rgba(2, 6, 23, 0.35);
+    --shadow-strong: 0 24px 60px rgba(2, 6, 23, 0.45);
+  }
+
+  /* Semantic state colors — dark-mode aware via CSS vars */
+  :root {
+    --income: 22 163 74;
+    --income-foreground: 255 255 255;
+    --expense: 239 68 68;
+    --expense-foreground: 255 255 255;
+    --warning: 245 158 11;
+    --warning-foreground: 22 25 30;
+    --info: 59 130 246;
+    --info-foreground: 255 255 255;
+    --success: 22 163 74;
+    --success-foreground: 255 255 255;
+  }
+
+  .dark {
+    --income: 34 197 94;
+    --income-foreground: 255 255 255;
+    --expense: 249 112 102;
+    --expense-foreground: 255 255 255;
+    --warning: 251 191 36;
+    --warning-foreground: 22 25 30;
+    --info: 96 165 250;
+    --info-foreground: 22 25 30;
+    --success: 34 197 94;
+    --success-foreground: 22 25 30;
   }
 }
 
 @layer base {
   * {
-    @apply border-slate-200;
+    @apply border-border;
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+    @apply bg-background text-foreground font-body antialiased;
     -webkit-tap-highlight-color: transparent;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
   }
 
   #__next {
@@ -72,6 +139,19 @@
   }
 }
 
+/* RTL Support */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+[dir="rtl"] .flex {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -79,17 +159,150 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: rgb(var(--muted));
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: rgb(var(--muted-foreground));
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: rgb(var(--foreground));
+}
+
+/* Glassmorphism utilities */
+.glass {
+  @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-glass border border-white/20 dark:border-white/10;
+}
+
+.glass-hover {
+  @apply bg-white/90 dark:bg-slate-900/90 backdrop-blur-glass-lg border border-white/30 dark:border-white/20;
+}
+
+/* Touch target minimum */
+.touch-target {
+  @apply min-h-[44px] min-w-[44px];
+}
+
+/* Focus visible for accessibility */
+.focus-visible-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+.dashboard-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.dashboard-table th,
+.dashboard-table td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* ============================================
+   RTABLE — Responsive card-table
+   Desktop: tabel normal. Mobile (<768px):
+   tiap <tr> menjadi kartu label:nilai tanpa
+   horizontal scroll. Label dari data-label.
+   ============================================ */
+@media (max-width: 767.98px) {
+  /* Tabel & tbody jadi blok biasa */
+  table.rtable,
+  table.rtable tbody {
+    display: block;
+    width: 100%;
+  }
+
+  /* Sembunyikan header — label tampil per sel */
+  table.rtable thead {
+    display: none;
+  }
+
+  /* Baris = kartu */
+  table.rtable tr {
+    display: block;
+    background: rgb(var(--card));
+    border: 1px solid rgb(var(--border));
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  /* Sel = baris label:nilai */
+  table.rtable td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 14px;
+    text-align: left;
+    border: none;
+  }
+
+  table.rtable td + td {
+    border-top: 1px solid rgb(var(--border));
+  }
+
+  /* Label dari data-label (sel tanpa data-label tidak punya pseudo) */
+  table.rtable td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: rgb(var(--muted-foreground));
+  }
+
+  /* Sel konten ringkas (jumlah/aksi) menyusut agar label tak terdorong */
+  table.rtable td[data-label] > span,
+  table.rtable td[data-label] > div {
+    max-width: 65%;
+    text-align: right;
+  }
+
+  /* Baris status khusus: loading / kosong (colspan) */
+  table.rtable td[colspan],
+  table.rtable td[colspan]::before {
+    display: block;
+    text-align: center;
+  }
+
+  table.rtable td[colspan] {
+    padding: 24px 14px;
+  }
+
+  table.rtable td[colspan][data-label]::before {
+    content: none;
+  }
+
+  /* Hormati class hidden (kolom yang memang disembunyikan di mobile) */
+  table.rtable td.hidden {
+    display: none;
+  }
+
+  /* Nomor urut tidak berguna di kartu mobile — sembunyikan */
+  table.rtable td[data-label="#"] {
+    display: none;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Animation utilities */

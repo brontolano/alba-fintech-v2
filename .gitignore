@@ -51,6 +51,27 @@ Thumbs.db
 !/.claude/plans/
 !/.claude/plans/**
 
+# AI tool / workspace artifacts (local only, jangan commit)
+.freebuff/
+.agents/
+.augment/
+.codebuddy/
+.codewhale/
+.continue/
+.cursor/
+.factory/
+.gemini/
+.github/prompts/
+.kilocode/
+.kiro/
+.opencode/
+.qoder/
+.roo/
+.serena/
+.trae/
+.warp/
+.windsurf/
+
 # Prisma
 /prisma/*.ml
 
@@ -98,6 +119,22 @@ tmp-save-dash.ps1
 
 # Windows / stray files
 nul
+
+# Debug scripts (local only, not committed)
+scripts/debug/
+
+# Junk AI-generated images
+docs/GUIDE/Gemini_Generated_Image_*.jfif
+
+# Mockup docs (local only)
+docs/MOCKUP/
+docs/GUIDE/
+design-system/
+todolist.md
+
+# Duplicate assets (kept in public/ as canonical)
+public/background-01.png
+public/logo.png
 
 /uploads
 .env.local

@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
+  url      = "mysql://u826712707_alba:B-5millahberkah@srv594.hstgr.io:3306/u826712707_alba"
 }
 
 model Lembaga {
@@ -42,7 +42,6 @@ model Unit {
   financial_notes FinancialNote[]
   inventory_items InventoryItem[]
   transactions    Transaction[]
-  unit_settings   UnitSetting?
   lembaga         Lembaga?        @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "units_ibfk_1")
   users           User[]
 
@@ -64,12 +63,14 @@ model User {
   createdAt                                             DateTime?            @default(now()) @db.DateTime(0)
   updatedAt                                             DateTime?            @default(now()) @db.DateTime(0)
   approvals                                             Approval[]
+  audit_logs                                            audit_logs[]
   broadcast_messages                                    BroadcastMessage[]
   broadcast_recipients                                  BroadcastRecipient[]
   financial_notes_financial_notes_createdByIdTousers    FinancialNote[]      @relation("financial_notes_createdByIdTousers")
   financial_notes_financial_notes_approvedByIdTousers   FinancialNote[]      @relation("financial_notes_approvedByIdTousers")
   financial_notes_financial_notes_reconciledByIdTousers FinancialNote[]      @relation("financial_notes_reconciledByIdTousers")
   notifications                                         Notification[]
+  push_subscriptions                                    push_subscriptions[]
   transactions_transactions_createdByIdTousers          Transaction[]        @relation("transactions_createdByIdTousers")
   transactions_transactions_approvedByIdTousers         Transaction[]        @relation("transactions_approvedByIdTousers")
   units                                                 Unit?                @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "users_ibfk_1")
@@ -129,7 +130,7 @@ model Transaction {
   categoryId                             String?            @db.VarChar(36)
   accountId                              String?            @db.VarChar(36)
   reference                              String?            @db.VarChar(255)
-  date                                   DateTime           @default(now()) @map("date") @db.DateTime(0)
+  date                                   DateTime?          @default(now()) @map("date") @db.DateTime(0)
   status                                 TransactionStatus? @default(PENDING)
   createdById                            String             @db.VarChar(36)
   approvedById                           String?            @db.VarChar(36)
@@ -147,14 +148,11 @@ model Transaction {
   users_transactions_createdByIdTousers  User               @relation("transactions_createdByIdTousers", fields: [createdById], references: [id], onUpdate: Restrict, map: "transactions_ibfk_4")
   users_transactions_approvedByIdTousers User?              @relation("transactions_approvedByIdTousers", fields: [approvedById], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "transactions_ibfk_5")
 
-  @@index([accountId], map: "idx_transactions_account_id")
-  @@index([approvedById], map: "idx_transactions_approved_by_id")
-  @@index([categoryId], map: "idx_transactions_category_id")
-  @@index([createdById], map: "idx_transactions_created_by_id")
-  @@index([status], map: "idx_transactions_status")
-  @@index([status, createdAt], map: "idx_transactions_status_created_at")
-  @@index([unitId, createdAt], map: "idx_transactions_unit_created_at")
-  @@index([unitId], map: "idx_transactions_unit_id")
+  @@index([accountId], map: "accountId")
+  @@index([approvedById], map: "approvedById")
+  @@index([categoryId], map: "categoryId")
+  @@index([createdById], map: "createdById")
+  @@index([unitId], map: "unitId")
   @@map("transactions")
 }
 
@@ -171,9 +169,9 @@ model Approval {
   units         Unit?           @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "approvals_ibfk_2")
   users         User            @relation(fields: [approverId], references: [id], onUpdate: Restrict, map: "approvals_ibfk_3")
 
-  @@index([approverId], map: "idx_approvals_approver_id")
-  @@index([transactionId], map: "idx_approvals_transaction_id")
-  @@index([unitId], map: "idx_approvals_unit_id")
+  @@index([approverId], map: "approverId")
+  @@index([transactionId], map: "transactionId")
+  @@index([unitId], map: "unitId")
   @@map("approvals")
 }
 
@@ -202,12 +200,9 @@ model FinancialNote {
 
   @@index([approvedById], map: "approvedById")
   @@index([categoryId], map: "categoryId")
-  @@index([createdById], map: "idx_financial_notes_created_by_id")
-  @@index([date], map: "idx_financial_notes_date")
-  @@index([isReconciled], map: "idx_financial_notes_is_reconciled")
-  @@index([unitId, date], map: "idx_financial_notes_unit_date")
-  @@index([unitId], map: "idx_financial_notes_unit_id")
   @@index([reconciledById], map: "reconciledById")
+  @@index([createdById], map: "createdById")
+  @@index([unitId], map: "unitId")
   @@map("financial_notes")
 }
 
@@ -228,8 +223,7 @@ model InventoryItem {
   units         Unit        @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "inventory_items_ibfk_1")
   order_items   OrderItem[]
 
-  @@index([category], map: "idx_inventory_items_category")
-  @@index([unitId], map: "idx_inventory_items_unit_id")
+  @@index([unitId], map: "unitId")
   @@map("inventory_items")
 }
 
@@ -244,8 +238,8 @@ model OrderItem {
   transactions    Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "order_items_ibfk_1")
   inventory_items InventoryItem? @relation(fields: [itemId], references: [id], onUpdate: Restrict, map: "order_items_ibfk_2")
 
-  @@index([itemId], map: "idx_order_items_item_id")
-  @@index([transactionId], map: "idx_order_items_transaction_id")
+  @@index([itemId], map: "itemId")
+  @@index([transactionId], map: "transactionId")
   @@map("order_items")
 }
 
@@ -260,9 +254,7 @@ model Notification {
   updatedAt DateTime?        @default(now()) @db.DateTime(0)
   users     User?            @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "notifications_ibfk_1")
 
-  @@index([createdAt], map: "idx_notifications_created_at")
-  @@index([isRead], map: "idx_notifications_is_read")
-  @@index([userId], map: "idx_notifications_user_id")
+  @@index([userId], map: "userId")
   @@map("notifications")
 }
 
@@ -285,8 +277,8 @@ model BroadcastMessage {
   users                User                 @relation(fields: [senderId], references: [id], onUpdate: Restrict, map: "broadcast_messages_ibfk_2")
   broadcast_recipients BroadcastRecipient[]
 
-  @@index([lembagaId], map: "idx_broadcast_messages_lembaga_id")
-  @@index([senderId], map: "idx_broadcast_messages_sender_id")
+  @@index([lembagaId], map: "lembagaId")
+  @@index([senderId], map: "senderId")
   @@map("broadcast_messages")
 }
 
@@ -299,9 +291,8 @@ model BroadcastRecipient {
   broadcast_messages BroadcastMessage @relation(fields: [broadcastId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "broadcast_recipients_ibfk_1")
   users              User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "broadcast_recipients_ibfk_2")
 
-  @@unique([broadcastId, userId], map: "idx_broadcast_recipients_unique")
-  @@index([broadcastId], map: "idx_broadcast_recipients_broadcast_id")
-  @@index([userId], map: "idx_broadcast_recipients_user_id")
+  @@index([broadcastId], map: "broadcastId")
+  @@index([userId], map: "userId")
   @@map("broadcast_recipients")
 }
 
@@ -314,21 +305,48 @@ model UnitSetting {
   requiresApproval Boolean?  @default(true)
   createdAt        DateTime? @default(now()) @db.DateTime(0)
   updatedAt        DateTime? @default(now()) @db.DateTime(0)
-  units            Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "unit_settings_ibfk_1")
 
   @@map("unit_settings")
 }
 
-// System Settings
 model SystemSetting {
-  id          String   @id @default(cuid()) @db.VarChar(36)
-  key         String   @unique @db.VarChar(255)
-  value       String?  @db.Text
-  description String?  @db.Text
-  createdAt   DateTime @default(now()) @db.DateTime(0)
-  updatedAt   DateTime @default(now()) @updatedAt @db.DateTime(0)
+  id          String    @id @default(cuid()) @db.VarChar(36)
+  key         String    @unique(map: "key") @db.VarChar(255)
+  value       String?   @db.Text
+  description String?   @db.Text
+  createdAt   DateTime? @default(now()) @db.DateTime(0)
+  updatedAt   DateTime? @default(now()) @updatedAt @db.DateTime(0)
 
   @@map("system_settings")
+}
+
+model audit_logs {
+  id        String    @id @db.VarChar(36)
+  userId    String?   @db.VarChar(36)
+  action    String    @db.VarChar(255)
+  entity    String    @db.VarChar(100)
+  entityId  String?   @db.VarChar(36)
+  oldData   String?   @db.Text
+  newData   String?   @db.Text
+  ipAddress String?   @db.VarChar(45)
+  userAgent String?   @db.VarChar(500)
+  createdAt DateTime? @default(now()) @db.DateTime(0)
+  users     User?     @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "audit_logs_ibfk_1")
+
+  @@index([userId], map: "userId")
+}
+
+model push_subscriptions {
+  id        String    @id @db.VarChar(36)
+  userId    String    @db.VarChar(36)
+  endpoint  String    @unique(map: "endpoint") @db.VarChar(512)
+  keys      String    @db.LongText
+  expiresAt DateTime? @db.DateTime(0)
+  createdAt DateTime? @default(now()) @db.DateTime(0)
+  updatedAt DateTime? @default(now()) @db.DateTime(0)
+  users     User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "push_subscriptions_ibfk_1")
+
+  @@index([userId], map: "userId")
 }
 
 enum Role {

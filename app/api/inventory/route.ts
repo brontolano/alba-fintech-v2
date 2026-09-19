@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/options';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
+import { unlink } from 'fs/promises';
+import { join } from 'path';
 
 
 // Schema for creating inventory items
@@ -241,13 +243,27 @@ export async function DELETE(request: NextRequest) {
     // Validate ownership for non-superadmin
     const item = await prisma.inventoryItem.findUnique({
       where: { id: parsed.data.id },
-      select: { id: true, unitId: true },
+      select: { id: true, unitId: true, imageUrl: true },
     });
     if (!item) {
       return NextResponse.json({ error: 'Barang tidak ditemukan' }, { status: 404 });
     }
     if (role !== 'SUPERADMIN' && item.unitId !== session.user.unitId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Delete associated image file if it's a local upload
+    if (item.imageUrl && item.imageUrl.startsWith('/uploads/inventory/')) {
+      try {
+        const filename = item.imageUrl.split('/').pop();
+        if (filename) {
+          const filePath = join(process.cwd(), 'public', 'uploads', 'inventory', filename);
+          await unlink(filePath);
+        }
+      } catch (unlinkError) {
+        // Log error but don't fail the deletion if file doesn't exist
+        console.warn('[Inventory API] Failed to delete image file:', unlinkError);
+      }
     }
 
     await prisma.inventoryItem.delete({ where: { id: parsed.data.id } });

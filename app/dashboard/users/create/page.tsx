@@ -1,15 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  Users,
-  ArrowLeft,
-  Save,
-  Shield,
-  ShieldCheck,
-} from 'lucide-react';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Users, ArrowLeft, Save, Shield, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 
 interface Unit {
   id: string;
@@ -23,24 +17,24 @@ export default function CreateUserPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'STAFF' as 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF',
-    unitId: '',
+    name: "",
+    email: "",
+    password: "",
+    role: "STAFF" as "SUPERADMIN" | "PIMPINAN" | "MANAGER" | "STAFF",
+    unitId: "",
     isActive: true,
   });
 
   // Fetch units for dropdown
   const fetchUnits = async () => {
     try {
-      const res = await fetch('/api/units', {
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/units", {
+        headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
       setUnits(data.data ?? []);
     } catch (err) {
-      console.error('Error fetching units:', err);
+      console.error("Error fetching units:", err);
     }
   };
 
@@ -52,15 +46,15 @@ export default function CreateUserPage() {
     e.preventDefault();
 
     if (!form.name || !form.email || !form.password) {
-      toast.error('Harap isi semua field yang wajib');
+      toast.error("Harap isi semua field yang wajib");
       return;
     }
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
           unitId: form.unitId || undefined,
@@ -69,76 +63,80 @@ export default function CreateUserPage() {
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal membuat pengguna');
+        throw new Error(err.error || "Gagal membuat pengguna");
       }
 
       const result = await res.json();
-      toast.success('Pengguna berhasil dibuat');
+      toast.success("Pengguna berhasil dibuat");
       router.push(`/dashboard/users`);
     } catch (err: any) {
-      toast.error(err.message || 'Gagal membuat pengguna');
+      toast.error(err.message || "Gagal membuat pengguna");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center mb-6">
+    <div className="mx-auto max-w-4xl space-y-5">
+      <div className="flex items-center gap-3">
         <button
-          onClick={() => router.push('/dashboard/users')}
-          className="mr-4 p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition"
+          onClick={() => router.push("/dashboard/users")}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Tambah Pengguna Baru</h1>
-          <p className="text-slate-600 mt-1">
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            Tambah Pengguna Baru
+          </h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             Buat akun pengguna baru untuk aplikasi keuangan
           </p>
         </div>
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-[22px] border border-border bg-card p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
+      >
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Nama Lengkap *
             </label>
             <div className="relative">
-              <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <Users
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={16}
+              />
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 pl-10 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
                 placeholder="Nama lengkap"
                 required
               />
             </div>
           </div>
 
-          {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Email *
             </label>
             <input
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               placeholder="nama@contoh.com"
               required
             />
           </div>
 
-          {/* Password */}
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Password *
             </label>
             <input
@@ -146,42 +144,49 @@ export default function CreateUserPage() {
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               autoComplete="new-password"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               placeholder="Minimal 6 karakter"
               required
               minLength={6}
             />
           </div>
 
-          {/* Role */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Role *
             </label>
             <select
               value={form.role}
-              onChange={(e) => setForm({ ...form, role: e.target.value as 'SUPERADMIN' | 'PIMPINAN' | 'MANAGER' | 'STAFF' })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  role: e.target.value as
+                    "SUPERADMIN" | "PIMPINAN" | "MANAGER" | "STAFF",
+                })
+              }
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               required
             >
               <option value="STAFF">STAFF - Staff Unit</option>
               <option value="MANAGER">MANAGER - Manager Unit</option>
               <option value="PIMPINAN">PIMPINAN - Pimpinan Pondok</option>
-              <option value="SUPERADMIN">SUPERADMIN - Administrator Sistem</option>
+              <option value="SUPERADMIN">
+                SUPERADMIN - Administrator Sistem
+              </option>
             </select>
           </div>
 
           {/* Unit Selection */}
-          {(form.role === 'STAFF' || form.role === 'MANAGER') ? (
+          {form.role === "STAFF" || form.role === "MANAGER" ? (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="mb-1 block text-sm font-medium text-foreground">
                 Unit *
               </label>
               <select
                 value={form.unitId}
                 onChange={(e) => setForm({ ...form, unitId: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
-                required={form.role === 'STAFF' || form.role === 'MANAGER'}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                required={form.role === "STAFF" || form.role === "MANAGER"}
               >
                 <option value="">Pilih Unit</option>
                 {units.map((unit) => (
@@ -192,44 +197,42 @@ export default function CreateUserPage() {
               </select>
             </div>
           ) : (
-            <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg">
-              <ShieldCheck size={20} className="text-blue-500" />
-              <span className="text-sm text-slate-700">
-                {form.role === 'PIMPINAN'
-                  ? 'Pimpinan akan memiliki akses ke seluruh unit'
-                  : 'SuperAdmin memiliki akses penuh ke sistem'}
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+              <ShieldCheck size={18} className="text-primary" />
+              <span>
+                {form.role === "PIMPINAN"
+                  ? "Pimpinan akan memiliki akses ke seluruh unit"
+                  : "SuperAdmin memiliki akses penuh ke sistem"}
               </span>
             </div>
           )}
 
-          {/* Active Status */}
-          <div className="md:col-span-2 flex items-center pt-2 space-x-3">
+          <div className="md:col-span-2 flex items-center space-x-3 pt-2">
             <input
               type="checkbox"
               id="isActive"
               checked={form.isActive}
               onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-              className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
             />
-            <label htmlFor="isActive" className="text-sm text-slate-700">
+            <label htmlFor="isActive" className="text-sm text-muted-foreground">
               Pengguna aktif
             </label>
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex justify-end gap-3 pt-6 border-t border-slate-200 mt-6">
+        <div className="mt-6 flex justify-end gap-3 border-t border-border pt-6">
           <button
             type="button"
-            onClick={() => router.push('/dashboard/users')}
-            className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+            onClick={() => router.push("/dashboard/users")}
+            className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
           >
             Batal
           </button>
           <button
             type="submit"
             disabled={submitting || !form.name || !form.email || !form.password}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 flex items-center gap-2"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
           >
             {submitting ? (
               <>

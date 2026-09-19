@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { toast } from 'sonner';
-import { Upload, X, Save, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { Upload, X, Save, ArrowLeft } from "lucide-react";
 
 interface Unit {
   id: string;
@@ -28,31 +28,34 @@ export default function CreateInventoryPage() {
     unitId: string;
     imageUrl: string;
   }>({
-    name: '',
-    sku: '',
-    category: '',
-    unitPrice: '',
-    purchasePrice: '',
-    minStock: '',
+    name: "",
+    sku: "",
+    category: "",
+    unitPrice: "",
+    purchasePrice: "",
+    minStock: "",
     isActive: true,
-    unitId: '',
-    imageUrl: '',
+    unitId: "",
+    imageUrl: "",
   });
 
   useEffect(() => {
-    if (status === 'loading') return;
+    if (status === "loading") return;
     if (!session?.user) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
 
     // Set default unit for MANAGER/STAFF
-    if ((session.user.role === 'MANAGER' || session.user.role === 'STAFF') && session.user.unitId) {
+    if (
+      (session.user.role === "MANAGER" || session.user.role === "STAFF") &&
+      session.user.unitId
+    ) {
       setForm((prev) => ({ ...prev, unitId: session.user.unitId as string }));
     }
 
-    if (session.user.role === 'SUPERADMIN') {
-      fetch('/api/units')
+    if (session.user.role === "SUPERADMIN") {
+      fetch("/api/units")
         .then((res) => res.json())
         .then((json) => setUnits(json.data || []))
         .catch(() => {});
@@ -65,17 +68,17 @@ export default function CreateInventoryPage() {
 
     setUploading(true);
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append("image", file);
 
     try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
+      const res = await fetch("/api/upload", {
+        method: "POST",
         body: formData,
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Upload failed');
+      if (!res.ok) throw new Error(json.error || "Upload failed");
       setForm((prev) => ({ ...prev, imageUrl: json.url }));
-      toast.success('Gambar berhasil diunggah');
+      toast.success("Gambar berhasil diunggah");
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -84,27 +87,29 @@ export default function CreateInventoryPage() {
   };
 
   const handleRemoveImage = () => {
-    setForm((prev) => ({ ...prev, imageUrl: '' }));
+    setForm((prev) => ({ ...prev, imageUrl: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.sku || !form.unitPrice) {
-      toast.error('Nama, SKU, dan harga jual wajib diisi');
+      toast.error("Nama, SKU, dan harga jual wajib diisi");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch('/api/inventory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/inventory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.name,
           sku: form.sku,
           category: form.category || undefined,
           unitPrice: parseFloat(form.unitPrice),
-          purchasePrice: form.purchasePrice ? parseFloat(form.purchasePrice) : undefined,
+          purchasePrice: form.purchasePrice
+            ? parseFloat(form.purchasePrice)
+            : undefined,
           minStock: form.minStock ? parseInt(form.minStock) : 0,
           isActive: form.isActive,
           unitId: form.unitId || undefined,
@@ -112,9 +117,9 @@ export default function CreateInventoryPage() {
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Gagal menambahkan barang');
-      toast.success('Barang berhasil ditambahkan');
-      router.push('/dashboard/inventory');
+      if (!res.ok) throw new Error(json.error || "Gagal menambahkan barang");
+      toast.success("Barang berhasil ditambahkan");
+      router.push("/dashboard/inventory");
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -123,101 +128,127 @@ export default function CreateInventoryPage() {
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="flex items-center mb-6">
+    <div className="mx-auto max-w-2xl space-y-5">
+      <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={() => router.back()}
-          className="mr-4 p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </button>
-        <h1 className="text-2xl font-bold text-slate-800">Tambah Barang Baru</h1>
+        <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+          Tambah Barang Baru
+        </h1>
       </div>
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div className="rounded-[22px] border border-border bg-card p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Gambar */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Gambar Barang
             </label>
             {form.imageUrl ? (
-              <div className="relative w-32 h-32 mt-2">
-                <img src={form.imageUrl} alt="Preview" className="object-cover w-full h-full rounded" />
+              <div className="relative mt-2 h-32 w-32">
+                <img
+                  src={form.imageUrl}
+                  alt="Preview"
+                  className="h-full w-full rounded-xl object-cover"
+                />
                 <button
                   type="button"
                   onClick={handleRemoveImage}
-                  className="absolute top-1 right-1 bg-red-500 rounded-full p-1"
+                  className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white"
                 >
-                  <X className="w-4 h-4 text-white" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full h-24 mt-2 border-2 border-dashed rounded-lg cursor-pointer border-slate-300">
-                <Upload className="w-6 h-6 mb-1 text-gray-500" />
-                <span className="text-sm text-gray-500">Upload gambar</span>
-                <input type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading} />
+              <label className="mt-2 flex h-24 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 transition hover:border-primary/50">
+                <Upload className="mb-1 h-6 w-6 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Upload gambar
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUpload}
+                  className="hidden"
+                  disabled={uploading}
+                />
               </label>
             )}
-            {uploading && <p className="text-sm text-gray-500 mt-1">Mengunggah...</p>}
+            {uploading && (
+              <p className="mt-1 text-sm text-muted-foreground">
+                Mengunggah...
+              </p>
+            )}
           </div>
 
           {/* Nama */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Nama Barang *
             </label>
             <input
               type="text"
               value={form.name}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setForm({ ...form, name: e.target.value })
+              }
               required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
 
-          {/* SKU */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               SKU *
             </label>
             <input
               type="text"
               value={form.sku}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, sku: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setForm({ ...form, sku: e.target.value })
+              }
               required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Kategori
             </label>
             <input
               type="text"
               value={form.category}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, category: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setForm({ ...form, category: e.target.value })
+              }
               placeholder="Misal: Sarana, Elektronik, dll"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
 
-          {/* Unit (SuperAdmin only) */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Unit
             </label>
             <select
               value={form.unitId}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setForm({ ...form, unitId: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setForm({ ...form, unitId: e.target.value })
+              }
               disabled={units.length === 0}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <option value="">Pilih unit (wajib untuk Super Admin)</option>
               {units.map((u: Unit) => (
-                <option key={u.id} value={u.id}>{u.name}</option>
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
               ))}
             </select>
           </div>
@@ -225,68 +256,77 @@ export default function CreateInventoryPage() {
           {/* Harga */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="mb-1 block text-sm font-medium text-foreground">
                 Harga Jual *
               </label>
               <input
                 type="number"
                 value={form.unitPrice}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, unitPrice: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setForm({ ...form, unitPrice: e.target.value })
+                }
                 required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="mb-1 block text-sm font-medium text-foreground">
                 Harga Beli
               </label>
               <input
                 type="number"
                 value={form.purchasePrice}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, purchasePrice: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setForm({ ...form, purchasePrice: e.target.value })
+                }
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               />
             </div>
           </div>
 
-          {/* Min Stock */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Stok Minimum
             </label>
             <input
               type="number"
               value={form.minStock}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, minStock: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setForm({ ...form, minStock: e.target.value })
+              }
               placeholder="0"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
 
-          {/* IsActive */}
           <div className="flex items-center gap-2">
             <input
               id="isActive"
               type="checkbox"
               checked={form.isActive}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, isActive: e.target.checked })}
-              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setForm({ ...form, isActive: e.target.checked })
+              }
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
             />
-            <label htmlFor="isActive" className="text-sm text-slate-700">Aktif</label>
+            <label htmlFor="isActive" className="text-sm text-foreground">
+              Aktif
+            </label>
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
           >
             {loading ? (
               <>
                 <Save size={16} className="animate-spin" />
                 Menyimpan...
               </>
-            ) : 'Simpan Barang'}
+            ) : (
+              "Simpan Barang"
+            )}
           </button>
         </form>
       </div>

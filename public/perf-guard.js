@@ -13,7 +13,7 @@
       clearResourceTimings:function(){},
       setResourceTimingBufferSize:function(){}
     },
-    timing:{navigationStart:Date.now()}
+    timing: {navigationStart: Date.now()}
     });
   }
 }catch(e){}})();

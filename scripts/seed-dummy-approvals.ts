@@ -9,6 +9,7 @@
  *   npx tsx scripts/seed-dummy-approvals.ts
  */
 import 'dotenv/config';
+import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -58,7 +59,7 @@ async function getOrCreateDummyContext() {
     where: { email: 'dummy-staff@alba.local' },
   });
   if (!creator) {
-    const hashed = await import('bcryptjs').then((b) => b.hash('Bismillah123!', 12));
+    const hashed = await bcrypt.hash('Bismillah123!', 12);
     creator = await prisma.user.create({
       data: {
         email: 'dummy-staff@alba.local',
@@ -75,7 +76,7 @@ async function getOrCreateDummyContext() {
     where: { email: 'dummy-pimpinan@alba.local' },
   });
   if (!approver) {
-    const hashed = await import('bcryptjs').then((b) => b.hash('Bismillah123!', 12));
+    const hashed = await bcrypt.hash('Bismillah123!', 12);
     approver = await prisma.user.create({
       data: {
         email: 'dummy-pimpinan@alba.local',
@@ -162,7 +163,27 @@ async function main() {
       },
     });
 
-    // Always create an approval record for the transaction
+    // Routing sesuai alur persetujuan ALBA:
+    //  dibuat STAFF -> MANAGER unit; dibuat MANAGER -> PIMPINAN lembaga.
+    //  Fallback: SUPERADMIN.
+    let targetApproverId = ctx.approver.id;
+    const superadmin = await prisma.user.findFirst({
+      where: { role: 'SUPERADMIN', isActive: true },
+      select: { id: true },
+    });
+    if (ctx.creator.role === 'MANAGER') {
+      const pimpinanLembaga = await prisma.user.findFirst({
+        where: {
+          role: 'PIMPINAN',
+          isActive: true,
+          lembagaId: s.unit.lembagaId ?? undefined,
+        },
+        select: { id: true },
+      });
+      targetApproverId = pimpinanLembaga?.id ?? superadmin?.id ?? ctx.approver.id;
+    }
+    // creator STAFF: MANAGER unit dummy tidak ada -> tetap ke approver (PIMPINAN) dummy
+
     const existing = await prisma.approval.findFirst({
       where: { transactionId: txn.id, status: s.status as any },
     });
@@ -170,7 +191,7 @@ async function main() {
       await prisma.approval.create({
         data: {
           transactionId: txn.id,
-          approverId: ctx.approver.id,
+          approverId: targetApproverId,
           unitId: txn.unitId,
           status: s.status as any,
           comment:

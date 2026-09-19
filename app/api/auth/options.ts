@@ -153,8 +153,8 @@ export const authOptions: NextAuthOptions = {
         } catch (dbErr: unknown) {
           // DB connection/schema error — preserve existing token values
           // This prevents 500 errors when DB is temporarily unavailable
-          const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
-          console.error('[Auth] DB error during JWT refresh:', msg);
+          // prisma:error sudah dicatat oleh Prisma client; cukup satu baris warn tanpa stack panjang.
+          console.warn('[Auth] DB unreachable during JWT refresh — keeping cached token role/isActive.');
           // Token expires soon anyway, user will be prompted to login
         }
       }

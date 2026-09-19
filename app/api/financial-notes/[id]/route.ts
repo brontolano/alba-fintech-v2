@@ -13,8 +13,6 @@ const updateFinancialNoteSchema = z.object({
   date: z.string().transform((str) => new Date(str)).optional(),
   categoryId: z.string().optional().nullable(),
   isReconciled: z.boolean().optional(),
-  reconciledById: z.string().optional().nullable(),
-  reconciledAt: z.string().optional().nullable(),
 });
 
 export async function GET(
@@ -118,11 +116,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Update note
+    // Update note. reconciledById/At diisi server-side berdasarkan sesi —
+    // jangan percaya payload klien.
     const note = await prisma.financialNote.update({
       where: { id },
       data: {
         ...parsed.data,
+        ...(parsed.data.isReconciled !== undefined && {
+          reconciledById: parsed.data.isReconciled ? ((session.user as any)?.id ?? null) : null,
+          reconciledAt: parsed.data.isReconciled ? new Date() : null,
+        }),
       },
       include: {
         units: true,

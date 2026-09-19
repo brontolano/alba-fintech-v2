@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/options';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
+import { notifyApprovalDecision } from '@/lib/approvalRouting';
 
 
 // Schema for approval actions
@@ -49,6 +50,7 @@ export async function PATCH(
             description: true,
             date: true,
             status: true,
+            createdById: true,
           },
         },
         units: true,
@@ -63,24 +65,32 @@ export async function PATCH(
       return NextResponse.json({ error: 'Persetujuan sudah diproses' }, { status: 400 });
     }
 
-    // Ownership validation
-    if (role === 'PIMPINAN') {
+    // Ownership validation: hanya approver yang ditunjuk yang boleh memutuskan.
+    // SUPERADMIN diberi pengecualian untuk aksi remedial.
+    if (role !== 'SUPERADMIN') {
       if (approval.approverId !== session.user.id) {
-        return NextResponse.json({ error: 'Anda tidak memiliki izin untuk menyetujui permintaan ini' }, { status: 403 });
+        return NextResponse.json(
+          { error: 'Permintaan ini ditujukan kepada penyetuju lain' },
+          { status: 403 },
+        );
       }
     }
-    if (role === 'MANAGER') {
-      if (approval.unitId !== session.user.unitId) {
-        return NextResponse.json({ error: 'Anda tidak memiliki izin untuk menyetujui permintaan di unit lain' }, { status: 403 });
-      }
+
+    // Anti self-approval: pembuat transaksi tidak boleh menyetujui transaksinya sendiri
+    if (approval.transactions.createdById === session.user.id) {
+      return NextResponse.json(
+        { error: 'Anda tidak dapat menyetujui transaksi yang Anda buat sendiri' },
+        { status: 403 },
+      );
     }
 
     // Update approval and transaction
     const newStatus = parsed.data.action === 'approve' ? 'APPROVED' : 'REJECTED';
+    const approved = parsed.data.action === 'approve';
 
-    await prisma.$transaction(async (tx) => {
+    const updatedTx = await prisma.$transaction(async (tx) => {
       // Update approval
-      await tx.approval.update({
+      const upd = await tx.approval.update({
         where: { id },
         data: {
           status: newStatus,
@@ -89,7 +99,7 @@ export async function PATCH(
       });
 
       // Update transaction status
-      await tx.transaction.update({
+      return tx.transaction.update({
         where: { id: approval.transactionId },
         data: {
           status: newStatus,
@@ -97,6 +107,16 @@ export async function PATCH(
           approvedAt: new Date(),
         },
       });
+    });
+
+    // Notifikasi ke pembuat transaksi (non-blocking)
+    await notifyApprovalDecision({
+      creatorId: updatedTx.createdById,
+      transactionId: updatedTx.id,
+      description: updatedTx.description,
+      approved,
+      approverName: session.user.name || session.user.email || 'Atasan',
+      comment: parsed.data.comment,
     });
 
     return NextResponse.json({

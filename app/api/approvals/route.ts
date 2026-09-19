@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/options';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
+import { resolveApprover } from '@/lib/approvalRouting';
 
 
 // Schema for approval actions
@@ -25,16 +26,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Build where clause
-    const where: any = {
-      status: 'PENDING',
-    };
+    const { searchParams } = new URL(request.url);
+    const requestedStatus = searchParams.get('status');
+    const status = requestedStatus
+      ? z.enum(['PENDING', 'APPROVED', 'REJECTED']).safeParse(requestedStatus)
+      : null;
+    if (status && !status.success) {
+      return NextResponse.json({ error: 'Status tidak valid' }, { status: 400 });
+    }
 
-    // Role-based filtering
-    if (role === 'PIMPINAN') {
+    // Build where clause
+    const where: any = status?.success ? { status: status.data } : {};
+
+    // Role-based filtering:
+    //  - MANAGER melihat pengajuan yang DITUJUKAN kepadanya (approval transaksi Staff)
+    //  - PIMPINAN melihat pengajuan untuknya + semua pengajuan di lembaganya
+    //    (visibilitas penuh sebagai otoritas lembaga; kewenangan memutuskan
+    //    divalidasi ketat di PATCH /api/approvals/[id])
+    //  - SUPERADMIN melihat semua pengajuan
+    if (role === 'MANAGER') {
       where.approverId = session.user.id;
-    } else if (role === 'MANAGER') {
-      where.unitId = session.user.unitId;
+    } else if (role === 'PIMPINAN') {
+      const unitIds = await prisma.unit
+        .findMany({ where: { lembagaId: session.user.lembagaId }, select: { id: true } })
+        .then((units) => units.map((u) => u.id));
+      where.OR = [
+        { approverId: session.user.id },
+        { unitId: { in: unitIds } },
+      ];
     }
 
     // Fetch approvals with related data
@@ -45,7 +64,7 @@ export async function GET(request: NextRequest) {
           include: {
             units: true,
             users_transactions_createdByIdTousers: {
-              select: { name: true, email: true },
+              select: { name: true, email: true, role: true },
             },
           },
         },
@@ -59,13 +78,22 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    const data = approvals.map((approval) => ({
+      ...approval,
+      type: approval.transactions.type,
+      amount: Number(approval.transactions.amount),
+      description: approval.transactions.description,
+      reference: approval.transactions.reference,
+      submittedBy: approval.transactions.users_transactions_createdByIdTousers,
+    }));
+
     return NextResponse.json({
-      data: approvals,
+      data,
       summary: {
-        total: approvals.length,
-        pending: approvals.filter((a) => a.status === 'PENDING').length,
-        approved: approvals.filter((a) => a.status === 'APPROVED').length,
-        rejected: approvals.filter((a) => a.status === 'REJECTED').length,
+        total: data.length,
+        pending: data.filter((a) => a.status === 'PENDING').length,
+        approved: data.filter((a) => a.status === 'APPROVED').length,
+        rejected: data.filter((a) => a.status === 'REJECTED').length,
       },
     }, { status: 200 });
   } catch (error) {
@@ -103,8 +131,11 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         unitId: true,
-        type: true,
-        amount: true,
+        status: true,
+        createdById: true,
+        users_transactions_createdByIdTousers: {
+          select: { id: true, role: true },
+        },
       },
     });
 
@@ -127,6 +158,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Permintaan persetujuan sudah ada' }, { status: 409 });
     }
 
+    // Resolve the correct approver from the transaction creator's role,
+    // NOT from the submitter — root cause approvals never reached Pimpinan:
+    //   dibuat STAFF   -> MANAGER unit
+    //   dibuat MANAGER -> PIMPINAN lembaga
+    const creatorRole = transaction.users_transactions_createdByIdTousers?.role ?? 'STAFF';
+    const approverId = await resolveApprover(transaction.unitId, creatorRole);
+
+    if (!approverId) {
+      return NextResponse.json(
+        { error: 'Tidak ditemukan penyetuju untuk transaksi ini' },
+        { status: 400 },
+      );
+    }
+
+    if (approverId === transaction.createdById) {
+      return NextResponse.json(
+        { error: 'Pembuat dan penyetuju tidak boleh orang yang sama' },
+        { status: 400 },
+      );
+    }
+
     // Update transaction status to pending approval
     await prisma.transaction.update({
       where: { id: parsed.data.transactionId },
@@ -137,7 +189,7 @@ export async function POST(request: NextRequest) {
     const approval = await prisma.approval.create({
       data: {
         transactionId: parsed.data.transactionId,
-        approverId: session.user.id!,
+        approverId,
         unitId: transaction.unitId,
         status: 'PENDING',
       },

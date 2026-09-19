@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 // Schema for query parameters
 const querySchema = z.object({
-  period: z.enum(['6months', '12months', 'year']).optional().default('6months'),
+  period: z.enum(['daily', 'weekly', 'monthly', '6months', '12months', 'year']).optional().default('6months'),
   unitId: z.string().optional(),
 });
 
@@ -35,9 +35,22 @@ export async function GET(request: NextRequest) {
     // Calculate date range
     const now = new Date();
     const months = parsed.data.period === '6months' ? 6 : parsed.data.period === '12months' ? 12 : 12;
-    const startDate = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
+    let startDate: Date;
+    let groupBy: 'day' | 'week' | 'month';
 
-    // Build where clause for transactions
+    if (parsed.data.period === 'daily') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+      groupBy = 'day';
+    } else if (parsed.data.period === 'weekly') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 27);
+      groupBy = 'week';
+    } else if (parsed.data.period === 'monthly') {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+      groupBy = 'month';
+    } else {
+      startDate = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
+      groupBy = 'month';
+    }
     const txWhere: any = {
       status: 'APPROVED',
       date: { gte: startDate },
@@ -45,8 +58,14 @@ export async function GET(request: NextRequest) {
 
     // Role-based filtering
     if (role === 'STAFF' || role === 'MANAGER') {
+      if (!unitId) {
+        return NextResponse.json({ error: 'User tidak memiliki unit' }, { status: 400 });
+      }
       txWhere.unitId = unitId;
     } else if (role === 'PIMPINAN') {
+      if (!lembagaId) {
+        return NextResponse.json({ error: 'Pimpinan tidak memiliki lembaga' }, { status: 403 });
+      }
       // Pimpinan sees transactions from units in their lembaga
       const unitIds = await prisma.unit.findMany({
         where: { lembagaId },
@@ -55,8 +74,21 @@ export async function GET(request: NextRequest) {
       txWhere.unitId = { in: unitIds };
     }
 
-    // Override with query param if provided
+    // A requested unit may only narrow the user's existing scope.
     if (parsed.data.unitId) {
+      if (role === 'MANAGER') {
+        if (parsed.data.unitId !== unitId) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      } else if (role === 'PIMPINAN') {
+        const targetUnit = await prisma.unit.findFirst({
+          where: { id: parsed.data.unitId, lembagaId },
+          select: { id: true },
+        });
+        if (!targetUnit) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      }
       txWhere.unitId = parsed.data.unitId;
     }
 
@@ -69,20 +101,61 @@ export async function GET(request: NextRequest) {
         type: true,
         amount: true,
         date: true,
+        isPimpinanNote: true,
       },
     });
 
-    // Build monthly aggregation
+    // Pisahkan transaksi LEVEL LEMBAGA (catatan Pimpinan, non-unit)
+    // agar tidak tercampur ke distribusi unit.
+    const lembagaTxs = transactions.filter((t) => t.isPimpinanNote === true);
+    const unitTxs = transactions.filter((t) => t.isPimpinanNote !== true);
+
+    const lembagaSummary = {
+      income: lembagaTxs
+        .filter((t) => t.type === 'INCOME')
+        .reduce((sum, t) => sum + Number(t.amount), 0),
+      expense: lembagaTxs
+        .filter((t) => t.type === 'EXPENSE')
+        .reduce((sum, t) => sum + Number(t.amount), 0),
+      count: lembagaTxs.length,
+    };
+
+    // Build aggregation based on groupBy
     const monthlyData: Record<string, { INCOME: number; EXPENSE: number; TRANSFER: number }> = {};
-    for (let i = 0; i < months; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - months + 1 + i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      monthlyData[key] = { INCOME: 0, EXPENSE: 0, TRANSFER: 0 };
+
+    if (groupBy === 'day') {
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6 + i);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        monthlyData[key] = { INCOME: 0, EXPENSE: 0, TRANSFER: 0 };
+      }
+    } else if (groupBy === 'week') {
+      const weeks = 4;
+      for (let i = 0; i < weeks; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (weeks - 1 - i) * 7);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-W${i + 1}`;
+        monthlyData[key] = { INCOME: 0, EXPENSE: 0, TRANSFER: 0 };
+      }
+    } else {
+      for (let i = 0; i < months; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - months + 1 + i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        monthlyData[key] = { INCOME: 0, EXPENSE: 0, TRANSFER: 0 };
+      }
     }
 
     for (const tx of transactions) {
+      if (!tx.date) continue;
       const d = new Date(tx.date);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      let key: string;
+      if (groupBy === 'day') {
+        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      } else if (groupBy === 'week') {
+        const weekNum = Math.ceil(d.getDate() / 7);
+        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-W${weekNum}`;
+      } else {
+        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }
       if (monthlyData[key]) {
         monthlyData[key][tx.type] += Number(tx.amount);
       }
@@ -98,9 +171,9 @@ export async function GET(request: NextRequest) {
         transfer: Number(monthlyData[key].TRANSFER.toFixed(2)),
       }));
 
-    // Build unit distribution
+    // Build unit distribution (HANYA transaksi unit; transaksi lembaga terpisah)
     const unitAggMap: Record<string, { id: string; name: string; income: number; expense: number }> = {};
-    for (const tx of transactions) {
+    for (const tx of unitTxs) {
       if (!tx.units) continue;
       const uid = tx.unitId!;
       if (!unitAggMap[uid]) {
@@ -136,16 +209,26 @@ export async function GET(request: NextRequest) {
         .reduce((sum, t) => sum + Number(t.amount), 0),
     };
 
+    // Totals keseluruhan = unit + lembaga
+    const grandIncome = totalIncome + lembagaSummary.income;
+    const grandExpense = totalExpense + lembagaSummary.expense;
+
     return NextResponse.json({
       data: {
         monthlyData: monthlyArray,
         unitDistributionData: unitDistribution,
         typeDistribution: typeDistribution,
+        lembagaSummary: {
+          ...lembagaSummary,
+          income: Number(lembagaSummary.income.toFixed(2)),
+          expense: Number(lembagaSummary.expense.toFixed(2)),
+          net: Number((lembagaSummary.income - lembagaSummary.expense).toFixed(2)),
+        },
         statCards: {
-          totalIncome,
-          totalExpense,
-          netProfit: totalIncome - totalExpense,
-          profitRatio: totalIncome > 0 ? Number(((totalIncome - totalExpense) / totalIncome * 100).toFixed(1)) : 0,
+          totalIncome: Number(grandIncome.toFixed(2)),
+          totalExpense: Number(grandExpense.toFixed(2)),
+          netProfit: Number((grandIncome - grandExpense).toFixed(2)),
+          profitRatio: grandIncome > 0 ? Number(((grandIncome - grandExpense) / grandIncome * 100).toFixed(1)) : 0,
         },
         summary: {
           totalTransactions: transactions.length,

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Settings,
   Save,
@@ -12,8 +12,8 @@ import {
   Bell,
   Palette,
   RefreshCw,
-} from 'lucide-react';
-import { toast } from 'sonner';
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface SystemSettings {
   app_name: string;
@@ -33,23 +33,25 @@ interface SystemSettings {
 
 // Map color names to hex values (for API storage) and HSL (for CSS variables)
 const COLOR_MAP: Record<string, { hex: string; hsl: string }> = {
-  emerald: { hex: '#10b981', hsl: '175.5 59.4% 33.3%' },
-  blue: { hex: '#3b82f6', hsl: '222.2 54.9% 48.4%' },
-  purple: { hex: '#a855f7', hsl: '265.4 70.2% 51.8%' },
-  rose: { hex: '#f43f5e', hsl: '333.4 65.6% 58.4%' },
+  finzo: { hex: "#10b981", hsl: "160 84% 39%" },
+  islamic: { hex: "#16a34a", hsl: "142 76% 36%" },
+  blue: { hex: "#3b82f6", hsl: "222.2 54.9% 48.4%" },
+  purple: { hex: "#a855f7", hsl: "265.4 70.2% 51.8%" },
+  rose: { hex: "#f43f5e", hsl: "333.4 65.6% 58.4%" },
+  amber: { hex: "#f59e0b", hsl: "38 92% 50%" },
 };
 
 // Reverse map: hex → color name
 const HEX_TO_COLOR = Object.fromEntries(
-  Object.entries(COLOR_MAP).map(([name, { hex }]) => [hex, name])
+  Object.entries(COLOR_MAP).map(([name, { hex }]) => [hex, name]),
 );
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('system');
+  const [activeTab, setActiveTab] = useState("system");
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [resetPassword, setResetPassword] = useState('');
+  const [resetPassword, setResetPassword] = useState("");
   const [isResetting, setIsResetting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -63,8 +65,8 @@ export default function SettingsPage() {
   });
 
   const [appearance, setAppearance] = useState({
-    theme: 'light',
-    primaryColor: 'emerald',
+    theme: "light",
+    primaryColor: "finzo",
     compactMode: false,
   });
 
@@ -74,48 +76,59 @@ export default function SettingsPage() {
     const body = document.body;
 
     // Theme
-    if (appearance.theme === 'dark') {
-      html.classList.add('dark');
-    } else if (appearance.theme === 'light') {
-      html.classList.remove('dark');
+    if (appearance.theme === "dark") {
+      html.classList.add("dark");
+    } else if (appearance.theme === "light") {
+      html.classList.remove("dark");
     } else {
       // system preference
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
       const applySystemTheme = (e?: MediaQueryListEvent) => {
         const matches = e ? e.matches : mediaQuery.matches;
-        html.classList.toggle('dark', matches);
+        html.classList.toggle("dark", matches);
       };
       applySystemTheme();
-      mediaQuery.addEventListener('change', applySystemTheme);
+      mediaQuery.addEventListener("change", applySystemTheme);
 
       // Cleanup event listener on unmount or theme change
-      return () => mediaQuery.removeEventListener('change', applySystemTheme);
+      return () => mediaQuery.removeEventListener("change", applySystemTheme);
     }
 
     // Primary color (apply in all theme modes)
-    const colorInfo = COLOR_MAP[appearance.primaryColor] || COLOR_MAP.emerald;
-    html.style.setProperty('--primary', colorInfo.hsl);
-    html.style.setProperty('--ring', colorInfo.hsl);
+    const colorInfo = COLOR_MAP[appearance.primaryColor] || COLOR_MAP.finzo;
+    html.style.setProperty("--primary", colorInfo.hsl);
+    html.style.setProperty("--ring", colorInfo.hsl);
 
     // Compact mode
     if (appearance.compactMode) {
-      body.classList.add('compact');
+      body.classList.add("compact");
     } else {
-      body.classList.remove('compact');
+      body.classList.remove("compact");
     }
+
+    localStorage.setItem("alba-appearance", JSON.stringify(appearance));
   }, [appearance.theme, appearance.primaryColor, appearance.compactMode]);
 
   // Preview toast when appearance settings change
-  const handleAppearanceChange = (field: 'theme' | 'primaryColor' | 'compactMode', value: any) => {
-    setAppearance(prev => {
+  const handleAppearanceChange = (
+    field: "theme" | "primaryColor" | "compactMode",
+    value: any,
+  ) => {
+    setAppearance((prev) => {
       const updated = { ...prev, [field]: value };
       // Show immediate preview feedback
-      if (field === 'theme') {
-        toast.success(`Tema diubah ke ${value === 'dark' ? 'Gelap' : value === 'light' ? 'Terang' : 'Sistem'}`, { duration: 1500 });
-      } else if (field === 'primaryColor') {
+      if (field === "theme") {
+        toast.success(
+          `Tema diubah ke ${value === "dark" ? "Gelap" : value === "light" ? "Terang" : "Sistem"}`,
+          { duration: 1500 },
+        );
+      } else if (field === "primaryColor") {
         toast.success(`Warna utama diubah ke ${value}`, { duration: 1500 });
-      } else if (field === 'compactMode') {
-        toast.success(value ? 'Mode kompak diaktifkan' : 'Mode kompak dinonaktifkan', { duration: 1500 });
+      } else if (field === "compactMode") {
+        toast.success(
+          value ? "Mode kompak diaktifkan" : "Mode kompak dinonaktifkan",
+          { duration: 1500 },
+        );
       }
       return updated;
     });
@@ -124,62 +137,77 @@ export default function SettingsPage() {
   // Reset appearance to defaults
   const resetAppearance = () => {
     setAppearance({
-      theme: 'light',
-      primaryColor: 'emerald',
+      theme: "light",
+      primaryColor: "finzo",
       compactMode: false,
     });
-    toast.success('Tampilan dikembalikan ke pengaturan default');
+    toast.success("Tampilan dikembalikan ke pengaturan default");
   };
 
   const [system, setSystem] = useState({
-    appName: 'ALBA Finance v3',
-    appDescription: 'Aplikasi Keuangan Pondok Pesantren Al-Basyariyah',
-    currency: 'IDR',
-    timezone: 'Asia/Jakarta',
+    appName: "ALBA Finance v3",
+    appDescription: "Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
+    currency: "IDR",
+    timezone: "Asia/Jakarta",
   });
 
   const [security, setSecurity] = useState({
     enable2fa: false,
-    sessionTimeout: '1800',
-    newPassword: '',
+    sessionTimeout: "1800",
+    newPassword: "",
   });
 
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/settings');
+      const res = await fetch("/api/settings");
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Gagal memuat pengaturan');
+        throw new Error(err.error || "Gagal memuat pengaturan");
       }
       const result = await res.json();
       const data: SystemSettings = result.data;
 
       setSettings(data);
       setSystem({
-        appName: data.app_name || 'ALBA Finance v3',
-        appDescription: data.app_description || 'Aplikasi Keuangan Pondok Pesantren Al-Basyariyah',
-        currency: data.currency || 'IDR',
-        timezone: data.timezone || 'Asia/Jakarta',
+        appName: data.app_name || "ALBA Finance v3",
+        appDescription:
+          data.app_description ||
+          "Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
+        currency: data.currency || "IDR",
+        timezone: data.timezone || "Asia/Jakarta",
       });
       setNotifications({
-        email: data.email_notifications === 'true',
-        push: data.push_notifications === 'true',
-        inApp: data.in_app_notifications === 'true',
-        reminders: data.reminders === 'true',
+        email: data.email_notifications === "true",
+        push: data.push_notifications === "true",
+        inApp: data.in_app_notifications === "true",
+        reminders: data.reminders === "true",
       });
       setAppearance({
-        theme: data.theme || 'light',
-        primaryColor: HEX_TO_COLOR[data.primary_color] || 'emerald',
-        compactMode: data.compact_mode === 'true',
+        theme: data.theme || "light",
+        primaryColor: HEX_TO_COLOR[data.primary_color] || "finzo",
+        compactMode: data.compact_mode === "true",
       });
       setSecurity({
-        enable2fa: data.enable_2fa === 'true',
-        sessionTimeout: data.session_timeout || '1800',
-        newPassword: '',
+        enable2fa: data.enable_2fa === "true",
+        sessionTimeout: data.session_timeout || "1800",
+        newPassword: "",
       });
     } catch (err: any) {
-      toast.error(err.message || 'Gagal memuat pengaturan');
+      const savedAppearance = localStorage.getItem("alba-appearance");
+      if (savedAppearance) {
+        try {
+          const parsedAppearance = JSON.parse(savedAppearance);
+          setAppearance({
+            theme: parsedAppearance.theme || "light",
+            primaryColor: parsedAppearance.primaryColor || "finzo",
+            compactMode: parsedAppearance.compactMode === true,
+          });
+        } catch {
+          localStorage.removeItem("alba-appearance");
+        }
+      }
+      toast.error(err.message || "Gagal memuat pengaturan");
     } finally {
       setLoading(false);
     }
@@ -193,43 +221,46 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const settingsToSave = [
-        { key: 'app_name', value: system.appName },
-        { key: 'app_description', value: system.appDescription },
-        { key: 'currency', value: system.currency },
-        { key: 'timezone', value: system.timezone },
-        { key: 'email_notifications', value: notifications.email.toString() },
-        { key: 'push_notifications', value: notifications.push.toString() },
-        { key: 'in_app_notifications', value: notifications.inApp.toString() },
-        { key: 'reminders', value: notifications.reminders.toString() },
-        { key: 'theme', value: appearance.theme },
-        { key: 'primary_color', value: COLOR_MAP[appearance.primaryColor]?.hex || COLOR_MAP.emerald.hex },
-        { key: 'compact_mode', value: appearance.compactMode.toString() },
-        { key: 'enable_2fa', value: security.enable2fa.toString() },
-        { key: 'session_timeout', value: security.sessionTimeout },
+        { key: "app_name", value: system.appName },
+        { key: "app_description", value: system.appDescription },
+        { key: "currency", value: system.currency },
+        { key: "timezone", value: system.timezone },
+        { key: "email_notifications", value: notifications.email.toString() },
+        { key: "push_notifications", value: notifications.push.toString() },
+        { key: "in_app_notifications", value: notifications.inApp.toString() },
+        { key: "reminders", value: notifications.reminders.toString() },
+        { key: "theme", value: appearance.theme },
+        {
+          key: "primary_color",
+          value: COLOR_MAP[appearance.primaryColor]?.hex || COLOR_MAP.finzo.hex,
+        },
+        { key: "compact_mode", value: appearance.compactMode.toString() },
+        { key: "enable_2fa", value: security.enable2fa.toString() },
+        { key: "session_timeout", value: security.sessionTimeout },
       ];
 
-      const res = await fetch('/api/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ settings: settingsToSave }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        if (err.code === 'P2021' || res.status === 503) {
+        if (err.code === "P2021" || res.status === 503) {
           // DB table doesn't exist — settings are still applied live on client
           toast.warning(
-            'Tema berhasil diterapkan untuk sesi ini. Tabel pengaturan belum ada di database — hubungi administrator untuk migrasi.',
-            { duration: 6000 }
+            "Tema berhasil diterapkan untuk sesi ini. Tabel pengaturan belum ada di database — hubungi administrator untuk migrasi.",
+            { duration: 6000 },
           );
           return;
         }
-        throw new Error(err.error || 'Gagal menyimpan pengaturan');
+        throw new Error(err.error || "Gagal menyimpan pengaturan");
       }
 
-      toast.success('Pengaturan berhasil disimpan');
+      toast.success("Pengaturan berhasil disimpan");
     } catch (err: any) {
-      toast.error(err.message || 'Gagal menyimpan pengaturan');
+      toast.error(err.message || "Gagal menyimpan pengaturan");
     } finally {
       setSaving(false);
     }
@@ -242,16 +273,18 @@ export default function SettingsPage() {
       // For now, we export the settings as a basic export
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const exportData = { settings, exportedAt: new Date().toISOString() };
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `alba-settings-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `alba-settings-${new Date().toISOString().split("T")[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Data berhasil diekspor');
+      toast.success("Data berhasil diekspor");
     } catch (err) {
-      toast.error('Gagal mengekspor data');
+      toast.error("Gagal mengekspor data");
     } finally {
       setIsExporting(false);
     }
@@ -259,22 +292,22 @@ export default function SettingsPage() {
 
   const handleImport = async () => {
     if (!file) {
-      toast.error('Silakan pilih file terlebih dahulu');
+      toast.error("Silakan pilih file terlebih dahulu");
       return;
     }
     setIsImporting(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
       // In a real app, this would upload and process the file
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      toast.success('Data berhasil diimpor');
+      toast.success("Data berhasil diimpor");
       setFile(null);
       fetchSettings(); // Refresh settings after import
     } catch (err) {
-      toast.error('Gagal mengimpor data');
+      toast.error("Gagal mengimpor data");
     } finally {
       setIsImporting(false);
     }
@@ -282,44 +315,53 @@ export default function SettingsPage() {
 
   const handleReset = async () => {
     if (!resetPassword) {
-      toast.error('Masukkan password Anda');
+      toast.error("Masukkan password Anda");
       return;
     }
-    if (!confirm('Anda yakin ingin mereset semua data? Tindakan ini tidak dapat dibatalkan.')) {
+    if (
+      !confirm(
+        "Anda yakin ingin mereset semua data? Tindakan ini tidak dapat dibatalkan.",
+      )
+    ) {
       return;
     }
     setIsResetting(true);
     try {
-      const res = await fetch('/api/reset-users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/reset-users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirm: true, password: resetPassword }),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Gagal mereset data');
+        throw new Error(data.error || "Gagal mereset data");
       }
 
-      toast.success('Data berhasil direset');
-      setResetPassword('');
+      toast.success("Data berhasil direset");
+      setResetPassword("");
     } catch (err: any) {
-      toast.error(err.message || 'Gagal mereset data');
+      toast.error(err.message || "Gagal mereset data");
     } finally {
       setIsResetting(false);
     }
   };
 
   const tabs = [
-    { id: 'system', label: 'Pengaturan Sistem', icon: Settings },
-    { id: 'data', label: 'Data', icon: Database },
-    { id: 'notifications', label: 'Notifikasi', icon: Bell },
-    { id: 'appearance', label: 'Tampilan', icon: Palette },
-    { id: 'security', label: 'Keamanan', icon: Shield },
+    { id: "system", label: "Pengaturan Sistem", icon: Settings },
+    { id: "data", label: "Data", icon: Database },
+    { id: "notifications", label: "Notifikasi", icon: Bell },
+    { id: "appearance", label: "Tampilan", icon: Palette },
+    { id: "security", label: "Keamanan", icon: Shield },
   ];
 
   const handleSaveTab = (tabId: string) => {
-    if (tabId === 'system' || tabId === 'notifications' || tabId === 'appearance' || tabId === 'security') {
+    if (
+      tabId === "system" ||
+      tabId === "notifications" ||
+      tabId === "appearance" ||
+      tabId === "security"
+    ) {
       saveSettings();
     }
   };
@@ -328,33 +370,35 @@ export default function SettingsPage() {
     <div className="p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Pengaturan</h1>
-        <p className="text-slate-600 mt-1">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Pengaturan
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Kelola pengaturan aplikasi sistem keuangan
         </p>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-slate-500">
+        <div className="py-12 text-center text-muted-foreground">
           Memuat pengaturan...
         </div>
       ) : !settings ? (
-        <div className="text-center py-12 text-red-500">
+        <div className="py-12 text-center text-red-500">
           Gagal memuat pengaturan. Silakan refresh halaman.
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col gap-6 lg:flex-row">
           {/* Sidebar */}
           <div className="lg:w-64">
-            <nav className="flex lg:flex-col gap-2">
+            <nav className="flex gap-2 lg:flex-col">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition ${
+                  className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
                     activeTab === tab.id
-                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                      : 'text-slate-600 hover:bg-slate-50'
+                      ? "border-primary/20 bg-primary/10 text-primary"
+                      : "border-transparent text-muted-foreground hover:border-border hover:bg-muted"
                   }`}
                 >
                   <tab.icon size={18} />
@@ -366,99 +410,120 @@ export default function SettingsPage() {
 
           {/* Main Content */}
           <div className="flex-1">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="rounded-[22px] border border-border bg-card/90 p-6 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
               {/* Sistem Tab */}
-              {activeTab === 'system' && (
+              {activeTab === "system" && (
                 <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-slate-800">
+                  <h2 className="text-lg font-semibold text-foreground">
                     Pengaturan Sistem
                   </h2>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium text-foreground">
                         Nama Aplikasi
                       </label>
                       <input
                         type="text"
                         value={system.appName}
-                        onChange={(e) => setSystem({ ...system, appName: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        onChange={(e) =>
+                          setSystem({ ...system, appName: e.target.value })
+                        }
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium text-foreground">
                         Deskripsi Aplikasi
                       </label>
                       <textarea
                         value={system.appDescription}
-                        onChange={(e) => setSystem({ ...system, appDescription: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none resize-none"
+                        onChange={(e) =>
+                          setSystem({
+                            ...system,
+                            appDescription: e.target.value,
+                          })
+                        }
+                        className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                         rows={3}
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                        <label className="mb-1 block text-sm font-medium text-foreground">
                           Mata Uang
                         </label>
                         <select
                           value={system.currency}
-                          onChange={(e) => setSystem({ ...system, currency: e.target.value })}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                          onChange={(e) =>
+                            setSystem({ ...system, currency: e.target.value })
+                          }
+                          className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                         >
                           <option value="IDR">IDR - Rupiah</option>
                           <option value="USD">USD - Dollar US</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                        <label className="mb-1 block text-sm font-medium text-foreground">
                           Zona Waktu
                         </label>
                         <select
                           value={system.timezone}
-                          onChange={(e) => setSystem({ ...system, timezone: e.target.value })}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                          onChange={(e) =>
+                            setSystem({ ...system, timezone: e.target.value })
+                          }
+                          className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                         >
-                          <option value="Asia/Jakarta">Asia/Jakarta (UTC+7)</option>
-                          <option value="Asia/Makassar">Asia/Makassar (UTC+8)</option>
-                          <option value="Asia/Jayapura">Asia/Jayapura (UTC+9)</option>
+                          <option value="Asia/Jakarta">
+                            Asia/Jakarta (UTC+7)
+                          </option>
+                          <option value="Asia/Makassar">
+                            Asia/Makassar (UTC+8)
+                          </option>
+                          <option value="Asia/Jayapura">
+                            Asia/Jayapura (UTC+9)
+                          </option>
                         </select>
                       </div>
                     </div>
                   </div>
-                  <div className="pt-4 border-t border-slate-200">
+                  <div className="border-t border-border pt-4">
                     <button
-                      onClick={() => handleSaveTab('system')}
+                      onClick={() => handleSaveTab("system")}
                       disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 bg-[hsl(var(--primary))] text-white rounded-lg hover:brightness-95 transition disabled:opacity-50"
+                      className="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:opacity-50"
                     >
                       {saving ? (
                         <RefreshCw size={18} className="animate-spin" />
                       ) : (
                         <Save size={18} />
                       )}
-                      <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
+                      <span>
+                        {saving ? "Menyimpan..." : "Simpan Pengaturan"}
+                      </span>
                     </button>
                   </div>
                 </div>
               )}
 
               {/* Data Tab */}
-              {activeTab === 'data' && (
+              {activeTab === "data" && (
                 <div className="space-y-6">
-                  <h2 className="text-lg font-semibold text-slate-800">
+                  <h2 className="text-lg font-semibold text-foreground">
                     Manajemen Data
                   </h2>
 
                   {/* Export Section */}
-                  <div className="border border-slate-200 rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <div className="rounded-[18px] border border-border bg-background/70 p-4">
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
                         <Download size={20} className="text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-slate-800">Ekspor Data</h3>
-                        <p className="text-sm text-slate-600">
+                        <h3 className="font-semibold text-foreground">
+                          Ekspor Data
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
                           Unduh seluruh data aplikasi sebagai file JSON
                         </p>
                       </div>
@@ -466,27 +531,32 @@ export default function SettingsPage() {
                     <button
                       onClick={handleExport}
                       disabled={isExporting}
-                      className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
                     >
                       {isExporting ? (
                         <RefreshCw size={18} className="animate-spin" />
                       ) : (
                         <Download size={18} />
                       )}
-                      <span>{isExporting ? 'Mengekspor...' : 'Ekspor Data'}</span>
+                      <span>
+                        {isExporting ? "Mengekspor..." : "Ekspor Data"}
+                      </span>
                     </button>
                   </div>
 
                   {/* Import Section */}
-                  <div className="border border-slate-200 rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <Upload size={20} className="text-green-600" />
+                  <div className="rounded-[18px] border border-border bg-background/70 p-4">
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
+                        <Upload size={20} className="text-emerald-600" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-slate-800">Impor Data</h3>
-                        <p className="text-sm text-slate-600">
-                          Impor data dari file JSON yang telah diekspor sebelumnya
+                        <h3 className="font-semibold text-foreground">
+                          Impor Data
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Impor data dari file JSON yang telah diekspor
+                          sebelumnya
                         </p>
                       </div>
                     </div>
@@ -494,19 +564,19 @@ export default function SettingsPage() {
                       type="file"
                       accept=".json"
                       onChange={(e) => setFile(e.target.files?.[0] || null)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                      className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 file:mr-4 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
                     />
                     <button
                       onClick={handleImport}
                       disabled={isImporting || !file}
-                      className="mt-3 flex items-center justify-center gap-2 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
                     >
                       {isImporting ? (
                         <RefreshCw size={18} className="animate-spin" />
                       ) : (
                         <Upload size={18} />
                       )}
-                      <span>{isImporting ? 'Mengimpor...' : 'Impor Data'}</span>
+                      <span>{isImporting ? "Mengimpor..." : "Impor Data"}</span>
                     </button>
                   </div>
 
@@ -549,7 +619,7 @@ export default function SettingsPage() {
                         <Trash2 size={18} />
                       )}
                       <span>
-                        {isResetting ? 'Mereset...' : 'Reset Semua Data'}
+                        {isResetting ? "Mereset..." : "Reset Semua Data"}
                       </span>
                     </button>
                   </div>
@@ -557,215 +627,224 @@ export default function SettingsPage() {
               )}
 
               {/* Notifications Tab */}
-              {activeTab === 'notifications' && (
+              {activeTab === "notifications" && (
                 <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-slate-800">
+                  <h2 className="text-lg font-semibold text-foreground">
                     Pengaturan Notifikasi
                   </h2>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between rounded-xl border border-border bg-background/70 p-3">
                       <div>
-                        <p className="font-medium text-slate-800">Email</p>
-                        <p className="text-sm text-slate-600">
+                        <p className="font-medium text-foreground">Email</p>
+                        <p className="text-sm text-muted-foreground">
                           Terima notifikasi melalui email
                         </p>
                       </div>
-                                              <label
+                      <label
+                        role="switch"
+                        aria-checked={notifications.email}
+                        aria-label="Toggle email notifications"
+                        className="relative inline-flex h-6 w-12 items-center rounded-full"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={notifications.email}
+                          onChange={(e) =>
+                            setNotifications({
+                              ...notifications,
+                              email: e.target.checked,
+                            })
+                          }
                           role="switch"
                           aria-checked={notifications.email}
-                          aria-label="Toggle email notifications"
-                          className="relative inline-flex h-6 w-12 items-center rounded-full"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={notifications.email}
-                            onChange={(e) =>
-                              setNotifications({
-                                ...notifications,
-                                email: e.target.checked,
-                              })
-                            }
-                            role="switch"
-                            aria-checked={notifications.email}
-                            className="sr-only"
-                          />
-                          <span
-                            className={`absolute inset-0 rounded-full transition-colors ${
-                              notifications.email
-                                ? 'bg-emerald-600'
-                                : 'bg-slate-200'
-                            }`}
-                          />
-                          <span
-                            className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                              notifications.email
-                                ? 'translate-x-6'
-                                : 'translate-x-1'
-                            }`}
-                          />
-                        </label>
+                          className="sr-only"
+                        />
+                        <span
+                          className={`absolute inset-0 rounded-full transition-colors ${
+                            notifications.email
+                              ? "bg-islamic-600"
+                              : "bg-slate-200"
+                          }`}
+                        />
+                        <span
+                          className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                            notifications.email
+                              ? "translate-x-6"
+                              : "translate-x-1"
+                          }`}
+                        />
+                      </label>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between rounded-xl border border-border bg-background/70 p-3">
                       <div>
-                        <p className="font-medium text-slate-800">Push Notification</p>
-                        <p className="text-sm text-slate-600">
+                        <p className="font-medium text-foreground">
+                          Push Notification
+                        </p>
+                        <p className="text-sm text-muted-foreground">
                           Terima notifikasi push di perangkat
                         </p>
                       </div>
-                                              <label
+                      <label
+                        role="switch"
+                        aria-checked={notifications.push}
+                        aria-label="Toggle push notifications"
+                        className="relative inline-flex h-6 w-12 items-center rounded-full"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={notifications.push}
+                          onChange={(e) =>
+                            setNotifications({
+                              ...notifications,
+                              push: e.target.checked,
+                            })
+                          }
                           role="switch"
                           aria-checked={notifications.push}
-                          aria-label="Toggle push notifications"
-                          className="relative inline-flex h-6 w-12 items-center rounded-full"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={notifications.push}
-                            onChange={(e) =>
-                              setNotifications({
-                                ...notifications,
-                                push: e.target.checked,
-                              })
-                            }
-                            role="switch"
-                            aria-checked={notifications.push}
-                            className="sr-only"
-                          />
-                          <span
-                            className={`absolute inset-0 rounded-full transition-colors ${
-                              notifications.push
-                                ? 'bg-emerald-600'
-                                : 'bg-slate-200'
-                            }`}
-                          />
-                          <span
-                            className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                              notifications.push
-                                ? 'translate-x-6'
-                                : 'translate-x-1'
-                            }`}
-                          />
-                        </label>
+                          className="sr-only"
+                        />
+                        <span
+                          className={`absolute inset-0 rounded-full transition-colors ${
+                            notifications.push
+                              ? "bg-islamic-600"
+                              : "bg-slate-200"
+                          }`}
+                        />
+                        <span
+                          className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                            notifications.push
+                              ? "translate-x-6"
+                              : "translate-x-1"
+                          }`}
+                        />
+                      </label>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between rounded-xl border border-border bg-background/70 p-3">
                       <div>
-                        <p className="font-medium text-slate-800">Notifikasi In-App</p>
-                        <p className="text-sm text-slate-600">
+                        <p className="font-medium text-foreground">
+                          Notifikasi In-App
+                        </p>
+                        <p className="text-sm text-muted-foreground">
                           Tampilkan notifikasi di dalam aplikasi
                         </p>
                       </div>
-                                              <label
+                      <label
+                        role="switch"
+                        aria-checked={notifications.inApp}
+                        aria-label="Toggle in-app notifications"
+                        className="relative inline-flex h-6 w-12 items-center rounded-full"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={notifications.inApp}
+                          onChange={(e) =>
+                            setNotifications({
+                              ...notifications,
+                              inApp: e.target.checked,
+                            })
+                          }
                           role="switch"
                           aria-checked={notifications.inApp}
-                          aria-label="Toggle in-app notifications"
-                          className="relative inline-flex h-6 w-12 items-center rounded-full"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={notifications.inApp}
-                            onChange={(e) =>
-                              setNotifications({
-                                ...notifications,
-                                inApp: e.target.checked,
-                              })
-                            }
-                            role="switch"
-                            aria-checked={notifications.inApp}
-                            className="sr-only"
-                          />
-                          <span
-                            className={`absolute inset-0 rounded-full transition-colors ${
-                              notifications.inApp
-                                ? 'bg-emerald-600'
-                                : 'bg-slate-200'
-                            }`}
-                          />
-                          <span
-                            className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                              notifications.inApp
-                                ? 'translate-x-6'
-                                : 'translate-x-1'
-                            }`}
-                          />
-                        </label>
+                          className="sr-only"
+                        />
+                        <span
+                          className={`absolute inset-0 rounded-full transition-colors ${
+                            notifications.inApp
+                              ? "bg-islamic-600"
+                              : "bg-slate-200"
+                          }`}
+                        />
+                        <span
+                          className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                            notifications.inApp
+                              ? "translate-x-6"
+                              : "translate-x-1"
+                          }`}
+                        />
+                      </label>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between rounded-xl border border-border bg-background/70 p-3">
                       <div>
-                        <p className="font-medium text-slate-800">Pengingat</p>
-                        <p className="text-sm text-slate-600">
+                        <p className="font-medium text-foreground">Pengingat</p>
+                        <p className="text-sm text-muted-foreground">
                           Kirim pengingat untuk transaksi yang belum disetujui
                         </p>
                       </div>
-                                              <label
+                      <label
+                        role="switch"
+                        aria-checked={notifications.reminders}
+                        aria-label="Toggle reminder notifications"
+                        className="relative inline-flex h-6 w-12 items-center rounded-full"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={notifications.reminders}
+                          onChange={(e) =>
+                            setNotifications({
+                              ...notifications,
+                              reminders: e.target.checked,
+                            })
+                          }
                           role="switch"
                           aria-checked={notifications.reminders}
-                          aria-label="Toggle reminder notifications"
-                          className="relative inline-flex h-6 w-12 items-center rounded-full"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={notifications.reminders}
-                            onChange={(e) =>
-                              setNotifications({
-                                ...notifications,
-                                reminders: e.target.checked,
-                              })
-                            }
-                            role="switch"
-                            aria-checked={notifications.reminders}
-                            className="sr-only"
-                          />
-                          <span
-                            className={`absolute inset-0 rounded-full transition-colors ${
-                              notifications.reminders
-                                ? 'bg-emerald-600'
-                                : 'bg-slate-200'
-                            }`}
-                          />
-                          <span
-                            className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                              notifications.reminders
-                                ? 'translate-x-6'
-                                : 'translate-x-1'
-                            }`}
-                          />
-                        </label>
+                          className="sr-only"
+                        />
+                        <span
+                          className={`absolute inset-0 rounded-full transition-colors ${
+                            notifications.reminders
+                              ? "bg-islamic-600"
+                              : "bg-slate-200"
+                          }`}
+                        />
+                        <span
+                          className={`absolute inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                            notifications.reminders
+                              ? "translate-x-6"
+                              : "translate-x-1"
+                          }`}
+                        />
+                      </label>
                     </div>
                   </div>
-                  <div className="pt-4 border-t border-slate-200">
+                  <div className="border-t border-border pt-4">
                     <button
-                      onClick={() => handleSaveTab('notifications')}
+                      onClick={() => handleSaveTab("notifications")}
                       disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 bg-[hsl(var(--primary))] text-white rounded-lg hover:brightness-95 transition disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
                     >
                       {saving ? (
                         <RefreshCw size={18} className="animate-spin" />
                       ) : (
                         <Save size={18} />
                       )}
-                      <span>{saving ? 'Menyimpan...' : 'Simpan Notifikasi'}</span>
+                      <span>
+                        {saving ? "Menyimpan..." : "Simpan Notifikasi"}
+                      </span>
                     </button>
                   </div>
                 </div>
               )}
 
               {/* Appearance Tab */}
-              {activeTab === 'appearance' && (
+              {activeTab === "appearance" && (
                 <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-slate-800">
+                  <h2 className="text-lg font-semibold text-foreground">
                     Pengaturan Tampilan
                   </h2>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium text-foreground">
                         Tema
                       </label>
                       <select
                         value={appearance.theme}
                         onChange={(e) =>
-                          handleAppearanceChange('theme', e.target.value as 'light' | 'dark' | 'system')
+                          handleAppearanceChange(
+                            "theme",
+                            e.target.value as "light" | "dark" | "system",
+                          )
                         }
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                       >
                         <option value="light">Terang</option>
                         <option value="dark">Gelap</option>
@@ -773,53 +852,61 @@ export default function SettingsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium text-foreground">
                         Warna Utama
                       </label>
                       <select
                         value={appearance.primaryColor}
                         onChange={(e) =>
-                          handleAppearanceChange('primaryColor', e.target.value)
+                          handleAppearanceChange("primaryColor", e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                       >
-                        <option value="emerald">Emerald</option>
+                        <option value="finzo">Finzo Green</option>
+                        <option value="islamic">Islamic Green</option>
                         <option value="blue">Biru</option>
                         <option value="purple">Ungu</option>
                         <option value="rose">Rose</option>
+                        <option value="amber">Amber/Gold</option>
                       </select>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-3">
                       <input
                         type="checkbox"
                         id="compactMode"
                         checked={appearance.compactMode}
                         onChange={(e) =>
-                          handleAppearanceChange('compactMode', e.target.checked)
+                          handleAppearanceChange(
+                            "compactMode",
+                            e.target.checked,
+                          )
                         }
                         className="h-4 w-4 text-[hsl(var(--primary))] border-[hsl(var(--primary))] rounded focus:ring-[hsl(var(--primary))]"
                       />
-                      <label htmlFor="compactMode" className="text-sm text-slate-700">
+                      <label
+                        htmlFor="compactMode"
+                        className="text-sm text-foreground"
+                      >
                         Mode kompak
                       </label>
                     </div>
                   </div>
-                  <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
+                  <div className="flex items-center justify-between border-t border-border pt-4">
                     <button
-                      onClick={() => handleSaveTab('appearance')}
+                      onClick={() => handleSaveTab("appearance")}
                       disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 bg-[hsl(var(--primary))] text-white rounded-lg hover:brightness-95 transition disabled:opacity-50"
+                      className="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
                     >
                       {saving ? (
                         <RefreshCw size={18} className="animate-spin" />
                       ) : (
                         <Save size={18} />
                       )}
-                      <span>{saving ? 'Menyimpan...' : 'Simpan Tampilan'}</span>
+                      <span>{saving ? "Menyimpan..." : "Simpan Tampilan"}</span>
                     </button>
                     <button
                       onClick={resetAppearance}
-                      className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 transition"
+                      className="inline-flex min-h-10 items-center gap-2 rounded-full border border-border px-4 text-sm text-muted-foreground transition hover:bg-muted"
                     >
                       <RefreshCw size={18} />
                       <span>Reset ke Default</span>
@@ -829,71 +916,86 @@ export default function SettingsPage() {
               )}
 
               {/* Security Tab */}
-              {activeTab === 'security' && (
+              {activeTab === "security" && (
                 <div className="space-y-6">
-                  <h2 className="text-lg font-semibold text-slate-800">
+                  <h2 className="text-lg font-semibold text-foreground">
                     Keamanan
                   </h2>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium text-foreground">
                         Password Login Super Admin
                       </label>
                       <input
                         type="password"
                         value={security.newPassword}
                         onChange={(e) => {
-                          setSecurity({ ...security, newPassword: e.target.value });
+                          setSecurity({
+                            ...security,
+                            newPassword: e.target.value,
+                          });
                         }}
                         autoComplete="new-password"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                         placeholder="Masukkan password baru"
                       />
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-3">
                       <input
                         type="checkbox"
                         id="requireOTP"
                         checked={security.enable2fa}
                         onChange={(e) =>
-                          setSecurity({ ...security, enable2fa: e.target.checked })
+                          setSecurity({
+                            ...security,
+                            enable2fa: e.target.checked,
+                          })
                         }
                         className="h-4 w-4 text-[hsl(var(--primary))] border-[hsl(var(--primary))] rounded focus:ring-[hsl(var(--primary))]"
                       />
-                      <label htmlFor="requireOTP" className="text-sm text-slate-700">
-                        Wajibkan otentikasi dua faktor (2FA) untuk semua pengguna
+                      <label
+                        htmlFor="requireOTP"
+                        className="text-sm text-foreground"
+                      >
+                        Wajibkan otentikasi dua faktor (2FA) untuk semua
+                        pengguna
                       </label>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium text-foreground">
                         Timeout Sesi (detik)
                       </label>
                       <input
                         type="number"
                         value={security.sessionTimeout}
-                        onChange={(e) => setSecurity({ ...security, sessionTimeout: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                        onChange={(e) =>
+                          setSecurity({
+                            ...security,
+                            sessionTimeout: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                         min="300"
                         max="86400"
                       />
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-200">
+                  <div className="border-t border-border pt-4">
                     <button
-                      onClick={() => handleSaveTab('security')}
+                      onClick={() => handleSaveTab("security")}
                       disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 bg-[hsl(var(--primary))] text-white rounded-lg hover:brightness-95 transition disabled:opacity-50"
+                      className="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
                     >
                       {saving ? (
                         <RefreshCw size={18} className="animate-spin" />
                       ) : (
                         <Save size={18} />
                       )}
-                      <span>{saving ? 'Menyimpan...' : 'Simpan Keamanan'}</span>
+                      <span>{saving ? "Menyimpan..." : "Simpan Keamanan"}</span>
                     </button>
                   </div>
                 </div>
@@ -905,4 +1007,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

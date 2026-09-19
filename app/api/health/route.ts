@@ -1,31 +1,29 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-export async function GET() {
-  try {
-    // Check database connectivity
-    let dbStatus = 'unknown';
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      dbStatus = 'connected';
-    } catch (dbErr: any) {
-      dbStatus = 'error: ' + (dbErr.message || 'connection failed');
-    }
+export const dynamic = 'force-dynamic';
 
+const DB_CHECK_TIMEOUT_MS = 4000;
+
+export async function GET() {
+  const started = Date.now();
+  try {
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('DB check timeout')), DB_CHECK_TIMEOUT_MS)
+      ),
+    ]);
+    return NextResponse.json({
+      ok: true,
+      db: 'up',
+      latencyMs: Date.now() - started,
+    });
+  } catch {
+    // Jangan bocorkan detail error internal; cukup status down.
     return NextResponse.json(
-      {
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        service: 'alba-fintech-v3',
-        version: '1.1.0',
-        database: dbStatus,
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    return NextResponse.json(
-      { status: 'error', error: 'Health check failed' },
-      { status: 500 }
+      { ok: false, db: 'down', latencyMs: Date.now() - started },
+      { status: 503 }
     );
   }
 }

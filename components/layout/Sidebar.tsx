@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Receipt,
@@ -18,7 +18,9 @@ import {
   User,
   LogOut,
   ChevronLeft,
-} from 'lucide-react';
+  ChevronRight,
+} from "lucide-react";
+import Image from "next/image";
 
 interface SidebarProps {
   user: {
@@ -29,6 +31,11 @@ interface SidebarProps {
     unitId?: string | null;
     lembagaId?: string | null;
   } | null;
+  expanded: boolean;
+  onToggle: () => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+  className?: string;
 }
 
 type NavItem = {
@@ -38,81 +45,259 @@ type NavItem = {
   roles?: string[];
 };
 
-// Navigation items with role-based visibility
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
-  { label: 'Transaksi', href: '/dashboard/transactions', icon: <Receipt size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
-  { label: 'Catatan Keuangan', href: '/dashboard/financial-notes', icon: <FileTextIcon size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'] },
-  { label: 'Persetujuan', href: '/dashboard/approvals', icon: <ClipboardList size={20} />, roles: ['SUPERADMIN', 'PIMPINAN'] },
-  { label: 'Unit', href: '/dashboard/units', icon: <LayoutGrid size={20} />, roles: ['SUPERADMIN'] },
-  { label: 'Pengguna', href: '/dashboard/users', icon: <Users size={20} />, roles: ['SUPERADMIN'] },
-  { label: 'Inventori', href: '/dashboard/inventory', icon: <Package size={20} />, roles: ['SUPERADMIN', 'MANAGER', 'STAFF'] },
-  { label: 'POS', href: '/dashboard/pos', icon: <ShoppingCart size={20} />, roles: ['SUPERADMIN', 'MANAGER', 'STAFF'] },
-  { label: 'Laporan', href: '/dashboard/reports', icon: <BarChart3 size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'] },
-  { label: 'Rekonsiliasi', href: '/dashboard/reconciliation', icon: <Clock size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER'] },
-  { label: 'Pengaturan', href: '/dashboard/settings', icon: <Settings size={20} />, roles: ['SUPERADMIN'] },
-  { label: 'Profil', href: '/dashboard/profile', icon: <User size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
-  { label: 'Keluar', href: '#', icon: <LogOut size={20} />, roles: ['SUPERADMIN', 'PIMPINAN', 'MANAGER', 'STAFF'] },
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: <LayoutDashboard size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+  },
+  {
+    label: "Transaksi",
+    href: "/dashboard/transactions",
+    icon: <Receipt size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+  },
+  {
+    label: "Catatan Keuangan",
+    href: "/dashboard/financial-notes",
+    icon: <FileTextIcon size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
+  },
+  {
+    label: "Persetujuan",
+    href: "/dashboard/approvals",
+    icon: <ClipboardList size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN"],
+  },
+  {
+    label: "Unit",
+    href: "/dashboard/units",
+    icon: <LayoutGrid size={20} />,
+    roles: ["SUPERADMIN"],
+  },
+  {
+    label: "Pengguna",
+    href: "/dashboard/users",
+    icon: <Users size={20} />,
+    roles: ["SUPERADMIN"],
+  },
+  {
+    label: "Inventori",
+    href: "/dashboard/inventory",
+    icon: <Package size={20} />,
+    roles: ["SUPERADMIN", "MANAGER", "STAFF"],
+  },
+  {
+    label: "POS",
+    href: "/dashboard/pos",
+    icon: <ShoppingCart size={20} />,
+    roles: ["SUPERADMIN", "MANAGER", "STAFF"],
+  },
+  {
+    label: "Laporan",
+    href: "/dashboard/reports",
+    icon: <BarChart3 size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
+  },
+  {
+    label: "Rekonsiliasi",
+    href: "/dashboard/reconciliation",
+    icon: <Clock size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
+  },
+  {
+    label: "Pengaturan",
+    href: "/dashboard/settings",
+    icon: <Settings size={20} />,
+    roles: ["SUPERADMIN"],
+  },
+  {
+    label: "Profil",
+    href: "/dashboard/profile",
+    icon: <User size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+  },
+  {
+    label: "Keluar",
+    href: "#",
+    icon: <LogOut size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+  },
 ];
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({
+  user,
+  expanded,
+  onToggle,
+  mobileOpen = false,
+  onCloseMobile,
+  className,
+}: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const role = user?.role || 'STAFF';
-  const [expanded, setExpanded] = useState(true);
+  const role = user?.role || "STAFF";
 
-  // Persist expanded state
+  const items = NAV_ITEMS.filter(
+    (item) => !item.roles || item.roles.includes(role),
+  );
+  const isActive = (href: string) =>
+    href === "/dashboard"
+      ? pathname === href
+      : pathname === href || pathname.startsWith(`${href}/`);
+
   useEffect(() => {
-    const saved = localStorage.getItem('sidebar:expanded');
-    if (saved !== null) setExpanded(saved === 'true');
-  }, []);
+    onCloseMobile?.();
+    // The drawer should close only after navigation, not on every parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   useEffect(() => {
-    localStorage.setItem('sidebar:expanded', String(expanded));
-  }, [expanded]);
-
-  // Filter items by role
-  const items = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(role));
-  const isActive = (href: string) => pathname === href;
+    if (!mobileOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCloseMobile?.();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileOpen, onCloseMobile]);
 
   return (
-    <aside className="hidden md:flex md:flex-col md:bg-white md:border-r md:border-slate-200 md:overflow-y-auto md:min-h-screen transition-all duration-300 relative" style={{ width: expanded ? '180px' : '56px', minWidth: '56px', maxWidth: '180px' }}>
-      {/* Floating Toggle Button */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="absolute -right-3 top-8 bg-white border border-slate-200 rounded-full p-1.5 shadow-md hover:bg-slate-50 transition-all z-50 flex items-center justify-center"
-        title={expanded ? 'Seminat' : 'Perbanyak'}
+    <>
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Tutup menu"
+          onClick={onCloseMobile}
+          className="fixed inset-0 z-40 bg-foreground/35 backdrop-blur-[2px] md:hidden"
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(86vw,320px)] flex-col overflow-y-auto border-r border-border bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.96))] shadow-[10px_0_30px_rgba(15,23,42,0.05)] transition-transform duration-300 ease-out dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.98))] md:relative md:z-auto md:min-h-screen md:w-auto md:translate-x-0 md:bg-card/90 md:backdrop-blur-xl ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        } ${expanded ? "md:w-64" : "md:w-20"} ${className || ""}`}
+        style={{ height: "calc(100vh - env(safe-area-inset-bottom))" }}
       >
-        <ChevronLeft size={16} className={`text-slate-600 transition-transform duration-300 ${!expanded ? 'rotate-180' : ''}`} />
-      </button>
-
-      <nav className="py-4 flex flex-col gap-0.5 mt-2">
-        {items.map((item) => {
-          const isActiveItem = isActive(item.href);
-          
-          return (
-            <button
-              key={item.href}
-              onClick={() => {
-                if (item.href === '#') {
-                  signOut();
-                } else {
-                  if (!expanded) setExpanded(true);
-                  router.push(item.href);
-                }
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-colors ${
-                isActiveItem ? 'bg-emerald-50 text-emerald-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
-            >
-              <div className="flex items-center gap-3 flex-1">
-                {item.icon}
-                <span className={`font-medium text-sm whitespace-nowrap transition-all duration-200 ${expanded ? 'opacity-100' : 'opacity-0'} truncate`}>{item.label}</span>
+        {/* Logo & Toggle */}
+        <div className="flex items-center justify-between h-16 px-3 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl overflow-hidden border border-border bg-card shadow-sm flex-shrink-0">
+              <Image
+                src="/logo-baru.png"
+                alt="Logo Al-Basyariyah"
+                width={36}
+                height={36}
+                className="object-contain"
+              />
+            </div>
+            {expanded && (
+              <div className="overflow-hidden">
+                <h1 className="text-sm font-semibold text-foreground leading-tight whitespace-nowrap">
+                  AL-Basyariyah Finance
+                </h1>
+                <p className="text-[10px] text-muted-foreground leading-none whitespace-nowrap">
+                  Pondok Pesantren Al-Basyariyah
+                </p>
               </div>
-            </button>
-          );
-        })}
-      </nav>
-    </aside>
+            )}
+          </div>
+          <button
+            onClick={() => (mobileOpen ? onCloseMobile?.() : onToggle())}
+            className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary md:h-8 md:w-8"
+            title={expanded ? "Sempitkan" : "Perluas"}
+            aria-label={expanded ? "Sempitkan sidebar" : "Perluas sidebar"}
+          >
+            <span className="md:hidden">
+              <ChevronLeft size={18} />
+            </span>
+            <span className="hidden md:inline">
+              {expanded ? (
+                <ChevronLeft size={18} />
+              ) : (
+                <ChevronRight size={18} />
+              )}
+            </span>
+          </button>
+        </div>
+
+        {/* User Info - Only when expanded */}
+        {expanded && user && (
+          <div className="p-3 border-b border-border">
+            <div className="flex items-center gap-3">
+              {user?.image ? (
+                <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-islamic-500 to-islamic-600 flex items-center justify-center overflow-hidden border-2 border-white/50 shadow-inner shadow-lg">
+                  <Image
+                    src={user.image}
+                    alt={user.name || "User"}
+                    fill
+                    className="object-cover rounded-full"
+                  />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-islamic-500 to-islamic-600 flex items-center justify-center border-2 border-white/50 shadow-inner shadow-lg">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {user?.name || "User"}
+                </p>
+                <p className="text-[10px] text-muted-foreground truncate capitalize">
+                  {role}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <nav className="flex-1 py-3 px-2 space-y-1">
+          {items.map((item) => {
+            const isActiveItem = isActive(item.href);
+
+            return (
+              <button
+                key={item.href}
+                onClick={() => {
+                  if (item.href === "#") {
+                    signOut();
+                  } else {
+                    router.push(item.href);
+                  }
+                  onCloseMobile?.();
+                }}
+                className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200 ${
+                  isActiveItem
+                    ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/10 font-semibold"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                title={expanded ? undefined : item.label}
+              >
+                <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                  {item.icon}
+                </div>
+                {expanded && (
+                  <span className="font-medium text-sm whitespace-nowrap truncate flex-1 text-left">
+                    {item.label}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Bottom: Version info when expanded */}
+        {expanded && (
+          <div className="p-3 border-t border-border">
+            <p className="text-[10px] text-muted-foreground/70 text-center">
+              ALBA Finance v3
+            </p>
+          </div>
+        )}
+      </aside>
+    </>
   );
 }
