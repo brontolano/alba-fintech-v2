@@ -31,10 +31,14 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  metadataBase: new URL("https://alba.brontolano.com"),
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.svg",
+    icon: [{ url: "/logo-baru.png", type: "image/png", sizes: "512x512" }],
+    shortcut: "/logo-baru.png",
+    apple: "/logo-baru.png",
   },
+  themeColor: "#059669",
 };
 
 export default function RootLayout({
@@ -49,6 +53,8 @@ export default function RootLayout({
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"
         />
+        <link rel="icon" href="/logo-baru.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/logo-baru.png" />
       </head>
       <body
         className={`${fontSans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
