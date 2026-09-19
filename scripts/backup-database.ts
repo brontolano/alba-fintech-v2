@@ -1,10 +1,19 @@
-import { mkdir, readdir, stat, unlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  readFile,
+  readdir,
+  stat,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { exportDatabase } from "../lib/data-management";
 
 const RETENTION_DAYS = Number(process.env.BACKUP_RETENTION_DAYS || 14);
 const backupDirectory = path.resolve(process.env.BACKUP_DIRECTORY || "backups");
+const googleAppsScriptUrl = process.env.GOOGLE_APPS_SCRIPT_URL;
+const googleAppsScriptSecret = process.env.GOOGLE_APPS_SCRIPT_SECRET;
 
 function backupFileName(date = new Date()) {
   const stamp = date.toISOString().replace(/[:.]/g, "-");
@@ -29,6 +38,34 @@ async function removeExpiredBackups() {
   );
 }
 
+async function uploadToGoogleDrive(filePath: string) {
+  if (!googleAppsScriptUrl && !googleAppsScriptSecret) return null;
+  if (!googleAppsScriptUrl || !googleAppsScriptSecret) {
+    throw new Error(
+      "GOOGLE_APPS_SCRIPT_URL dan GOOGLE_APPS_SCRIPT_SECRET harus diisi bersama",
+    );
+  }
+
+  const response = await fetch(googleAppsScriptUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      secret: googleAppsScriptSecret,
+      fileName: path.basename(filePath),
+      contentBase64: (await readFile(filePath)).toString("base64"),
+      source: "alba-fintech",
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
+  const result = (await response.json()) as { ok?: boolean; error?: string };
+  if (!response.ok || !result.ok) {
+    throw new Error(
+      result.error || `Google Apps Script HTTP ${response.status}`,
+    );
+  }
+  return result;
+}
+
 async function main() {
   if (!Number.isInteger(RETENTION_DAYS) || RETENTION_DAYS < 1) {
     throw new Error(
@@ -45,9 +82,15 @@ async function main() {
       encoding: "utf8",
       mode: 0o600,
     });
+    const remote = await uploadToGoogleDrive(target);
     await removeExpiredBackups();
     console.log(
-      JSON.stringify({ ok: true, file: target, retentionDays: RETENTION_DAYS }),
+      JSON.stringify({
+        ok: true,
+        file: target,
+        remote,
+        retentionDays: RETENTION_DAYS,
+      }),
     );
   } finally {
     await prisma.$disconnect();

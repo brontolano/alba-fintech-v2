@@ -137,6 +137,17 @@ cd /path/to/alba && npm run db:backup
 
 Default retensi adalah 14 hari. Override melalui environment `BACKUP_DIRECTORY` dan `BACKUP_RETENTION_DAYS`. Folder backup berada di luar `public/` dan masuk `.gitignore`. Backup production tetap perlu disalin ke lokasi off-site dan diuji restore-nya secara berkala.
 
+### Upload Background ke Google Drive
+
+Template Google Apps Script ada di `docs/google-apps-script/Code.gs`. Setelah membuat folder Drive dan spreadsheet log, deploy script sebagai Web app dengan akses `Anyone`, lalu set environment Hostinger berikut:
+
+```env
+GOOGLE_APPS_SCRIPT_URL="https://script.google.com/macros/s/DEPLOYMENT_ID/exec"
+GOOGLE_APPS_SCRIPT_SECRET="shared-secret-yang-sama"
+```
+
+Jika kedua variable tersedia, `npm run db:backup` mengirim backup ke Drive melalui HTTPS dan Apps Script menulis hasilnya ke sheet `Backup Log`. Jika salah satu variable kosong, backup lokal tetap berjalan tanpa upload. Jika upload dikonfigurasi tetapi gagal, command keluar dengan error agar kegagalan terlihat di cron log.
+
 ---
 
 ## 9. Akun Default (setelah seed)

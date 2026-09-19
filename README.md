@@ -136,6 +136,24 @@ cd /path/to/alba && npm run db:backup
 
 Backup lokal di server bukan pengganti off-site backup. Salin backup secara berkala ke storage terpisah dan lakukan restore drill.
 
+### Google Drive dan Google Sheets
+
+Backup dapat diunggah otomatis ke Google Drive dan dicatat ke Google Sheets melalui Google Apps Script. Template tersedia di [docs/google-apps-script/Code.gs](docs/google-apps-script/Code.gs).
+
+1. Buat folder backup di Google Drive dan spreadsheet untuk log.
+2. Tempel `Code.gs` di Google Apps Script, isi folder ID, spreadsheet ID, nama sheet, dan shared secret.
+3. Deploy sebagai **Web app**, akses **Anyone**, lalu salin URL deployment.
+4. Isi environment Hostinger:
+
+```env
+GOOGLE_APPS_SCRIPT_URL="https://script.google.com/macros/s/DEPLOYMENT_ID/exec"
+GOOGLE_APPS_SCRIPT_SECRET="shared-secret-yang-sama"
+```
+
+5. Jalankan `npm run db:backup` sekali untuk verifikasi. Cron harian akan mengunggah file secara background tanpa browser.
+
+Apps Script mencatat timestamp, nama file, ukuran, status, Drive file ID, URL Drive, source, dan error ke sheet `Backup Log`. Gunakan shared secret panjang dan jangan memasukkan URL/token ke repository.
+
 ## API dan Struktur Kode
 
 ```text
