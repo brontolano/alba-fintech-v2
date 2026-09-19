@@ -28,28 +28,28 @@ Pondok Pesantren Al-Basyariyah (Lembaga Pusat)
 
 ## ✨ Fitur
 
-| Fitur | Deskripsi |
-|-------|-----------|
-| 📊 **Dashboard Real-Time** | Ringkasan kas, pemasukan, dan pengeluaran per unit |
-| 💵 **Manajemen Transaksi** | Pencatatan harian dengan unggah bukti nota/transfer (draft → pending → approved) |
-| 🔄 **Workflow Persetujuan** | Verifikasi berjenjang melalui model `Approval` |
-| 🛒 **Point of Sale (POS)** | Sistem kasir + pencatatan stok untuk unit retail (Koperasi & Kantin) |
-| 📑 **Catatan Keuangan Pimpinan** | Rekonsiliasi transaksi strategis milik pimpinan |
-| 🧾 **Inventori** | Kelola stok barang, harga beli, dan stok minimum |
-| 🏦 **Rekening Bank** | Kolom kas/bank/e-wallet dengan saldo otomatis |
-| 🔔 **Notifikasi & Broadcast** | Informasi real-time dan pengumuman dari pimpinan |
-| 🗂️ **Master Data** | Lembaga, Unit, Kategori Keuangan (COA), Pengguna |
+| Fitur                            | Deskripsi                                                                        |
+| -------------------------------- | -------------------------------------------------------------------------------- |
+| 📊 **Dashboard Real-Time**       | Ringkasan kas, pemasukan, dan pengeluaran per unit                               |
+| 💵 **Manajemen Transaksi**       | Pencatatan harian dengan unggah bukti nota/transfer (draft → pending → approved) |
+| 🔄 **Workflow Persetujuan**      | Verifikasi berjenjang melalui model `Approval`                                   |
+| 🛒 **Point of Sale (POS)**       | Sistem kasir + pencatatan stok untuk unit retail (Koperasi & Kantin)             |
+| 📑 **Catatan Keuangan Pimpinan** | Rekonsiliasi transaksi strategis milik pimpinan                                  |
+| 🧾 **Inventori**                 | Kelola stok barang, harga beli, dan stok minimum                                 |
+| 🏦 **Rekening Bank**             | Kolom kas/bank/e-wallet dengan saldo otomatis                                    |
+| 🔔 **Notifikasi & Broadcast**    | Informasi real-time dan pengumuman dari pimpinan                                 |
+| 🗂️ **Master Data**               | Lembaga, Unit, Kategori Keuangan (COA), Pengguna                                 |
 
 ---
 
 ## 🔐 Peran & Hak Akses
 
-| Role | Cakupan | Akses |
-|------|---------|-------|
-| **SUPERADMIN** | Global | CRUD semua, settings, COA, user & unit management |
-| **PIMPINAN** | Lembaga-wide | Lihat laporan semua unit, catat pemasukan/pengeluaran, broadcast, approval |
-| **MANAGER** | Unit | Rekonsiliasi, inventory, POS, transaksi harian |
-| **STAFF** | Unit | CRUD transaksi harian, POS, inventori |
+| Role           | Cakupan      | Akses                                                                      |
+| -------------- | ------------ | -------------------------------------------------------------------------- |
+| **SUPERADMIN** | Global       | CRUD semua, settings, COA, user & unit management                          |
+| **PIMPINAN**   | Lembaga-wide | Lihat laporan semua unit, catat pemasukan/pengeluaran, broadcast, approval |
+| **MANAGER**    | Unit         | Rekonsiliasi, inventory, POS, transaksi harian                             |
+| **STAFF**      | Unit         | CRUD transaksi harian, POS, inventori                                      |
 
 > Hak akses diperiksa di tiap API route melalui helper role-check middleware.
 
@@ -57,15 +57,15 @@ Pondok Pesantren Al-Basyariyah (Lembaga Pusat)
 
 ## 🔑 Akun Demo (Hasil Seed)
 
- Password default semua akun: **`Bismillah123!`**
+Password default semua akun: **`Bismillah123!`**
 
-| Role | Email | Unit |
-|------|-------|------|
-| **SUPERADMIN** | `superadmin@alba.local` | Seluruh Pesantren |
-| **PIMPINAN** | `pimpinan@alba.local` | Seluruh Pesantren |
-| **MANAGER** | `manager.kpk@alba.local` | KPAK |
-| **MANAGER** | `manager.koperasi@alba.local` | Koperasi Buku |
-| **STAFF** | `staff.kantin@alba.local` | Kantin |
+| Role           | Email                         | Unit              |
+| -------------- | ----------------------------- | ----------------- |
+| **SUPERADMIN** | `superadmin@alba.local`       | Seluruh Pesantren |
+| **PIMPINAN**   | `pimpinan@alba.local`         | Seluruh Pesantren |
+| **MANAGER**    | `manager.kpk@alba.local`      | KPAK              |
+| **MANAGER**    | `manager.koperasi@alba.local` | Koperasi Buku     |
+| **STAFF**      | `staff.kantin@alba.local`     | Kantin            |
 
 📥 Seed dilakukan via `npm run db:seed` (membuat lembaga, 4 unit, dan 5 akun di atas).
 
@@ -74,11 +74,13 @@ Pondok Pesantren Al-Basyariyah (Lembaga Pusat)
 ## ⚙️ Setup Pengembangan
 
 ### Prasyarat
+
 - **Node.js** 20.x LTS (lihat `package.json` → `engines`)
 - **npm** 10.x
 - **MySQL** 8.0 (lokal atau remote)
 
 ### Langkah demi langkah
+
 ```bash
 # 1. Clone & install dependencies
 git clone https://github.com/brontolano/alba-fintech-v2.git
@@ -102,14 +104,15 @@ npm run dev
 ```
 
 ### Environment Variables (`.env.local`)
-| Variable | Keterangan |
-|----------|-----------|
-| `DATABASE_URL` | MySQL connection string |
-| `NEXTAUTH_URL` | URL aplikasi (dev: `http://localhost:3000`) |
-| `NEXTAUTH_SECRET` | Generate: `openssl rand -base64 32` |
-| `NEXTAUTH_EMAIL` / `NEXTAUTH_PASSWORD` | Akun demo fallback |
-| `NODE_ENV` | `development` \| `production` |
-| `NEXT_PUBLIC_*` | Konfigurasi klien (nama app, mata uang IDR, locale) |
+
+| Variable                               | Keterangan                                          |
+| -------------------------------------- | --------------------------------------------------- |
+| `DATABASE_URL`                         | MySQL connection string                             |
+| `NEXTAUTH_URL`                         | URL aplikasi (dev: `http://localhost:3000`)         |
+| `NEXTAUTH_SECRET`                      | Generate: `openssl rand -base64 32`                 |
+| `NEXTAUTH_EMAIL` / `NEXTAUTH_PASSWORD` | Akun demo fallback                                  |
+| `NODE_ENV`                             | `development` \| `production`                       |
+| `NEXT_PUBLIC_*`                        | Konfigurasi klien (nama app, mata uang IDR, locale) |
 
 ---
 
@@ -141,13 +144,14 @@ npm run dev
 ```
 
 ### API Endpoints (Ringkas)
-| Method | Endpoint | Role |
-|--------|----------|------|
-| GET  | `/api/units`, `/api/users`, `/api/transactions` | Authenticated |
-| POST | `/api/transactions`, `/api/financial-notes`, `/api/approvals` | MANAGER/STAFF/PIMPINAN/SUPERADMIN |
-| PATCH | `/api/approvals/[id]`, `/api/transactions/[id]` | SUPERADMIN/PIMPINAN/MANAGER |
-| GET  | `/api/reports/aggregations`, `/api/dashboard/aggregates` | PIMPINAN/SUPERADMIN |
-| GET  | `/health` | Public (monitoring) |
+
+| Method | Endpoint                                                      | Role                              |
+| ------ | ------------------------------------------------------------- | --------------------------------- |
+| GET    | `/api/units`, `/api/users`, `/api/transactions`               | Authenticated                     |
+| POST   | `/api/transactions`, `/api/financial-notes`, `/api/approvals` | MANAGER/STAFF/PIMPINAN/SUPERADMIN |
+| PATCH  | `/api/approvals/[id]`, `/api/transactions/[id]`               | SUPERADMIN/PIMPINAN/MANAGER       |
+| GET    | `/api/reports/aggregations`, `/api/dashboard/aggregates`      | PIMPINAN/SUPERADMIN               |
+| GET    | `/health`                                                     | Public (monitoring)               |
 
 ---
 
@@ -159,6 +163,7 @@ npm run build           # prisma generate && next build (produksi)
 ```
 
 Pre-commit checklist:
+
 - `npx tsc --noEmit` — 0 error
 - `npm run build` — sukses
 - Perubahan skema → `npx prisma generate`
@@ -182,6 +187,7 @@ node scripts/deploy-prepare.mjs   # menghasilkan deploy-package/
 - **Endpoint health**: `https://<domain>/health` → `{"status":"ok","timestamp":"..."}``
 
 ### Reset database (dev)
+
 ```bash
 npm run db:reset    # migrate reset + seed
 ```
@@ -191,6 +197,7 @@ npm run db:reset    # migrate reset + seed
 ## 🤖 Pengembangan Terbantu AI
 
 Repositori dilengkapi dengan berkas `AGENTS.md` yang berisi aturan dan konteks pengembangan aplikasi (diperbarui otomatis oleh `next dev`). Ikuti petunjuk di `AGENTS.md` sebelum menulis kode, terutama soal:
+
 - Penanganan `system_settings` yang mungkin tidak ada di remote MySQL (`P2021` → fallback ke default)
 - Theme persistence via CSS variables (`--primary`, `--ring`) + `dark` class pada `useEffect`
 - Fallback tema di `localStorage` ketika DB tidak tersedia
