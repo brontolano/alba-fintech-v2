@@ -34,6 +34,7 @@ node scripts/deploy-prepare.mjs
 ```
 
 Folder `deploy-package/` akan berisi:
+
 ```
 deploy-package/
   server.js          <- Entry point kustom
@@ -58,20 +59,20 @@ deploy-package/
 
 ## 4. Konfigurasi hPanel
 
-| Setting | Value |
-|---------|-------|
-| Node.js version | 20.x LTS |
+| Setting                  | Value       |
+| ------------------------ | ----------- |
+| Node.js version          | 20.x LTS    |
 | Application startup file | `server.js` |
-| Application mode | Production |
+| Application mode         | Production  |
 
 **Environment Variables di hPanel:**
 
-| Variable | Value |
-|----------|-------|
-| `DATABASE_URL` | mysql://user:pass@localhost:3306/dbname |
-| `NEXTAUTH_URL` | https://alba.brontolano.com |
-| `NEXTAUTH_SECRET` | (output openssl rand -base64 32) |
-| `NODE_ENV` | production |
+| Variable          | Value                                   |
+| ----------------- | --------------------------------------- |
+| `DATABASE_URL`    | mysql://user:pass@localhost:3306/dbname |
+| `NEXTAUTH_URL`    | https://alba.brontolano.com             |
+| `NEXTAUTH_SECRET` | (output openssl rand -base64 32)        |
+| `NODE_ENV`        | production                              |
 
 ---
 
@@ -96,6 +97,7 @@ curl https://alba.brontolano.com/health
 ```
 
 Log yang benar di hPanel:
+
 ```
 Running ALBA Finance v3...
   DB URL   : set
@@ -108,24 +110,42 @@ Ready in Xms
 
 ## 7. Troubleshooting
 
-| Gejala | Solusi |
-|--------|--------|
-| DB URL NOT SET di log | Isi DATABASE_URL di hPanel & .env.production |
-| P1000 Authentication failed | Periksa user/password MySQL |
+| Gejala                      | Solusi                                           |
+| --------------------------- | ------------------------------------------------ |
+| DB URL NOT SET di log       | Isi DATABASE_URL di hPanel & .env.production     |
+| P1000 Authentication failed | Periksa user/password MySQL                      |
 | P1001 Cannot reach database | Gunakan localhost (bukan 127.0.0.1) di Hostinger |
-| Redirect loop di /login | Pastikan NEXTAUTH_URL = domain publik Anda |
-| CSS/JS tidak muncul | Pastikan .next/static/ sudah terupload |
-| Cannot find next-server.js | Jalankan ulang node scripts/deploy-prepare.mjs |
+| Redirect loop di /login     | Pastikan NEXTAUTH_URL = domain publik Anda       |
+| CSS/JS tidak muncul         | Pastikan .next/static/ sudah terupload           |
+| Cannot find next-server.js  | Jalankan ulang node scripts/deploy-prepare.mjs   |
 
 ---
 
-## 8. Akun Default (setelah seed)
+## 8. Backup Otomatis Harian
 
-| Role | Email | Password |
-|------|-------|----------|
-| SUPERADMIN | admin@alba.id | admin123 |
-| PIMPINAN | pimpinan@alba.id | pimpinan123 |
-| MANAGER | manager@alba.id | manager123 |
-| STAFF | staff@alba.id | staff123 |
+Backup seluruh data dapat dijalankan melalui:
+
+```bash
+npm run db:backup
+```
+
+Atur cron job Hostinger pada pukul 02:00 setiap hari dengan command:
+
+```bash
+cd /path/to/alba && npm run db:backup
+```
+
+Default retensi adalah 14 hari. Override melalui environment `BACKUP_DIRECTORY` dan `BACKUP_RETENTION_DAYS`. Folder backup berada di luar `public/` dan masuk `.gitignore`. Backup production tetap perlu disalin ke lokasi off-site dan diuji restore-nya secara berkala.
+
+---
+
+## 9. Akun Default (setelah seed)
+
+| Role       | Email            | Password    |
+| ---------- | ---------------- | ----------- |
+| SUPERADMIN | admin@alba.id    | admin123    |
+| PIMPINAN   | pimpinan@alba.id | pimpinan123 |
+| MANAGER    | manager@alba.id  | manager123  |
+| STAFF      | staff@alba.id    | staff123    |
 
 > Segera ganti password setelah login pertama!

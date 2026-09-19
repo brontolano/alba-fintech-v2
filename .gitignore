@@ -22,6 +22,7 @@ coverage/
 *.sqlite-journal
 dev.db
 dev.db*
+backups/
 
 # Build and deploy artifacts
 build/

@@ -113,6 +113,29 @@ Semua operasi berikut hanya tersedia untuk `SUPERADMIN`:
 
 Backup adalah data sensitif. Simpan di lokasi aman dan verifikasi hasil restore di environment non-production terlebih dahulu.
 
+### Backup Otomatis Harian
+
+Backup terjadwal dibuat oleh command berikut:
+
+```bash
+npm run db:backup
+```
+
+Command tersebut menulis backup JSON ke folder privat `backups/`, menggunakan nama file bertimestamp, permission file terbatas, dan menghapus backup yang lebih tua dari 14 hari. Konfigurasi dapat diubah melalui:
+
+```env
+BACKUP_DIRECTORY="backups"
+BACKUP_RETENTION_DAYS="14"
+```
+
+Pada Hostinger, cron harian dijadwalkan pada pukul 02:00 dengan command:
+
+```bash
+cd /path/to/alba && npm run db:backup
+```
+
+Backup lokal di server bukan pengganti off-site backup. Salin backup secara berkala ke storage terpisah dan lakukan restore drill.
+
 ## API dan Struktur Kode
 
 ```text

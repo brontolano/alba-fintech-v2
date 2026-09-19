@@ -26,6 +26,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:seed-dummy-approvals": "tsx scripts/seed-dummy-approvals.ts",
     "db:seed-dummy-reconciliation": "tsx scripts/seed-dummy-reconciliation.ts",
+    "db:backup": "tsx scripts/backup-database.ts",
     "db:reset": "prisma migrate reset --force && npm run db:seed",
     "reset:users": "tsx scripts/reset-users.ts"
   },
