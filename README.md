@@ -1,218 +1,199 @@
-# 📘 ALBA Finance v7
+# ALBA Finance
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.3.4-black?style=for-the-badge&logo=nextdotjs)](https://nextjs.org/)
-[![Prisma](https://img.shields.io/badge/Prisma-5.22.0-2D2743?style=for-the-badge&logo=prisma)](https://prisma.io/)
-[![MySQL](https://img.shields.io/badge/MySQL-8.0-4472C4?style=for-the-badge&logo=mysql)](https://mysql.com/)
-[![NextAuth.js](https://img.shields.io/badge/NextAuth-4.24-0075FF?style=for-the-badge)](https://next-auth.js.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-06B6D4?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
-[![v7.0.0](https://img.shields.io/badge/version-v7.0.0-blue.svg)](https://github.com/brontolano/alba-fintech-v2)
+ALBA Finance adalah platform operasional keuangan multi-unit untuk Pondok Pesantren Al-Basyariyah. Aplikasi ini menyatukan pencatatan transaksi, persetujuan, rekonsiliasi, inventori, POS, laporan, dan administrasi akses dalam satu workflow yang terkontrol.
 
-> Platform manajemen keuangan berbasis web untuk **Pondok Pesantren Al-Basyariyah** (Bandung, Jawa Barat).  
-> Satukan pencatatan transaksi, workflow persetujuan, rekonsiliasi, inventori, dan point of sale (POS) seluruh unit pesantren dalam satu sistem terpusat real-time.
+Dokumen ini menjadi acuan utama untuk menjalankan aplikasi, memahami batas akses, menguji perubahan, dan menyiapkan pull request.
 
----
+## Status Produk
 
-## 🏢 Apa itu ALBA Finance v3?
+- **Runtime:** Node.js 20 LTS
+- **Framework:** Next.js 16 App Router
+- **Database:** MySQL 8
+- **ORM:** Prisma 5
+- **Authentication:** NextAuth.js
+- **UI:** React, Tailwind CSS, shadcn/ui, lucide-react
+- **Deployment:** Hostinger Node.js application
 
-Sistem informasi keuangan (**ALBA Finance v3**) dirancang khusus untuk menata kelola keuangan Pondok Pesantren Al-Basyariyah secara terintegrasi. Sistem mendukung struktur organisasi multi-unit:
+## Domain Model
 
+Struktur organisasi yang didukung:
+
+```text
+Pondok Pesantren Al-Basyariyah
+├── KPAK
+├── Kantin Baru
+├── Kantin Umi
+└── Koperasi Buku
 ```
-Pondok Pesantren Al-Basyariyah (Lembaga Pusat)
-  ├─ KPAK          (Kantor Pelayanan Administrasi Keuangan)
-  ├─ Koperasi Buku (Unit Retail)
-  ├─ Kantin Umi    (Unit Retail)
-  └─ Kantin Baru   (Unit Retail)
-```
 
----
+Role `SUPERADMIN` adalah otoritas tertinggi dan memiliki akses global terhadap master data, pengguna, transaksi, approval, inventori, settings, backup, restore, reset, serta demo data. Role lain dibatasi sesuai lingkup lembaga atau unitnya.
 
-## ✨ Fitur
+| Role         | Scope   | Tanggung jawab utama                                 |
+| ------------ | ------- | ---------------------------------------------------- |
+| `SUPERADMIN` | Global  | Administrasi sistem dan seluruh data                 |
+| `PIMPINAN`   | Lembaga | Pengawasan, approval, laporan, broadcast             |
+| `MANAGER`    | Unit    | Operasional unit, transaksi, inventori, rekonsiliasi |
+| `STAFF`      | Unit    | Pencatatan transaksi dan operasional harian          |
 
-| Fitur                            | Deskripsi                                                                        |
-| -------------------------------- | -------------------------------------------------------------------------------- |
-| 📊 **Dashboard Real-Time**       | Ringkasan kas, pemasukan, dan pengeluaran per unit                               |
-| 💵 **Manajemen Transaksi**       | Pencatatan harian dengan unggah bukti nota/transfer (draft → pending → approved) |
-| 🔄 **Workflow Persetujuan**      | Verifikasi berjenjang melalui model `Approval`                                   |
-| 🛒 **Point of Sale (POS)**       | Sistem kasir + pencatatan stok untuk unit retail (Koperasi & Kantin)             |
-| 📑 **Catatan Keuangan Pimpinan** | Rekonsiliasi transaksi strategis milik pimpinan                                  |
-| 🧾 **Inventori**                 | Kelola stok barang, harga beli, dan stok minimum                                 |
-| 🏦 **Rekening Bank**             | Kolom kas/bank/e-wallet dengan saldo otomatis                                    |
-| 🔔 **Notifikasi & Broadcast**    | Informasi real-time dan pengumuman dari pimpinan                                 |
-| 🗂️ **Master Data**               | Lembaga, Unit, Kategori Keuangan (COA), Pengguna                                 |
+## Fitur Produk
 
----
+- Dashboard berdasarkan role dan unit
+- Transaksi pemasukan, pengeluaran, dan transfer
+- Workflow draft, pending, approved, dan rejected
+- Approval berjenjang dan audit approval
+- Financial notes dan rekonsiliasi
+- Inventori dan POS untuk unit retail
+- Laporan agregat per unit/lembaga
+- Manajemen lembaga, unit, pengguna, dan kategori keuangan
+- Broadcast serta notifikasi
+- Persistensi theme dan system settings
+- Manajemen data Superadmin: ekspor backup JSON, impor backup, reset data, dan Demo Data
+- Health check aplikasi dan database melalui `/health` serta `/api/health`
 
-## 🔐 Peran & Hak Akses
-
-| Role           | Cakupan      | Akses                                                                      |
-| -------------- | ------------ | -------------------------------------------------------------------------- |
-| **SUPERADMIN** | Global       | CRUD semua, settings, COA, user & unit management                          |
-| **PIMPINAN**   | Lembaga-wide | Lihat laporan semua unit, catat pemasukan/pengeluaran, broadcast, approval |
-| **MANAGER**    | Unit         | Rekonsiliasi, inventory, POS, transaksi harian                             |
-| **STAFF**      | Unit         | CRUD transaksi harian, POS, inventori                                      |
-
-> Hak akses diperiksa di tiap API route melalui helper role-check middleware.
-
----
-
-## 🔑 Akun Demo (Hasil Seed)
-
-Password default semua akun: **`Bismillah123!`**
-
-| Role           | Email                         | Unit              |
-| -------------- | ----------------------------- | ----------------- |
-| **SUPERADMIN** | `superadmin@alba.local`       | Seluruh Pesantren |
-| **PIMPINAN**   | `pimpinan@alba.local`         | Seluruh Pesantren |
-| **MANAGER**    | `manager.kpk@alba.local`      | KPAK              |
-| **MANAGER**    | `manager.koperasi@alba.local` | Koperasi Buku     |
-| **STAFF**      | `staff.kantin@alba.local`     | Kantin            |
-
-📥 Seed dilakukan via `npm run db:seed` (membuat lembaga, 4 unit, dan 5 akun di atas).
-
----
-
-## ⚙️ Setup Pengembangan
+## Quick Start
 
 ### Prasyarat
 
-- **Node.js** 20.x LTS (lihat `package.json` → `engines`)
-- **npm** 10.x
-- **MySQL** 8.0 (lokal atau remote)
+- Node.js 20 atau lebih baru
+- npm 10 atau lebih baru
+- MySQL 8 yang dapat diakses dari environment aplikasi
 
-### Langkah demi langkah
+### Instalasi
 
 ```bash
-# 1. Clone & install dependencies
 git clone https://github.com/brontolano/alba-fintech-v2.git
-cd alba-fintech-v3
+cd alba-fintech-v2
 npm install
-
-# 2. Salin & konfigurasi environment
-cp .env.example .env.local
-# Edit .env.local → isi DATABASE_URL, NEXTAUTH_URL, NEXTAUTH_SECRET
-
-# 3. Generate Prisma Client
-npx prisma generate
-
-# 4. Push schema & seed data
-npx prisma db push
-npm run db:seed
-
-# 5. Jalankan development server
-npm run dev
-# Buka https://localhost:3000  → login dengan akun demo di atas
 ```
 
-### Environment Variables (`.env.local`)
+Buat `.env.local` dari `.env.example`, lalu isi minimal:
 
-| Variable                               | Keterangan                                          |
-| -------------------------------------- | --------------------------------------------------- |
-| `DATABASE_URL`                         | MySQL connection string                             |
-| `NEXTAUTH_URL`                         | URL aplikasi (dev: `http://localhost:3000`)         |
-| `NEXTAUTH_SECRET`                      | Generate: `openssl rand -base64 32`                 |
-| `NEXTAUTH_EMAIL` / `NEXTAUTH_PASSWORD` | Akun demo fallback                                  |
-| `NODE_ENV`                             | `development` \| `production`                       |
-| `NEXT_PUBLIC_*`                        | Konfigurasi klien (nama app, mata uang IDR, locale) |
-
----
-
-## 🗂️ Struktur Proyek
-
-```
-.
-├─ app/                  # Next.js 16 App Router
-│  ├─ api/               # API Routes (Route Handlers)
-│  │  ├─ auth/[...nextauth]/   # NextAuth.js
-│  │  ├─ transactions/   ├─ financial-notes/
-│  │  ├─ financial-categories/  ├─ units/         ├─ users/
-│  │  ├─ approvals/     ├─ inventory/   ├─ pos/      ├─ reports/
-│  │  ├─ lembaga/      ├─ notifications/ ├─ settings/  ├─ upload/
-│  │  └─ reset-users/   └─ dashboard/aggregates & reports/aggregations
-│  ├─ dashboard/        # Halaman UI (account, approvals, inventory,
-│  │                     #   pos, pos, reconciliation, reports, settings,
-│  │                     #   transactions, units, users)
-│  └─ login/, health/, layout.tsx, page.tsx, globals.css
-├─ components/           # UI: auth, charts, layout (Header/MobileNav/Sidebar),
-│                         #   providers, ui (shadcn/ui + PerformanceGuard)
-├─ lib/                  # prisma.ts (singleton Prisma client)
-├─ prisma/               # schema.prisma, migrations, schema-v3.prisma (archive)
-├─ scripts/              # seed.ts, reset-users.ts, deploy-prepare.mjs
-├─ docs/                 # DEPLOY.md, DEPLOY_GUIDE.md, AUDIT-DEPLOY-HOSTINGER.md,
-│                         #   DOKUMENTASI-TEKNIS.md
-├─ server.js             # Custom entry point (Hostinger standalone wrapper)
-└─ AGENTS.md             # Aturan Next.js agent (otomatis oleh `next dev`)
+```env
+DATABASE_URL="mysql://USER:PASSWORD@HOST:3306/DATABASE"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="generate-a-long-random-secret"
+NODE_ENV="development"
 ```
 
-### API Endpoints (Ringkas)
-
-| Method | Endpoint                                                      | Role                              |
-| ------ | ------------------------------------------------------------- | --------------------------------- |
-| GET    | `/api/units`, `/api/users`, `/api/transactions`               | Authenticated                     |
-| POST   | `/api/transactions`, `/api/financial-notes`, `/api/approvals` | MANAGER/STAFF/PIMPINAN/SUPERADMIN |
-| PATCH  | `/api/approvals/[id]`, `/api/transactions/[id]`               | SUPERADMIN/PIMPINAN/MANAGER       |
-| GET    | `/api/reports/aggregations`, `/api/dashboard/aggregates`      | PIMPINAN/SUPERADMIN               |
-| GET    | `/health`                                                     | Public (monitoring)               |
-
----
-
-## 🧪 Keamanan & Type Check
+Jalankan pemeriksaan schema dan aplikasi:
 
 ```bash
-npm run type-check      # tsc --noEmit  (0 error diperkirakan)
-npm run build           # prisma generate && next build (produksi)
+npx prisma generate
+npx prisma validate
+npm run type-check
+npm run dev
 ```
 
-Pre-commit checklist:
+`DATABASE_URL` wajib dikelola melalui environment. Jangan commit password database, `.env.local`, atau backup production ke repository.
 
-- `npx tsc --noEmit` — 0 error
-- `npm run build` — sukses
-- Perubahan skema → `npx prisma generate`
+## Data Demo
 
----
+Data demo dapat dibuat dari **Pengaturan > Manajemen Data > Demo Data** oleh Superadmin. Proses ini mengganti data operasional dengan dataset edukasi untuk empat unit dan mempertahankan akun Superadmin.
 
-## 🚀 Deployment
+Dataset demo mencakup:
 
-Aplikasi deploy ke **Hostinger** sebagai standalone Node.js. Lihat [`docs/DEPLOY.md`](./docs/DEPLOY.md) untuk panduan lengkap.
+- Lembaga Pondok Pesantren Al-Basyariyah
+- KPAK, Kantin Baru, Kantin Umi, dan Koperasi Buku
+- User Pimpinan, Manager, dan Staff per unit
+- Kategori keuangan, rekening kas, transaksi approved/pending
+- Approval, inventori retail, financial notes, notifikasi, dan system settings
+
+Password demo dikembalikan oleh API hanya pada respons operasi Demo Data. Ganti kredensial demo sebelum dipakai di lingkungan non-development.
+
+## Manajemen Data
+
+Semua operasi berikut hanya tersedia untuk `SUPERADMIN`:
+
+| Operasi | Endpoint                                     | Perilaku                                                 |
+| ------- | -------------------------------------------- | -------------------------------------------------------- |
+| Ekspor  | `GET /api/data`                              | Mengunduh seluruh data sebagai JSON                      |
+| Impor   | `POST /api/data` dengan payload backup       | Mengganti data sesuai backup secara transaksional        |
+| Reset   | `POST /api/data` dengan `{"action":"reset"}` | Menghapus data operasional dan mempertahankan Superadmin |
+| Demo    | `POST /api/data` dengan `{"action":"demo"}`  | Membuat ulang dataset edukasi empat unit                 |
+
+Backup adalah data sensitif. Simpan di lokasi aman dan verifikasi hasil restore di environment non-production terlebih dahulu.
+
+## API dan Struktur Kode
+
+```text
+app/
+├── api/                 # Route handlers dan RBAC server-side
+├── dashboard/           # Halaman workflow aplikasi
+components/              # Komponen UI dan dashboard
+lib/
+├── prisma.ts            # Prisma singleton
+└── data-management.ts   # Backup, restore, reset, dan demo data
+prisma/schema.prisma     # Model dan relasi MySQL
+scripts/                 # Seed dan utility operasional
+```
+
+Route mutasi harus selalu memvalidasi session, role, input Zod, ownership/scope, dan error Prisma yang relevan. `SUPERADMIN` boleh melampaui scope unit/lembaga, tetapi tetap mengikuti validasi integritas relasi database.
+
+## Validasi Sebelum Pull Request
+
+Jalankan seluruh pemeriksaan berikut:
+
+```bash
+npx prisma validate
+npm run type-check
+npm run build
+```
+
+Checklist PR:
+
+- [ ] Perubahan tidak membocorkan secret atau data production
+- [ ] Perubahan API memiliki validasi input dan RBAC
+- [ ] Perubahan database kompatibel dengan MySQL remote
+- [ ] Loading, error, empty state, dan success state UI diuji
+- [ ] Health check dan route yang terdampak diuji
+- [ ] README atau dokumentasi teknis diperbarui bila kontrak berubah
+
+## Deployment Hostinger
+
+Deployment menggunakan Node.js application dengan `server.js` sebagai startup file. Build production:
 
 ```bash
 npm install
 npm run build
-node scripts/deploy-prepare.mjs   # menghasilkan deploy-package/
+npm start
 ```
 
-`deploy-package/` berisi: `server.js` (wrapper), `next-server.js` (standalone), `.env.production`, `.next/static/`, `node_modules/` (minimal + Prisma engine), `prisma/schema.prisma`, `public/`.
-
-- **Node.js version**: 20.x LTS
-- **Startup file**: `server.js`
-- **Endpoint health**: `https://<domain>/health` → `{"status":"ok","timestamp":"..."}``
-
-### Reset database (dev)
+Pastikan environment production di Hostinger berisi `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, dan `NODE_ENV=production`. Setelah deploy, verifikasi:
 
 ```bash
-npm run db:reset    # migrate reset + seed
+curl https://your-domain.example/health
+curl https://your-domain.example/api/health
 ```
 
----
+Respons `/api/health` harus menunjukkan `ok: true` dan `db: "up"`.
 
-## 🤖 Pengembangan Terbantu AI
+## Pull Request Documentation
 
-Repositori dilengkapi dengan berkas `AGENTS.md` yang berisi aturan dan konteks pengembangan aplikasi (diperbarui otomatis oleh `next dev`). Ikuti petunjuk di `AGENTS.md` sebelum menulis kode, terutama soal:
+Gunakan struktur berikut pada PR:
 
-- Penanganan `system_settings` yang mungkin tidak ada di remote MySQL (`P2021` → fallback ke default)
-- Theme persistence via CSS variables (`--primary`, `--ring`) + `dark` class pada `useEffect`
-- Fallback tema di `localStorage` ketika DB tidak tersedia
+### Summary
 
----
+Jelaskan perubahan produk dan alasan bisnis/operasionalnya dalam 2-4 kalimat.
 
-## 📞 Dukungan
+### Scope
 
-- **Email:** admin@brontolano.com
-- **GitHub Issues:** https://github.com/brontolano/alba-fintech-v2/issues
-- **Dokumentasi teknis:** [`docs/DOKUMENTASI-TEKNIS.md`](./docs/DOKUMENTASI-TEKNIS.md)
+Sebutkan route, halaman, model database, dan role yang terdampak.
 
----
+### Verification
 
-<p align="center">
-Dikembangkan oleh <strong>Muhammad Hamdan</strong> (<a href="https://github.com/brontolano">@brontolano</a>) untuk <strong>Pondok Pesantren Al-Basyariyah</strong>.
-<br>Hak Cipta © 2024–2026 ALBA Finance v3. All Rights Reserved.
-</p>
+Cantumkan command yang dijalankan, smoke test live/local, serta hasil pentingnya.
+
+### Data and Migration Notes
+
+Jelaskan perubahan schema, seed, backup, compatibility, dan rollback bila ada.
+
+### Risk and Rollback
+
+Catat risiko yang tersisa serta langkah untuk membatalkan atau memulihkan perubahan.
+
+## Dukungan
+
+- Repository: https://github.com/brontolano/alba-fintech-v2
+- Issue tracker: https://github.com/brontolano/alba-fintech-v2/issues
+- Dokumentasi deployment: [docs/DEPLOY.md](docs/DEPLOY.md)
+- Dokumentasi teknis: [docs/DOKUMENTASI-TEKNIS.md](docs/DOKUMENTASI-TEKNIS.md)

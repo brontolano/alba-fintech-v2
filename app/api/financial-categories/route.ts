@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { authOptions } from '@/app/api/auth/options';
-import { getServerSession } from 'next-auth';
-import { z } from 'zod';
-
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { authOptions } from "@/app/api/auth/options";
+import { getServerSession } from "next-auth";
+import { z } from "zod";
 
 const createCategorySchema = z.object({
-  name: z.string().min(1, 'Nama kategori wajib diisi'),
-  code: z.string().min(1, 'Kode kategori wajib diisi'),
-  type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
+  name: z.string().min(1, "Nama kategori wajib diisi"),
+  code: z.string().min(1, "Kode kategori wajib diisi"),
+  type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]),
   description: z.string().optional(),
   parentId: z.string().optional(),
+  lembagaId: z.string().nullable().optional(),
   isActive: z.boolean().default(true),
 });
 
@@ -18,22 +18,22 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const role = (session.user as any)?.role;
     const lembagaId = (session.user as any)?.lembagaId;
 
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type');
+    const type = searchParams.get("type");
 
     const where: any = {};
 
     // Role-based filtering
-    if (role === 'SUPERADMIN') {
+    if (role === "SUPERADMIN") {
       // Can see all categories (with optional lembagaId filter)
-      if (searchParams.has('lembagaId')) {
-        where.lembagaId = searchParams.get('lembagaId');
+      if (searchParams.has("lembagaId")) {
+        where.lembagaId = searchParams.get("lembagaId");
       }
     } else {
       // Non-superadmin only see categories tied to their lembaga
@@ -49,16 +49,16 @@ export async function GET(request: NextRequest) {
 
     const categories = await prisma.financialCategory.findMany({
       where,
-      orderBy: [
-        { type: 'asc' },
-        { name: 'asc' },
-      ],
+      orderBy: [{ type: "asc" }, { name: "asc" }],
     });
 
     return NextResponse.json({ data: categories }, { status: 200 });
   } catch (error) {
-    console.error('[Financial Categories API] Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("[Financial Categories API] Error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -66,18 +66,21 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const role = session.user.role;
-    if (role !== 'SUPERADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (role !== "SUPERADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
     const parsed = createCategorySchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid data', details: parsed.error.errors }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid data", details: parsed.error.errors },
+        { status: 400 },
+      );
     }
 
     const category = await prisma.financialCategory.create({
@@ -88,16 +91,22 @@ export async function POST(request: NextRequest) {
         description: parsed.data.description,
         parentId: parsed.data.parentId,
         isActive: parsed.data.isActive,
-        lembagaId: session.user.lembagaId,
+        lembagaId: parsed.data.lembagaId ?? session.user.lembagaId ?? null,
       },
     });
 
     return NextResponse.json({ data: category }, { status: 201 });
   } catch (error: any) {
-    console.error('[Financial Categories API] Error:', error);
-    if (error.code === 'P2002') {
-      return NextResponse.json({ error: 'Kode kategori sudah digunakan' }, { status: 409 });
+    console.error("[Financial Categories API] Error:", error);
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Kode kategori sudah digunakan" },
+        { status: 409 },
+      );
     }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

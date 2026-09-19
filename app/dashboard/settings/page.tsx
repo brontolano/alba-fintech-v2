@@ -269,17 +269,13 @@ export default function SettingsPage() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      // In a real app, this would call an API endpoint to export all data
-      // For now, we export the settings as a basic export
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const exportData = { settings, exportedAt: new Date().toISOString() };
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: "application/json",
-      });
+      const res = await fetch("/api/data");
+      if (!res.ok) throw new Error("Gagal mengekspor data");
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `alba-settings-${new Date().toISOString().split("T")[0]}.json`;
+      a.download = `alba-backup-${new Date().toISOString().split("T")[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success("Data berhasil diekspor");
@@ -297,15 +293,18 @@ export default function SettingsPage() {
     }
     setIsImporting(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // In a real app, this would upload and process the file
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const payload = JSON.parse(await file.text());
+      const res = await fetch("/api/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal mengimpor data");
 
       toast.success("Data berhasil diimpor");
       setFile(null);
-      fetchSettings(); // Refresh settings after import
+      await fetchSettings();
     } catch (err) {
       toast.error("Gagal mengimpor data");
     } finally {
@@ -314,10 +313,6 @@ export default function SettingsPage() {
   };
 
   const handleReset = async () => {
-    if (!resetPassword) {
-      toast.error("Masukkan password Anda");
-      return;
-    }
     if (
       !confirm(
         "Anda yakin ingin mereset semua data? Tindakan ini tidak dapat dibatalkan.",
@@ -327,10 +322,10 @@ export default function SettingsPage() {
     }
     setIsResetting(true);
     try {
-      const res = await fetch("/api/reset-users", {
+      const res = await fetch("/api/data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirm: true, password: resetPassword }),
+        body: JSON.stringify({ action: "reset" }),
       });
 
       if (!res.ok) {
@@ -342,6 +337,31 @@ export default function SettingsPage() {
       setResetPassword("");
     } catch (err: any) {
       toast.error(err.message || "Gagal mereset data");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const handleDemoData = async () => {
+    if (
+      !confirm(
+        "Data saat ini akan diganti dengan data demo empat unit. Lanjutkan?",
+      )
+    )
+      return;
+    setIsResetting(true);
+    try {
+      const res = await fetch("/api/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "demo" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal membuat data demo");
+      toast.success("Data demo empat unit berhasil dibuat");
+      await fetchSettings();
+    } catch (err: any) {
+      toast.error(err.message || "Gagal membuat data demo");
     } finally {
       setIsResetting(false);
     }
@@ -591,26 +611,20 @@ export default function SettingsPage() {
                           Reset Data
                         </h3>
                         <p className="text-sm text-red-700">
-                          Hapus semua data kecuali pengguna SuperAdmin
+                          Hapus semua data operasional dan pertahankan akun
+                          SuperAdmin
                         </p>
                       </div>
                     </div>
                     <div className="mt-3">
-                      <label className="block text-sm font-medium text-red-800 mb-1">
-                        Masukkan Password Anda
-                      </label>
-                      <input
-                        type="password"
-                        value={resetPassword}
-                        onChange={(e) => setResetPassword(e.target.value)}
-                        autoComplete="current-password"
-                        className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none text-sm"
-                        placeholder="Password"
-                      />
+                      <p className="text-sm text-red-700">
+                        Backup data terlebih dahulu karena reset tidak dapat
+                        dibatalkan.
+                      </p>
                     </div>
                     <button
                       onClick={handleReset}
-                      disabled={isResetting || !resetPassword}
+                      disabled={isResetting}
                       className="mt-3 flex items-center justify-center gap-2 w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
                     >
                       {isResetting ? (
@@ -620,6 +634,36 @@ export default function SettingsPage() {
                       )}
                       <span>
                         {isResetting ? "Mereset..." : "Reset Semua Data"}
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
+                        <Database size={20} className="text-amber-700" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-amber-900">
+                          Demo Data
+                        </h3>
+                        <p className="text-sm text-amber-800">
+                          Isi ulang contoh KPAK, Kantin Baru, Kantin Umi, dan
+                          Koperasi Buku.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleDemoData}
+                      disabled={isResetting}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:opacity-50"
+                    >
+                      <RefreshCw
+                        size={18}
+                        className={isResetting ? "animate-spin" : ""}
+                      />
+                      <span>
+                        {isResetting ? "Menyiapkan..." : "Buat Demo Data"}
                       </span>
                     </button>
                   </div>

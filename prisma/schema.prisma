@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://u826712707_alba:B-5millahberkah@srv594.hstgr.io:3306/u826712707_alba"
+  url      = env("DATABASE_URL")
 }
 
 model Lembaga {
