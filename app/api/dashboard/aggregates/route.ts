@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { authOptions } from '@/app/api/auth/options';
-import { getServerSession } from 'next-auth';
-import { z } from 'zod';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { authOptions } from "@/app/api/auth/options";
+import { getServerSession } from "next-auth";
+import { z } from "zod";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 
 // Schema for query parameters
 const querySchema = z.object({
-  range: z.enum(['today', '7d', '30d', '90d']).optional().default('30d'),
+  range: z.enum(["today", "7d", "30d", "90d"]).optional().default("30d"),
   unitId: z.string().optional(),
 });
 
@@ -19,18 +19,24 @@ export async function GET(request: NextRequest) {
     try {
       session = await getServerSession(authOptions);
     } catch (sessionErr: any) {
-      console.error('[Dashboard Aggregates] Session error:', sessionErr.message);
-      return NextResponse.json({ error: 'Session error' }, { status: 401 });
+      console.error(
+        "[Dashboard Aggregates] Session error:",
+        sessionErr.message,
+      );
+      return NextResponse.json({ error: "Session error" }, { status: 401 });
     }
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Parse query
     const { searchParams } = new URL(request.url);
     const parsed = querySchema.safeParse(Object.fromEntries(searchParams));
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid query parameters', details: parsed.error.errors }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid query parameters", details: parsed.error.errors },
+        { status: 400 },
+      );
     }
 
     const role = (session.user as any)?.role;
@@ -42,16 +48,16 @@ export async function GET(request: NextRequest) {
     let startDate: Date | null = null;
 
     switch (parsed.data.range) {
-      case 'today':
+      case "today":
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
-      case '7d':
+      case "7d":
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         break;
-      case '30d':
+      case "30d":
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         break;
-      case '90d':
+      case "90d":
         startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
         break;
       default:
@@ -60,45 +66,50 @@ export async function GET(request: NextRequest) {
 
     // Build where clause for transactions
     const txWhere: Record<string, unknown> = {
-      status: 'APPROVED',
+      status: "APPROVED",
       ...(startDate ? { date: { gte: startDate } } : {}),
     };
 
     // Role-based filtering
-    if (role === 'STAFF' || role === 'MANAGER') {
+    if (role === "STAFF" || role === "MANAGER") {
       if (!userUnitId) {
-        return NextResponse.json({ error: 'User tidak memiliki unit' }, { status: 400 });
+        // Fallback aman: user tanpa unit tetap bisa membuka dashboard kosong,
+        // bukan error 400/403 yang memblokir halaman.
+        txWhere.unitId = { in: [] };
+      } else {
+        txWhere.unitId = userUnitId;
       }
-      txWhere.unitId = userUnitId;
-    } else if (role === 'PIMPINAN' && lembagaId) {
+    } else if (role === "PIMPINAN" && lembagaId) {
       // Pimpinan sees transactions from units in their lembaga
-      const unitIds = await prisma.unit.findMany({
-        where: { lembagaId },
-        select: { id: true },
-      }).then(units => units.map(u => u.id));
-      txWhere.unitId = { in: unitIds };
-    } else if (role === 'PIMPINAN' && !lembagaId) {
-      return NextResponse.json({ error: 'Pimpinan tidak memiliki lembaga' }, { status: 403 });
-    } else if (role === 'SUPERADMIN') {
+      const unitIds = await prisma.unit
+        .findMany({
+          where: { lembagaId },
+          select: { id: true },
+        })
+        .then((units) => units.map((u) => u.id));
+      txWhere.unitId = unitIds.length > 0 ? { in: unitIds } : { in: [] };
+    } else if (role === "PIMPINAN" && !lembagaId) {
+      txWhere.unitId = { in: [] };
+    } else if (role === "SUPERADMIN") {
       // SUPERADMIN sees all transactions (no additional filter)
     } else {
-      // Unknown role or missing credentials - deny access
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      // Unknown role or missing credentials - show empty dashboard rather than crash
+      txWhere.unitId = { in: [] };
     }
 
     // A requested unit may only narrow the user's existing scope.
     if (parsed.data.unitId) {
-      if (role === 'STAFF' || role === 'MANAGER') {
+      if (role === "STAFF" || role === "MANAGER") {
         if (parsed.data.unitId !== userUnitId) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
-      } else if (role === 'PIMPINAN') {
+      } else if (role === "PIMPINAN") {
         const targetUnit = await prisma.unit.findFirst({
           where: { id: parsed.data.unitId, lembagaId },
           select: { id: true },
         });
         if (!targetUnit) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
       }
       txWhere.unitId = parsed.data.unitId;
@@ -124,15 +135,18 @@ export async function GET(request: NextRequest) {
     });
 
     // Build unit aggregation map
-    const unitAggMap: Record<string, {
-      id: string;
-      name: string;
-      type: string;
-      balance: number;
-      income: number;
-      expense: number;
-      transactions: number;
-    }> = {};
+    const unitAggMap: Record<
+      string,
+      {
+        id: string;
+        name: string;
+        type: string;
+        balance: number;
+        income: number;
+        expense: number;
+        transactions: number;
+      }
+    > = {};
 
     for (const tx of transactions) {
       if (!tx.units) continue;
@@ -142,7 +156,7 @@ export async function GET(request: NextRequest) {
         unitAggMap[uid] = {
           id: tx.units.id,
           name: tx.units.name,
-          type: tx.units.type || '',
+          type: tx.units.type || "",
           balance: 0,
           income: 0,
           expense: 0,
@@ -152,13 +166,13 @@ export async function GET(request: NextRequest) {
 
       unitAggMap[uid].transactions += 1;
 
-      if (tx.type === 'INCOME') {
+      if (tx.type === "INCOME") {
         unitAggMap[uid].income += Number(tx.amount);
         unitAggMap[uid].balance += Number(tx.amount);
-      } else if (tx.type === 'EXPENSE') {
+      } else if (tx.type === "EXPENSE") {
         unitAggMap[uid].expense += Number(tx.amount);
         unitAggMap[uid].balance -= Number(tx.amount);
-      } else if (tx.type === 'TRANSFER') {
+      } else if (tx.type === "TRANSFER") {
         // Transfers don't affect balance directly
       }
     }
@@ -175,33 +189,58 @@ export async function GET(request: NextRequest) {
     const incomeByPeriod: number[] = [];
     const expenseByPeriod: number[] = [];
 
-    if (parsed.data.range === 'today') {
+    if (parsed.data.range === "today") {
       // 24 hours of today
       for (let h = 0; h < 24; h++) {
-        const hourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h);
-        const hourEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h + 1);
-        const periodTxs = transactions.filter(
-          (tx) => tx.date && new Date(tx.date) >= hourStart && new Date(tx.date) < hourEnd
+        const hourStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          h,
         );
-        const inc = periodTxs.filter((t) => t.type === 'INCOME').reduce((s, t) => s + Number(t.amount), 0);
-        const exp = periodTxs.filter((t) => t.type === 'EXPENSE').reduce((s, t) => s + Number(t.amount), 0);
-        chartLabels.push(`${h.toString().padStart(2, '0')}:00`);
+        const hourEnd = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          h + 1,
+        );
+        const periodTxs = transactions.filter(
+          (tx) =>
+            tx.date &&
+            new Date(tx.date) >= hourStart &&
+            new Date(tx.date) < hourEnd,
+        );
+        const inc = periodTxs
+          .filter((t) => t.type === "INCOME")
+          .reduce((s, t) => s + Number(t.amount), 0);
+        const exp = periodTxs
+          .filter((t) => t.type === "EXPENSE")
+          .reduce((s, t) => s + Number(t.amount), 0);
+        chartLabels.push(`${h.toString().padStart(2, "0")}:00`);
         incomeByPeriod.push(inc);
         expenseByPeriod.push(exp);
       }
     } else {
       // Daily buckets for 7d/30d/90d
-      const days = parsed.data.range === '7d' ? 7 : parsed.data.range === '30d' ? 30 : 90;
+      const days =
+        parsed.data.range === "7d" ? 7 : parsed.data.range === "30d" ? 30 : 90;
       for (let d = days - 1; d >= 0; d--) {
         const dayStart = new Date(now.getTime() - d * 24 * 60 * 60 * 1000);
         dayStart.setHours(0, 0, 0, 0);
         const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
         const periodTxs = transactions.filter(
-          (tx) => tx.date && new Date(tx.date) >= dayStart && new Date(tx.date) < dayEnd
+          (tx) =>
+            tx.date &&
+            new Date(tx.date) >= dayStart &&
+            new Date(tx.date) < dayEnd,
         );
-        const inc = periodTxs.filter((t) => t.type === 'INCOME').reduce((s, t) => s + Number(t.amount), 0);
-        const exp = periodTxs.filter((t) => t.type === 'EXPENSE').reduce((s, t) => s + Number(t.amount), 0);
-        chartLabels.push(format(dayStart, 'dd MMM', { locale: id }));
+        const inc = periodTxs
+          .filter((t) => t.type === "INCOME")
+          .reduce((s, t) => s + Number(t.amount), 0);
+        const exp = periodTxs
+          .filter((t) => t.type === "EXPENSE")
+          .reduce((s, t) => s + Number(t.amount), 0);
+        chartLabels.push(format(dayStart, "dd MMM", { locale: id }));
         incomeByPeriod.push(inc);
         expenseByPeriod.push(exp);
       }
@@ -210,8 +249,8 @@ export async function GET(request: NextRequest) {
     // Build expense by category (doughnut chart)
     const categoryAgg: Record<string, { name: string; amount: number }> = {};
     for (const tx of transactions) {
-      if (tx.type !== 'EXPENSE') continue;
-      const catName = tx.financial_categories?.name || 'Lainnya';
+      if (tx.type !== "EXPENSE") continue;
+      const catName = tx.financial_categories?.name || "Lainnya";
       if (!categoryAgg[catName]) {
         categoryAgg[catName] = { name: catName, amount: 0 };
       }
@@ -237,7 +276,7 @@ export async function GET(request: NextRequest) {
         financial_categories: { select: { name: true } },
         users_transactions_createdByIdTousers: { select: { name: true } },
       },
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
       take: 10,
     });
 
@@ -245,49 +284,59 @@ export async function GET(request: NextRequest) {
       id: tx.id,
       date: tx.date,
       unitId: tx.unitId,
-      unitName: tx.units?.name || '-',
+      unitName: tx.units?.name || "-",
       description: tx.description,
       amount: Number(tx.amount),
       type: tx.type,
-      accountName: tx.bank_accounts?.name || '-',
-      categoryName: tx.financial_categories?.name || '-',
-      createdByName: tx.users_transactions_createdByIdTousers?.name || '-',
-      status: tx.status ?? 'PENDING',
+      accountName: tx.bank_accounts?.name || "-",
+      categoryName: tx.financial_categories?.name || "-",
+      createdByName: tx.users_transactions_createdByIdTousers?.name || "-",
+      status: tx.status ?? "PENDING",
     }));
 
     // Count today's transactions
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const todayCount = transactions.filter(
-      (tx) => tx.date && new Date(tx.date) >= todayStart
+      (tx) => tx.date && new Date(tx.date) >= todayStart,
     ).length;
 
-    return NextResponse.json({
-      data: {
+    return NextResponse.json(
+      {
+        data: {
+          summary: {
+            totalBalance,
+            totalIncome,
+            totalExpense,
+            todayTransactions: todayCount,
+          },
+          units,
+          recentTransactions: formattedRecent,
+          chartData: {
+            labels: chartLabels,
+            income: incomeByPeriod,
+            expense: expenseByPeriod,
+          },
+          expenseByCategory,
+        },
         summary: {
-          totalBalance,
-          totalIncome,
-          totalExpense,
-          todayTransactions: todayCount,
+          range: parsed.data.range,
+          totalUnits: units.length,
         },
-        units,
-        recentTransactions: formattedRecent,
-        chartData: {
-          labels: chartLabels,
-          income: incomeByPeriod,
-          expense: expenseByPeriod,
-        },
-        expenseByCategory,
       },
-      summary: {
-        range: parsed.data.range,
-        totalUnits: units.length,
-      },
-    }, { status: 200 });
+      { status: 200 },
+    );
   } catch (error: any) {
-    console.error('[Dashboard Aggregates API] Error:', error.message || error);
-    console.error('[Dashboard Aggregates API] Stack:', error.stack);
-    return NextResponse.json({
-      error: 'Internal Server Error',
-    }, { status: 500 });
+    console.error("[Dashboard Aggregates API] Error:", error.message || error);
+    console.error("[Dashboard Aggregates API] Stack:", error.stack);
+    return NextResponse.json(
+      {
+        error: "Internal Server Error",
+      },
+      { status: 500 },
+    );
   }
 }
