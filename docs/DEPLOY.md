@@ -1,6 +1,7 @@
-# ALBA Finance v3 — Panduan Deploy ke Hostinger
+# ALBA Finance v7.0.0 — Panduan Deploy ke Hostinger
 
-> **Status**: Siap Deploy ✅  
+> **Status**: Stable dan siap deploy ✅
+> **Release**: `v7.0.0` — 19 September 2026
 > **Build**: 0 TypeScript errors  
 > **Standalone Test**: `/health` → `200 OK`
 
@@ -99,7 +100,7 @@ curl https://alba.brontolano.com/health
 Log yang benar di hPanel:
 
 ```
-Running ALBA Finance v3...
+Running ALBA Finance v7.0.0...
   DB URL   : set
   NEXTAUTH : set
 Next.js 16.3.4
@@ -160,3 +161,13 @@ Jika kedua variable tersedia, `npm run db:backup` mengirim backup ke Drive melal
 | STAFF      | staff@alba.id    | staff123    |
 
 > Segera ganti password setelah login pertama!
+
+---
+
+## Dukungan dan Dokumentasi
+
+- Repository: https://github.com/brontolano/alba-fintech-v2
+- Tag stable: https://github.com/brontolano/alba-fintech-v2/tree/v7.0.0
+- Issue tracker: https://github.com/brontolano/alba-fintech-v2/issues
+- README dan quick start: [README.md](../README.md)
+- Dokumentasi teknis: [docs/DOKUMENTASI-TEKNIS.md](DOKUMENTASI-TEKNIS.md)

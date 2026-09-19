@@ -1,11 +1,18 @@
-# Checkpoint Status Project (Freebuff)
+# Checkpoint Status Project — ALBA Finance v7.0.0 Stable
 
-Tanggal: 18 September 2026
+Tanggal: 19 September 2026
+
+## Release Checkpoint
+
+- **Versi:** `7.0.0`
+- **Status:** Stable baseline untuk development dan deployment
+- **Tag GitHub:** `v7.0.0` (stable)
+- **Repository:** https://github.com/brontolano/alba-fintech-v2
 
 ## 1. Rangkuman Status Project
 
 - **Tech Stack:** Next.js (App Router), TypeScript, Prisma ORM, Tailwind CSS, NextAuth.
-- **Git Status:** 38 file termodifikasi, berbagai modul baru ditambahkan (Announcements, Audit Approvals, Forgot Password, Financial Notes, Reconciliation, Inventory Local Upload & Auto-Cleanup).
+- **Git Status:** Baseline stable setelah penyelarasan dokumentasi release.
 - **Typecheck:** `npx tsc --noEmit` lulus bersih tanpa error.
 
 ## 2. Dashboard Status

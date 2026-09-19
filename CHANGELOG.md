@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [7.0.0] - 2026-09-19
+## [7.0.0] - 2026-09-19 (Stable)
 
 ### Added
 
@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refined visual consistency across core modules: dashboard, transactions, reports, financial notes
 - Improved readability and spacing for finance data-heavy pages
 - Standardized UI language across role dashboards and key screens
-- Updated README branding and version badge to reflect v7 development release
+- Updated README branding and version badge to reflect the v7 stable release
 
 ### Fixed
 

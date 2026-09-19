@@ -1,4 +1,6 @@
-# ALBA Finance
+# ALBA Finance v7.0.0
+
+[![Stable](https://img.shields.io/badge/status-stable-16803c)](https://github.com/brontolano/alba-fintech-v2/tree/v7.0.0) [![Release](https://img.shields.io/github/v/release/brontolano/alba-fintech-v2)](https://github.com/brontolano/alba-fintech-v2/releases)
 
 ALBA Finance adalah platform operasional keuangan multi-unit untuk Pondok Pesantren Al-Basyariyah. Aplikasi ini menyatukan pencatatan transaksi, persetujuan, rekonsiliasi, inventori, POS, laporan, dan administrasi akses dalam satu workflow yang terkontrol.
 
@@ -6,6 +8,7 @@ Dokumen ini menjadi acuan utama untuk menjalankan aplikasi, memahami batas akses
 
 ## Status Produk
 
+- **Versi stable:** `7.0.0` (19 September 2026)
 - **Runtime:** Node.js 20 LTS
 - **Framework:** Next.js 16 App Router
 - **Database:** MySQL 8
@@ -236,5 +239,6 @@ Catat risiko yang tersisa serta langkah untuk membatalkan atau memulihkan peruba
 
 - Repository: https://github.com/brontolano/alba-fintech-v2
 - Issue tracker: https://github.com/brontolano/alba-fintech-v2/issues
+- Tag stable: https://github.com/brontolano/alba-fintech-v2/tree/v7.0.0
 - Dokumentasi deployment: [docs/DEPLOY.md](docs/DEPLOY.md)
 - Dokumentasi teknis: [docs/DOKUMENTASI-TEKNIS.md](docs/DOKUMENTASI-TEKNIS.md)

@@ -1,6 +1,6 @@
-# 📘 ALBA Finance v3 — Dokumentasi Teknis (Developer)
+# ALBA Finance v7.0.0 — Dokumentasi Teknis (Developer)
 
-> Versi aplikasi: **1.1.0** | Terakhir diupdate: September 2026
+> Versi aplikasi: **7.0.0 stable** | Release: **19 September 2026**
 
 Dokumentasi ini berisi detail teknis untuk developer yang ingin mengembangkan, memodifikasi, atau mendeploy aplikasi ini.
 
@@ -8,26 +8,26 @@ Dokumentasi ini berisi detail teknis untuk developer yang ingin mengembangkan, m
 
 ## 🛠️ Tech Stack
 
-| Layer | Teknologi |
-|-------|-----------|
-| **Framework** | Next.js 16.3 (App Router) |
-| **Language** | TypeScript 5.x |
-| **UI** | Tailwind CSS 3.4 + lucide-react |
-| **Backend** | Next.js Route Handlers (App Router) |
-| **Database** | MySQL 8.0 |
-| **ORM** | Prisma ORM 5.22 |
-| **Auth** | NextAuth.js 4.24 (Credentials Provider) |
-| **Password Hash** | bcryptjs (12 rounds) |
-| **Validation** | Zod |
-| **Node.js** | v20+ |
-| **Package Manager** | npm 10.x |
+| Layer               | Teknologi                               |
+| ------------------- | --------------------------------------- |
+| **Framework**       | Next.js 16.3 (App Router)               |
+| **Language**        | TypeScript 5.x                          |
+| **UI**              | Tailwind CSS 3.4 + lucide-react         |
+| **Backend**         | Next.js Route Handlers (App Router)     |
+| **Database**        | MySQL 8.0                               |
+| **ORM**             | Prisma ORM 5.22                         |
+| **Auth**            | NextAuth.js 4.24 (Credentials Provider) |
+| **Password Hash**   | bcryptjs (12 rounds)                    |
+| **Validation**      | Zod                                     |
+| **Node.js**         | v20+                                    |
+| **Package Manager** | npm 10.x                                |
 
 ---
 
 ## 🏗️ Arsitektur Aplikasi
 
 ```
-alba-fintech-v3/
+alba-fintech-v2/
 ├── app/
 │   ├── api/                    # API Route Handlers
 │   │   ├── auth/[...nextauth]/route.ts   # NextAuth.js endpoints
@@ -93,6 +93,7 @@ alba-fintech-v3/
 ## 🔐 RBAC (Role-Based Access Control)
 
 ### Role Enum
+
 ```prisma
 enum Role {
   SUPERADMIN    // Global access, all units & settings
@@ -103,6 +104,7 @@ enum Role {
 ```
 
 ### Middleware (`proxy.ts`)
+
 ```typescript
 // Route protection via next-auth/middleware
 // Public: /login, /api/auth, /health
@@ -112,16 +114,16 @@ enum Role {
 
 ### API Authorization Matrix
 
-| Endpoint | GET | POST | PATCH | DELETE | Auth Required |
-|----------|----|------|-------|--------|---------------|
-| `/api/users` | SUPERADMIN/PIMPINAN/MANAGER | SUPERADMIN | — | — | Session |
-| `/api/users/profile` | Authenticated | PATCH | Authenticated | — | Session |
-| `/api/transactions` | Authenticated | MANAGER/STAFF/PIMPINAN/SUPERADMIN | — | — | Session |
-| `/api/approvals` | SUPERADMIN/PIMPINAN/MANAGER | MANAGER/STAFF | — | — | Session |
-| `/api/lembaga` | SUPERADMIN | SUPERADMIN | — | — | Session |
-| `/api/units` | Authenticated | SUPERADMIN | — | — | Session |
-| `/api/inventory` | Authenticated | MANAGER/STAFF | — | — | Session |
-| `/api/reset-users` | — | Development use only | — | — | None (⚠️ remove in prod) |
+| Endpoint             | GET                         | POST                              | PATCH         | DELETE | Auth Required            |
+| -------------------- | --------------------------- | --------------------------------- | ------------- | ------ | ------------------------ |
+| `/api/users`         | SUPERADMIN/PIMPINAN/MANAGER | SUPERADMIN                        | —             | —      | Session                  |
+| `/api/users/profile` | Authenticated               | PATCH                             | Authenticated | —      | Session                  |
+| `/api/transactions`  | Authenticated               | MANAGER/STAFF/PIMPINAN/SUPERADMIN | —             | —      | Session                  |
+| `/api/approvals`     | SUPERADMIN/PIMPINAN/MANAGER | MANAGER/STAFF                     | —             | —      | Session                  |
+| `/api/lembaga`       | SUPERADMIN                  | SUPERADMIN                        | —             | —      | Session                  |
+| `/api/units`         | Authenticated               | SUPERADMIN                        | —             | —      | Session                  |
+| `/api/inventory`     | Authenticated               | MANAGER/STAFF                     | —             | —      | Session                  |
+| `/api/reset-users`   | —                           | Development use only              | —             | —      | None (⚠️ remove in prod) |
 
 ---
 
@@ -130,28 +132,30 @@ enum Role {
 **File:** `prisma/schema.prisma` | **Provider:** MySQL 8.0
 
 Model utama:
-| Model | Deskripsi |
-|-------|-----------|
-| `Lembaga` | Parent organization (Pondok Pesantren) |
-| `Unit` | Sub-unit (KPAK, Koperasi, Kantin) — hierarchical |
-| `User` | Pengguna dengan Role, bcrypt passwordHash |
+
+| Model               | Deskripsi                                                 |
+| ------------------- | --------------------------------------------------------- |
+| `Lembaga`           | Parent organization (Pondok Pesantren)                    |
+| `Unit`              | Sub-unit (KPAK, Koperasi, Kantin) — hierarchical          |
+| `User`              | Pengguna dengan Role, bcrypt passwordHash                 |
 | `FinancialCategory` | Chart of accounts (hierarchical, INCOME/EXPENSE/TRANSFER) |
-| `BankAccount` | Kas/Bank/E-Wallet per unit |
-| `Transaction` | Core financial record (DRAFT→PENDING→APPROVED/REJECTED) |
-| `Approval` | Workflow persetujuan transaksi |
-| `FinancialNote` | Catatan keuangan khusus pimpinan |
-| `InventoryItem` | Stok barang (retail units) |
-| `OrderItem` | Item dari transaksi POS |
-| `Notification` | Notifikasi ke user |
-| `BroadcastMessage` | Pengumuman massal dari pimpinan |
-| `AuditLog` | Trail log perubahan |
-| `SystemSetting` | Key-value config sistem |
+| `BankAccount`       | Kas/Bank/E-Wallet per unit                                |
+| `Transaction`       | Core financial record (DRAFT→PENDING→APPROVED/REJECTED)   |
+| `Approval`          | Workflow persetujuan transaksi                            |
+| `FinancialNote`     | Catatan keuangan khusus pimpinan                          |
+| `InventoryItem`     | Stok barang (retail units)                                |
+| `OrderItem`         | Item dari transaksi POS                                   |
+| `Notification`      | Notifikasi ke user                                        |
+| `BroadcastMessage`  | Pengumuman massal dari pimpinan                           |
+| `AuditLog`          | Trail log perubahan                                       |
+| `SystemSetting`     | Key-value config sistem                                   |
 
 ---
 
 ## 🚀 Panduan Development
 
 ### Prasyarat
+
 - Node.js `>= 20.x`
 - npm `>= 10.x`
 - MySQL 8.0 (atau gunakan Docker)
@@ -160,8 +164,8 @@ Model utama:
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/brontolano/alba-fintech-v3.git
-cd alba-fintech-v3
+git clone https://github.com/brontolano/alba-fintech-v2.git
+cd alba-fintech-v2
 
 # 2. Install dependencies
 npm install
@@ -245,14 +249,14 @@ npm run deploy:prepare
 
 ### Environment Variables (Hostinger)
 
-| Variable | Required | Example |
-|----------|----------|---------|
-| `DATABASE_URL` | ✅ | `mysql://user:pass@host:3306/dbname` |
-| `NEXTAUTH_URL` | ✅ | `https://alba.brontolano.com` |
-| `NEXTAUTH_SECRET` | ✅ | `(random 32+ char string)` |
-| `NODE_ENV` | ✅ | `production` |
-| `PORT` | optional | `3000` |
-| `HOSTNAME` | optional | `0.0.0.0` |
+| Variable          | Required | Example                              |
+| ----------------- | -------- | ------------------------------------ |
+| `DATABASE_URL`    | ✅       | `mysql://user:pass@host:3306/dbname` |
+| `NEXTAUTH_URL`    | ✅       | `https://alba.brontolano.com`        |
+| `NEXTAUTH_SECRET` | ✅       | `(random 32+ char string)`           |
+| `NODE_ENV`        | ✅       | `production`                         |
+| `PORT`            | optional | `3000`                               |
+| `HOSTNAME`        | optional | `0.0.0.0`                            |
 
 ### Docker Deploy
 
@@ -269,17 +273,20 @@ docker-compose logs -f nextjs
 ## 🔧 Skrip Utilitas
 
 ### `scripts/seed.ts`
+
 - Membuat lembaga, 4 units, 8 kategori keuangan, 5 user (semua role)
 - Password semua akun: `Bismillah123!`
 - **Jalankan:** `npm run db:seed`
 
 ### `scripts/reset-users.ts`
+
 - Hapus semua user + data terkait (FK cascade)
 - Buat entitas dasar (lembaga, unit, kategori)
 - Buat superadmin: `admin@brontolano.com` / `bismillah`
 - **Jalankan:** `npm run reset:users`
 
 ### `scripts/deploy-prepare.mjs`
+
 - Build deploy-package/ dari .next/standalone
 - Copy Prisma runtime, .next/static, public, prisma schema
 - Remove .env leaks, copy package-lock.json
@@ -290,7 +297,9 @@ docker-compose logs -f nextjs
 ## 📖 API Reference
 
 ### Authentication
+
 NextAuth.js v4 dengan CredentialsProvider.
+
 ```typescript
 // Login via API route (handled by [...nextauth])
 POST /api/auth/callback/credentials
@@ -302,6 +311,7 @@ POST /api/auth/callback/credentials
 ```
 
 ### Transaksi (Transaction)
+
 ```typescript
 // List transaksi (role-based filtering via unit/lembaga)
 GET /api/transactions?status=APPROVED&page=1&limit=10
@@ -321,6 +331,7 @@ POST /api/transactions
 ```
 
 ### User Management
+
 ```typescript
 // List user (SUPERADMIN/PIMPINAN/MANAGER only)
 GET /api/users?role=STAFF&unitId=xxx
@@ -353,6 +364,7 @@ POST /api/users/change-password
 ```
 
 ### Approval Workflow
+
 ```typescript
 // List approval requests
 GET /api/approvals?status=PENDING
@@ -384,20 +396,20 @@ npm run lint            # (optional) linting
 
 ## 📁 Struktur File Penting
 
-| File | Fungsi |
-|------|--------|
-| `lib/prisma.ts` | Prisma client singleton (global cache) |
-| `app/api/auth/options.ts` | NextAuth config (CredentialsProvider, bcrypt, JWT) |
-| `proxy.ts` | Middleware RBAC (route protection) |
-| `server.js` | Entry point custom (loads .env.production, validates env) |
-| `prisma/schema.prisma` | Database schema (14 models) |
-| `scripts/deploy-prepare.mjs` | Build deploy-package untuk Hostinger |
+| File                         | Fungsi                                                    |
+| ---------------------------- | --------------------------------------------------------- |
+| `lib/prisma.ts`              | Prisma client singleton (global cache)                    |
+| `app/api/auth/options.ts`    | NextAuth config (CredentialsProvider, bcrypt, JWT)        |
+| `proxy.ts`                   | Middleware RBAC (route protection)                        |
+| `server.js`                  | Entry point custom (loads .env.production, validates env) |
+| `prisma/schema.prisma`       | Database schema (14 models)                               |
+| `scripts/deploy-prepare.mjs` | Build deploy-package untuk Hostinger                      |
 
 ---
 
 ## 📜 Lisensi
 
-**Hak Cipta © 2024–2026 ALBA Finance v3**
+**Hak Cipta © 2024–2026 ALBA Finance v7.0.0**
 
 Dikembangkan oleh **Muhammad Hamdan** ([@brontolano](https://github.com/brontolano)) untuk **Pondok Pesantren Al-Basyariyah**.
 
@@ -405,6 +417,8 @@ All Rights Reserved.
 
 ---
 
-> 🔗 **Repository:** https://github.com/brontolano/alba-fintech-v3  
-> 📘 **User Guide:** [README.md](./README.md)  
-> 🐛 **Laporkan bug:** Buka GitHub Issues
+> 🔗 **Repository:** https://github.com/brontolano/alba-fintech-v2
+> ✅ **Stable tag:** https://github.com/brontolano/alba-fintech-v2/tree/v7.0.0
+> 📘 **User Guide:** [README.md](./README.md)
+> 🚀 **Deployment:** [DEPLOY.md](./DEPLOY.md)
+> 🐛 **Laporkan bug:** https://github.com/brontolano/alba-fintech-v2/issues
