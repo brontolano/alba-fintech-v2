@@ -9,12 +9,18 @@ export const metadata = {
   description: "Masuk ke Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
 };
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: { reason?: string };
+}) {
   const session = await getServerSession(authOptions);
 
   if (session) {
     redirect("/dashboard");
   }
+
+  const showSessionBanner = searchParams?.reason === "session";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -43,6 +49,13 @@ export default async function LoginPage() {
           <br />
           Kab. Bandung, Jawa Barat 40218
         </p>
+
+        {showSessionBanner && (
+          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+            Sesi login Anda berakhir atau browser tidak dapat menyimpan cookie
+            dengan aman. Silakan masuk kembali.
+          </div>
+        )}
 
         <div className="mt-8 bg-card rounded-2xl shadow-xl border border-border p-6 sm:p-8">
           <h2 className="text-xl font-bold text-foreground mb-6 text-center">

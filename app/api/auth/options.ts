@@ -52,8 +52,11 @@ const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 // regardless of whether the user exists (prevents email enumeration via timing)
 const DUMMY_HASH = "$2a$10$N9qo8uLOickgx2ZMRZoMy.MrqQ7K9ExnLxKwbdJ5mg0rV5xZ5Z5";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
+  useSecureCookies: isProduction,
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -129,6 +132,34 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 hari
+  },
+  cookies: {
+    sessionToken: {
+      name: `${isProduction ? "__Secure-" : ""}alba-session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProduction,
+      },
+    },
+    callbackUrl: {
+      name: `${isProduction ? "__Secure-" : ""}alba-callback-url`,
+      options: {
+        sameSite: "lax",
+        path: "/",
+        secure: isProduction,
+      },
+    },
+    csrfToken: {
+      name: `${isProduction ? "__Secure-" : ""}alba-csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProduction,
+      },
+    },
   },
   callbacks: {
     async jwt({ token, user }) {

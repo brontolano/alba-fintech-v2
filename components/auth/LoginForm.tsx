@@ -26,8 +26,13 @@ export default function LoginForm() {
       });
 
       if (result?.error) {
+        const message =
+          result.error.includes("Cookies") || result.error.includes("cookie")
+            ? "Browser atau instalasi aplikasi tidak bisa menyimpan sesi. Silakan login ulang dalam browser bawaan atau cek izin cookie."
+            : result.error;
+
         toast.error("Login gagal", {
-          description: result.error,
+          description: message,
         });
       } else {
         toast.success("Login berhasil!");
@@ -35,7 +40,8 @@ export default function LoginForm() {
       }
     } catch (error) {
       toast.error("Terjadi kesalahan", {
-        description: "Silakan coba lagi",
+        description:
+          "Sesi login mungkin gagal disimpan oleh browser. Coba masuk kembali.",
       });
     } finally {
       setIsLoading(false);
