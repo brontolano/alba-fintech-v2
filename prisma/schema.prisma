@@ -26,24 +26,24 @@ model Lembaga {
 }
 
 model Unit {
-  id                  String              @id @default(cuid()) @db.VarChar(36)
-  name                String              @db.VarChar(255)
-  code                String              @unique(map: "code") @db.VarChar(255)
-  description         String?             @db.Text
-  isActive            Boolean?            @default(true)
-  createdAt           DateTime?           @default(now()) @db.DateTime(0)
-  updatedAt           DateTime?           @default(now()) @updatedAt @db.DateTime(0)
-  lembagaId           String?             @db.VarChar(36)
-  isRetail            Boolean?            @default(false)
-  type                UnitType?           @default(KPAK)
-  parentId            String?             @db.VarChar(36)
+  id                  String               @id @default(cuid()) @db.VarChar(36)
+  name                String               @db.VarChar(255)
+  code                String               @unique(map: "code") @db.VarChar(255)
+  description         String?              @db.Text
+  isActive            Boolean?             @default(true)
+  createdAt           DateTime?            @default(now()) @db.DateTime(0)
+  updatedAt           DateTime?            @default(now()) @updatedAt @db.DateTime(0)
+  lembagaId           String?              @db.VarChar(36)
+  isRetail            Boolean?             @default(false)
+  type                UnitType?            @default(KPAK)
+  parentId            String?              @db.VarChar(36)
   approvals           Approval[]
   bankAccounts        BankAccount[]
   financial_notes     FinancialNote[]
   financialCategories FinancialCategory[]
   inventory_items     InventoryItem[]
   transactions        Transaction[]
-  lembaga             Lembaga?            @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "units_ibfk_1")
+  lembaga             Lembaga?             @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "units_ibfk_1")
   users               User[]
 
   @@index([lembagaId], map: "lembagaId")
@@ -80,6 +80,60 @@ model User {
   @@index([lembagaId], map: "lembagaId")
   @@index([unitId], map: "unitId")
   @@map("users")
+}
+
+model Student {
+  id            String          @id @default(cuid()) @db.VarChar(36)
+  studentNumber String          @unique(map: "studentNumber") @db.VarChar(50)
+  name          String          @db.VarChar(255)
+  className     String?         @db.VarChar(100)
+  cardUid       String?         @unique(map: "cardUid") @db.VarChar(100)
+  isActive      Boolean?        @default(true)
+  lembagaId     String?         @db.VarChar(36)
+  unitId        String?         @db.VarChar(36)
+  createdAt     DateTime?       @default(now()) @db.DateTime(0)
+  updatedAt     DateTime?       @default(now()) @updatedAt @db.DateTime(0)
+  account       SavingsAccount?
+
+  @@index([lembagaId], map: "students_lembagaId_idx")
+  @@index([unitId], map: "students_unitId_idx")
+  @@map("students")
+}
+
+model SavingsAccount {
+  id           String               @id @default(cuid()) @db.VarChar(36)
+  studentId    String               @unique(map: "studentId") @db.VarChar(36)
+  unitId       String               @db.VarChar(36)
+  balance      Decimal              @default(0.00) @db.Decimal(15, 2)
+  status       SavingsAccountStatus @default(ACTIVE)
+  createdAt    DateTime?            @default(now()) @db.DateTime(0)
+  updatedAt    DateTime?            @default(now()) @updatedAt @db.DateTime(0)
+  student      Student              @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "savings_accounts_ibfk_1")
+  transactions SavingsTransaction[]
+
+  @@index([unitId], map: "savings_accounts_unitId_idx")
+  @@map("savings_accounts")
+}
+
+model SavingsTransaction {
+  id            String              @id @default(cuid()) @db.VarChar(36)
+  accountId     String              @db.VarChar(36)
+  unitId        String              @db.VarChar(36)
+  type          SavingsMutationType
+  amount        Decimal             @db.Decimal(15, 2)
+  balanceBefore Decimal             @db.Decimal(15, 2)
+  balanceAfter  Decimal             @db.Decimal(15, 2)
+  reference     String?             @db.VarChar(255)
+  description   String?             @db.Text
+  cardUid       String?             @db.VarChar(100)
+  createdById   String              @db.VarChar(36)
+  createdAt     DateTime?           @default(now()) @db.DateTime(0)
+  account       SavingsAccount      @relation(fields: [accountId], references: [id], onUpdate: Restrict, map: "savings_transactions_ibfk_1")
+
+  @@index([accountId, createdAt], map: "savings_transactions_account_date_idx")
+  @@index([unitId, createdAt], map: "savings_transactions_unit_date_idx")
+  @@index([createdById], map: "savings_transactions_createdById_idx")
+  @@map("savings_transactions")
 }
 
 model FinancialCategory {
@@ -410,6 +464,20 @@ enum ApprovalStatus {
   REJECTED
 
   @@map("approval_status")
+}
+
+enum SavingsAccountStatus {
+  ACTIVE
+  CLOSED
+
+  @@map("savings_account_status")
+}
+
+enum SavingsMutationType {
+  DEPOSIT
+  WITHDRAWAL
+
+  @@map("savings_mutation_type")
 }
 
 enum NotificationType {

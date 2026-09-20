@@ -11,6 +11,7 @@ import {
   Users,
   Package,
   ShoppingCart,
+  Wallet,
   BarChart3,
   Clock,
   Settings,
@@ -82,6 +83,12 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/settings/categories",
     icon: <Settings size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
+  },
+  {
+    label: "Tabungan Santri",
+    href: "/dashboard/savings",
+    icon: <Wallet size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
   },
   {
     label: "Inventori",

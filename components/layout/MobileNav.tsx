@@ -60,6 +60,11 @@ export function MobileNav({ user }: MobileNavProps) {
         return [
           { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
           {
+            label: "Tabungan",
+            href: "/dashboard/savings",
+            icon: <Wallet size={24} />,
+          },
+          {
             label: "Laporan",
             href: "/dashboard/reports",
             icon: <BarChart2 size={24} />,
@@ -73,6 +78,11 @@ export function MobileNav({ user }: MobileNavProps) {
       case "MANAGER":
         return [
           { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
+          {
+            label: "Tabungan",
+            href: "/dashboard/savings",
+            icon: <Wallet size={24} />,
+          },
           ...(!canUseRetailModules
             ? [
                 {
@@ -109,6 +119,11 @@ export function MobileNav({ user }: MobileNavProps) {
       case "STAFF":
         return [
           { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
+          {
+            label: "Tabungan",
+            href: "/dashboard/savings",
+            icon: <Wallet size={24} />,
+          },
           ...(!canUseRetailModules
             ? [
                 {
