@@ -327,19 +327,22 @@ async function main() {
 
   const superadmin = users.find((u) => u.role === "SUPERADMIN")!;
   const pimpinan = users.find((u) => u.role === "PIMPINAN")!;
-  const managerKpk = users.find((u) => u.email === "manager.kpk@alba.local")!;
+  const managerKpk = users.find((u) => u.email === "manager.kpak@alba.app")!;
   const managerKoperasi = users.find(
-    (u) => u.email === "manager.koperasi@alba.local",
+    (u) => u.email === "manager.koperasi@alba.app",
   )!;
   const managerKantin1 = users.find(
-    (u) => u.email === "manager.kantin1@alba.local",
+    (u) => u.email === "manager.kantinumi@alba.app",
   )!;
   const managerKantin2 = users.find(
-    (u) => u.email === "manager.kantin2@alba.local",
+    (u) => u.email === "manager.kantinbaru@alba.app",
   )!;
-  const staffKantin = users.find((u) => u.email === "staff.kantin@alba.local")!;
+  const staffKantin = users.find((u) => u.email === "staff.kantinumi@alba.app")!;
+  const staffKantinBaru = users.find(
+    (u) => u.email === "staff.kantinbaru@alba.app",
+  )!;
   const staffKoperasi = users.find(
-    (u) => u.email === "staff.koperasi@alba.local",
+    (u) => u.email === "staff.koperasi@alba.app",
   )!;
 
   const unitKpk = units.find((u) => u.code === "KPK-01")!;
@@ -629,7 +632,7 @@ async function main() {
     // === KANTIN BARU ===
     {
       unit: unitKnt2,
-      user: staffKantin,
+      user: staffKantinBaru,
       cat: catIncomePenjualan,
       type: "INCOME",
       amount: 510000,
@@ -640,7 +643,7 @@ async function main() {
     },
     {
       unit: unitKnt2,
-      user: staffKantin,
+      user: staffKantinBaru,
       cat: catExpenseBahan,
       type: "EXPENSE",
       amount: 220000,
@@ -662,7 +665,7 @@ async function main() {
     },
     {
       unit: unitKnt2,
-      user: staffKantin,
+      user: staffKantinBaru,
       cat: catIncomePenjualan,
       type: "INCOME",
       amount: 680000,
@@ -673,7 +676,7 @@ async function main() {
     },
     {
       unit: unitKnt2,
-      user: staffKantin,
+      user: staffKantinBaru,
       cat: catIncomePenjualan,
       type: "INCOME",
       amount: 440000,
@@ -706,7 +709,7 @@ async function main() {
     },
     {
       unit: unitKnt2,
-      user: staffKantin,
+      user: staffKantinBaru,
       cat: catIncomePenjualan,
       type: "INCOME",
       amount: 350000,
