@@ -55,7 +55,13 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
   },
   {
-    label: "Transaksi Operasional",
+    label: "Input Data",
+    href: "/dashboard/transactions",
+    icon: <Receipt size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+  },
+  {
+    label: "Transaksi Berjalan",
     href: "/dashboard/transactions",
     icon: <Receipt size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
@@ -104,13 +110,13 @@ const NAV_ITEMS: NavItem[] = [
     nonRetailOnly: true,
   },
   {
-    label: "Laporan Unit",
+    label: "Laporan & Setoran",
     href: "/dashboard/reports",
     icon: <BarChart3 size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
   },
   {
-    label: "Draft Rekonsiliasi",
+    label: "Rekonsiliasi",
     href: "/dashboard/reconciliation",
     icon: <Clock size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],

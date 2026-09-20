@@ -148,10 +148,11 @@ export default function ApprovalsPage() {
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-[2rem]">
-            Persetujuan Transaksi
+            Persetujuan Khusus
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Kelola permintaan persetujuan transaksi keuangan
+            Hanya transaksi yang memerlukan review pimpinan atau penanganan
+            khusus yang masuk ke sini.
           </p>
         </div>
         <Link
@@ -163,34 +164,29 @@ export default function ApprovalsPage() {
         </Link>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {(["PENDING", "APPROVED", "REJECTED"] as const).map((tab) => {
-          const count = approvals.filter((item) => item.status === tab).length;
-          const active = activeTab === tab;
+      <div className="rounded-[22px] border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-4 dark:from-emerald-500/10 dark:via-card dark:to-cyan-500/10">
+        <div className="flex flex-wrap gap-2">
+          {(["PENDING", "APPROVED", "REJECTED"] as const).map((tab) => {
+            const count = approvals.filter(
+              (item) => item.status === tab,
+            ).length;
+            const active = activeTab === tab;
 
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`min-w-[140px] flex-1 rounded-none border-b-2 px-3 py-2 text-left text-sm font-medium transition ${
-                active
-                  ? "border-emerald-500 text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <span
-                className={active ? "text-foreground" : "text-muted-foreground"}
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  active
+                    ? "border-emerald-500 bg-emerald-600 text-white"
+                    : "border-emerald-200 bg-white/80 text-emerald-700 hover:bg-white dark:border-emerald-500/30 dark:bg-card/80 dark:text-emerald-300"
+                }`}
               >
-                {tabMeta[tab].label}
-              </span>
-              <span
-                className={`ml-2 text-base font-bold ${active ? "text-foreground" : "text-muted-foreground"}`}
-              >
-                ({count})
-              </span>
-            </button>
-          );
-        })}
+                {tabMeta[tab].label} ({count})
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {loading ? (

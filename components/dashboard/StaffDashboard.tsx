@@ -10,10 +10,12 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Package,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useDashboardData } from "@/components/dashboard/useDashboardData";
+import type { QuickAccessAction } from "@/components/dashboard/QuickAccessGrid";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatTiles } from "@/components/dashboard/StatTiles";
 import { QuickAccessGrid } from "@/components/dashboard/QuickAccessGrid";
@@ -75,6 +77,52 @@ export default function StaffDashboard() {
   const shiftExpense = recentTransactions
     .filter((t) => t.type === "EXPENSE")
     .reduce((s, t) => s + t.amount, 0);
+
+  const retailActions: QuickAccessAction[] = [
+    {
+      href: "/dashboard/pos",
+      icon: ShoppingCart,
+      label: "POS",
+      color: "orange",
+    },
+  ];
+
+  const nonRetailActions: QuickAccessAction[] = [
+    {
+      href: "/dashboard/cash-unit",
+      icon: Wallet,
+      label: "Kas Unit",
+      color: "amber",
+    },
+  ];
+
+  const quickActions: QuickAccessAction[] = [
+    {
+      href: "/dashboard/transactions/create",
+      icon: Receipt,
+      label: "Input Data",
+      color: "islamic",
+    },
+    {
+      href: "/dashboard/transactions",
+      icon: TrendingUp,
+      label: "Transaksi",
+      color: "green",
+    },
+    ...(canUseRetailModules ? retailActions : nonRetailActions),
+    {
+      href: "/dashboard/reconciliation",
+      icon: Clock,
+      label: "Rekonsiliasi",
+      color: "accent",
+    },
+    {
+      href: "/dashboard/reports",
+      icon: BarChart3,
+      label: "Laporan",
+      color: "purple",
+    },
+  ];
 
   return (
     <div className="space-y-4">
@@ -145,6 +193,9 @@ export default function StaffDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Quick Access — Fokus Operasional */}
+      <QuickAccessGrid actions={quickActions} />
 
       {/* Stat Shift */}
       <StatTiles

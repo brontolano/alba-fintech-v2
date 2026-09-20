@@ -382,6 +382,15 @@ export async function seedDemoData(prisma: PrismaClient) {
           "PENDING",
         ],
         [
+          "KPK-01",
+          "manager.kpak.demo@alba.local",
+          "INC-ADM",
+          "INCOME",
+          1800000,
+          "Pendaftaran ulang santri baru",
+          "APPROVED",
+        ],
+        [
           "KNT-02",
           "manager.kantinbaru.demo@alba.local",
           "INC-PEN",
@@ -398,6 +407,15 @@ export async function seedDemoData(prisma: PrismaClient) {
           220000,
           "Pembelian bahan dan minuman",
           "PENDING",
+        ],
+        [
+          "KNT-02",
+          "staff.kantinbaru.demo@alba.local",
+          "EXP-OPR",
+          "EXPENSE",
+          150000,
+          "Biaya kebersihan dan gas",
+          "APPROVED",
         ],
         [
           "KNT-01",
@@ -418,6 +436,15 @@ export async function seedDemoData(prisma: PrismaClient) {
           "PENDING",
         ],
         [
+          "KNT-01",
+          "manager.kantinumi.demo@alba.local",
+          "EXP-OPR",
+          "EXPENSE",
+          120000,
+          "Pembayaran kebersihan kantin",
+          "APPROVED",
+        ],
+        [
           "KOP-01",
           "manager.koperasi.demo@alba.local",
           "INC-PEN",
@@ -434,6 +461,15 @@ export async function seedDemoData(prisma: PrismaClient) {
           300000,
           "Pembelian buku dari penerbit",
           "PENDING",
+        ],
+        [
+          "KOP-01",
+          "manager.koperasi.demo@alba.local",
+          "INC-ADM",
+          "INCOME",
+          900000,
+          "Pembayaran administrasi koperasi",
+          "APPROVED",
         ],
       ] as const;
       for (const [
@@ -515,32 +551,12 @@ export async function seedDemoData(prisma: PrismaClient) {
         });
       }
 
-      await tx.financialNote.createMany({
-        data: [
-          {
-            title: "Rekap Pemasukan Harian",
-            description: "Ringkasan pemasukan seluruh unit",
-            amount: 13940000,
-            type: "INCOME",
-            createdById: pimpinan.id,
-            date: dateDaysAgo(1),
-          },
-          {
-            title: "Pengeluaran Operasional",
-            description: "Ringkasan pengeluaran demo",
-            amount: 3200000,
-            type: "EXPENSE",
-            createdById: pimpinan.id,
-            date: dateDaysAgo(1),
-          },
-        ],
-      });
-
       await tx.notification.create({
         data: {
           userId: pimpinan.id,
-          title: "Data Demo Aktif",
-          message: "Data contoh empat unit siap digunakan untuk edukasi.",
+          title: "Data Demo Operasional Aktif",
+          message:
+            "Data contoh empat unit sudah siap untuk latihan input transaksi, persetujuan, dan rekonsiliasi.",
           type: "INFO",
         },
       });
@@ -548,7 +564,8 @@ export async function seedDemoData(prisma: PrismaClient) {
         await tx.systemSetting.create({ data: { key, value, description } });
 
       return {
-        message: "Data demo empat unit berhasil dibuat",
+        message:
+          "Data demo operasional empat unit berhasil dibuat untuk transaksi, approval, dan rekonsiliasi.",
         units: UNITS.map((unit) => unit.name),
         demoPassword: DEMO_PASSWORD,
       };

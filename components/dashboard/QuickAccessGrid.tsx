@@ -38,7 +38,7 @@ export function QuickAccessGrid({ actions }: { actions: QuickAccessAction[] }) {
   };
 
   return (
-    <div className="grid grid-cols-4 gap-x-2 gap-y-4 sm:grid-cols-6 lg:grid-cols-8">
+    <div className="grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-5 lg:grid-cols-6">
       {actions.map((action) => {
         const Icon = action.icon;
         const tone = colorMap[action.color ?? "islamic"];
@@ -47,14 +47,14 @@ export function QuickAccessGrid({ actions }: { actions: QuickAccessAction[] }) {
           <Link
             key={action.href}
             href={action.href}
-            className="group flex flex-col items-center gap-2 text-center focus-visible-ring rounded-xl"
+            className="group flex flex-col items-center gap-2 text-center focus-visible-ring rounded-2xl"
           >
             <div
-              className={`flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200 group-hover:scale-105 group-active:scale-95 ${tone}`}
+              className={`flex h-16 w-16 items-center justify-center rounded-2xl border border-white/50 shadow-sm transition-all duration-200 group-hover:-translate-y-0.5 group-hover:scale-[1.03] group-active:scale-95 ${tone}`}
             >
-              <Icon className="h-6 w-6" />
+              <Icon className="h-7 w-7" />
             </div>
-            <span className="line-clamp-2 px-0.5 text-[11px] font-medium leading-tight text-foreground">
+            <span className="line-clamp-2 px-0.5 text-[11px] font-semibold leading-tight text-foreground">
               {action.label}
             </span>
           </Link>

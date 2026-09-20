@@ -84,52 +84,16 @@ export default function SuperadminDashboard() {
       <QuickAccessGrid
         actions={[
           {
-            href: "/dashboard/transactions",
+            href: "/dashboard/transactions/create",
             icon: Receipt,
+            label: "Input Data",
+            color: "islamic",
+          },
+          {
+            href: "/dashboard/transactions",
+            icon: TrendingUp,
             label: "Transaksi",
-            color: "islamic",
-          },
-          {
-            href: "/dashboard/approvals",
-            icon: ClipboardList,
-            label: "Persetujuan",
-            color: "amber",
-          },
-          {
-            href: "/dashboard/lembaga",
-            icon: Building2,
-            label: "Lembaga",
-            color: "islamic",
-          },
-          {
-            href: "/dashboard/units",
-            icon: LayoutGrid,
-            label: "Unit",
-            color: "purple",
-          },
-          {
-            href: "/dashboard/users",
-            icon: Users,
-            label: "Pengguna",
-            color: "accent",
-          },
-          {
-            href: "/dashboard/inventory",
-            icon: Package,
-            label: "Inventori",
             color: "green",
-          },
-          {
-            href: "/dashboard/pos",
-            icon: ShoppingCart,
-            label: "POS",
-            color: "orange",
-          },
-          {
-            href: "/dashboard/reports",
-            icon: BarChart3,
-            label: "Laporan",
-            color: "blue",
           },
           {
             href: "/dashboard/reconciliation",
@@ -138,10 +102,22 @@ export default function SuperadminDashboard() {
             color: "purple",
           },
           {
-            href: "/dashboard/settings",
-            icon: Settings,
-            label: "Pengaturan",
-            color: "slate",
+            href: "/dashboard/reports",
+            icon: BarChart3,
+            label: "Laporan",
+            color: "blue",
+          },
+          {
+            href: "/dashboard/approvals",
+            icon: ClipboardList,
+            label: "Persetujuan",
+            color: "amber",
+          },
+          {
+            href: "/dashboard/units",
+            icon: LayoutGrid,
+            label: "Unit",
+            color: "accent",
           },
         ]}
       />

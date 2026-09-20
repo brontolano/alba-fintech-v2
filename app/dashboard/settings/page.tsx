@@ -377,7 +377,7 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal membuat data demo");
-      toast.success("Data demo empat unit berhasil dibuat");
+      toast.success("Data demo operasional empat unit berhasil dibuat");
       await fetchSettings();
     } catch (err: any) {
       toast.error(err.message || "Gagal membuat data demo");
@@ -693,13 +693,19 @@ export default function SettingsPage() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
                         <Database size={20} className="text-amber-700" />
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-amber-900">
-                          Demo Data
-                        </h3>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-amber-900">
+                            Demo Data
+                          </h3>
+                          <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-800">
+                            Super Admin
+                          </span>
+                        </div>
                         <p className="text-sm text-amber-800">
-                          Isi ulang contoh KPAK, Kantin Baru, Kantin Umi, dan
-                          Koperasi Buku.
+                          Isi ulang contoh operasional KPAK, Kantin Baru, Kantin
+                          Umi, dan Koperasi Buku untuk transaksi, approval, dan
+                          rekonsiliasi. Cocok untuk demo user testing.
                         </p>
                       </div>
                     </div>

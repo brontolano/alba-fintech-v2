@@ -26,7 +26,10 @@ export async function POST(request: NextRequest) {
     const parsed = reconcileSchema.safeParse(await request.json());
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Data rekonsiliasi tidak valid", details: parsed.error.errors },
+        {
+          error: "Data rekonsiliasi tidak valid",
+          details: parsed.error.errors,
+        },
         { status: 400 },
       );
     }

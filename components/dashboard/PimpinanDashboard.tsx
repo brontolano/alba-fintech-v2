@@ -81,16 +81,16 @@ export default function PimpinanDashboard() {
       <QuickAccessGrid
         actions={[
           {
-            href: "/dashboard/transactions",
+            href: "/dashboard/transactions/create",
             icon: Receipt,
-            label: "Transaksi",
+            label: "Input Data",
             color: "islamic",
           },
           {
-            href: "/dashboard/approvals",
-            icon: ClipboardList,
-            label: "Persetujuan",
-            color: "amber",
+            href: "/dashboard/transactions",
+            icon: TrendingUp,
+            label: "Transaksi",
+            color: "green",
           },
           {
             href: "/dashboard/reports",
@@ -105,10 +105,10 @@ export default function PimpinanDashboard() {
             color: "accent",
           },
           {
-            href: "/dashboard/savings",
-            icon: Wallet,
-            label: "Tabungan Santri",
-            color: "islamic",
+            href: "/dashboard/approvals",
+            icon: ClipboardList,
+            label: "Persetujuan",
+            color: "amber",
           },
         ]}
       />

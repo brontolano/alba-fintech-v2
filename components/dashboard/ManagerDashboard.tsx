@@ -90,10 +90,16 @@ export default function ManagerDashboard() {
       <QuickAccessGrid
         actions={[
           {
-            href: "/dashboard/transactions",
+            href: "/dashboard/transactions/create",
             icon: Receipt,
-            label: "Transaksi",
+            label: "Input Data",
             color: "islamic",
+          },
+          {
+            href: "/dashboard/transactions",
+            icon: TrendingUp,
+            label: "Transaksi",
+            color: "green",
           },
           ...(canUseRetailModules
             ? ([
@@ -116,22 +122,16 @@ export default function ManagerDashboard() {
               ] as const)
             : []),
           {
-            href: "/dashboard/reports",
-            icon: BarChart3,
-            label: "Laporan",
-            color: "purple",
-          },
-          {
             href: "/dashboard/reconciliation",
             icon: Clock,
             label: "Rekonsiliasi",
             color: "accent",
           },
           {
-            href: "/dashboard/savings",
-            icon: Wallet,
-            label: "Tabungan Santri",
-            color: "islamic",
+            href: "/dashboard/reports",
+            icon: BarChart3,
+            label: "Laporan",
+            color: "purple",
           },
         ]}
       />

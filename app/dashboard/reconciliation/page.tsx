@@ -105,12 +105,14 @@ export default function ReconciliationPage() {
   // Saldo sistem hanya berasal dari transaksi approved pada tanggal terpilih.
   const reconciliationTasks = Array.from(
     new Set(
-      transactions.map((t) => t.unitId).filter((id): id is string => Boolean(id)),
+      transactions
+        .map((t) => t.unitId)
+        .filter((id): id is string => Boolean(id)),
     ),
   ).map((unitId) => {
     const unit = units.find((u) => u.id === unitId);
-    const approvedTxs = transactions.filter((t) =>
-      t.unitId === unitId && t.status === "APPROVED",
+    const approvedTxs = transactions.filter(
+      (t) => t.unitId === unitId && t.status === "APPROVED",
     );
     const income = approvedTxs
       .filter((t) => t.type === "INCOME")

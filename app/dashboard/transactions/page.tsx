@@ -274,10 +274,11 @@ export default function TransactionsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[2rem] font-bold tracking-[-0.04em] text-foreground">
-            Transaksi
+            Transaksi Operasional
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Kelola semua transaksi keuangan
+            Input data, pantau transaksi berjalan, lalu rekonsiliasi dan
+            laporkan ke pimpinan.
           </p>
         </div>
 
@@ -286,8 +287,65 @@ export default function TransactionsPage() {
           className="inline-flex h-[46px] items-center justify-center gap-2 self-start rounded-full bg-[#1bb0a6] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#17a199] active:scale-[0.99]"
         >
           <Plus size={18} />
-          <span>Buat Transaksi</span>
+          <span>Input Data</span>
         </Link>
+      </div>
+
+      <div className="rounded-[24px] border border-emerald-200/80 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-4 shadow-[0_10px_35px_rgba(16,185,129,0.08)] dark:border-emerald-500/20 dark:from-emerald-500/10 dark:via-card dark:to-cyan-500/10">
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/dashboard/transactions/create"
+            className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500"
+          >
+            Input Data
+          </Link>
+          <Link
+            href="/dashboard/transactions"
+            className="rounded-full border border-emerald-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-white dark:border-emerald-500/30 dark:bg-card/80 dark:text-emerald-300"
+          >
+            Transaksi Berjalan
+          </Link>
+          <Link
+            href="/dashboard/reconciliation"
+            className="rounded-full border border-emerald-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-white dark:border-emerald-500/30 dark:bg-card/80 dark:text-emerald-300"
+          >
+            Rekonsiliasi
+          </Link>
+          <Link
+            href="/dashboard/reports"
+            className="rounded-full border border-emerald-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-white dark:border-emerald-500/30 dark:bg-card/80 dark:text-emerald-300"
+          >
+            Laporan & Setoran
+          </Link>
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {[
+            { label: "Hari ini", value: "12 transaksi", tone: "emerald" },
+            { label: "Pending", value: "4 menunggu", tone: "amber" },
+            { label: "Rekonsiliasi", value: "2 draft", tone: "sky" },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-2xl border border-white/70 bg-white/75 p-3 shadow-sm dark:border-border dark:bg-card/80"
+            >
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {item.label}
+              </div>
+              <div
+                className={`mt-1 text-sm font-bold ${
+                  item.tone === "emerald"
+                    ? "text-emerald-600"
+                    : item.tone === "amber"
+                      ? "text-amber-600"
+                      : "text-sky-600"
+                }`}
+              >
+                {item.value}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-2.5">
@@ -493,11 +551,11 @@ export default function TransactionsPage() {
             return (
               <div
                 key={tx.id}
-                className="rounded-[22px] border border-[#e5e7eb] bg-white px-3 py-3 shadow-[0_1px_0_rgba(15,23,42,0.02)] dark:border-border dark:bg-card"
+                className="rounded-[22px] border border-[#e5e7eb] bg-white px-2.5 py-2.5 shadow-[0_10px_30px_rgba(15,23,42,0.03)] transition hover:border-emerald-200 hover:shadow-[0_14px_30px_rgba(16,185,129,0.08)] dark:border-border dark:bg-card dark:hover:border-emerald-500/30"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-2.5 sm:gap-3">
                   <div
-                    className={`flex h-11 w-11 items-center justify-center rounded-full ${
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full sm:h-11 sm:w-11 ${
                       meta.tone === "income"
                         ? "bg-[#dffaf2] text-[#1bb0a6]"
                         : meta.tone === "expense"
@@ -509,19 +567,19 @@ export default function TransactionsPage() {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[15px] font-semibold text-foreground">
+                        <p className="truncate text-[14px] font-semibold text-foreground sm:text-[15px]">
                           {title}
                         </p>
-                        <p className="mt-1 text-[11px] text-muted-foreground">
+                        <p className="mt-0.5 text-[10px] text-muted-foreground sm:text-[11px]">
                           {subtitle}
                         </p>
                       </div>
 
-                      <div className="flex flex-col items-end gap-1.5">
+                      <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1.5">
                         <p
-                          className={`text-[15px] font-semibold ${
+                          className={`text-[14px] font-semibold sm:text-[15px] ${
                             meta.tone === "income"
                               ? "text-[#1bb0a6]"
                               : meta.tone === "expense"
@@ -540,7 +598,7 @@ export default function TransactionsPage() {
                   <button
                     type="button"
                     onClick={() => setExpandedId(isExpanded ? null : tx.id)}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f3f4f6] text-[#64748b]"
+                    className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f3f4f6] text-[#64748b] transition hover:bg-[#e7ebef] dark:bg-muted dark:text-foreground dark:hover:bg-slate-700 sm:h-9 sm:w-9"
                     aria-label="Lihat detail"
                   >
                     <ChevronDown
@@ -585,24 +643,24 @@ export default function TransactionsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 grid grid-cols-3 gap-2">
                       <Link
                         href={`/dashboard/transactions/${tx.id}/edit`}
-                        className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-[#f3f4f6] text-sm font-medium text-slate-700 transition hover:bg-[#e7ebef] dark:bg-muted dark:text-foreground dark:hover:bg-slate-700"
+                        className="flex h-9 items-center justify-center gap-1 rounded-full bg-[#f3f4f6] text-[11px] font-medium text-slate-700 transition hover:bg-[#e7ebef] dark:bg-muted dark:text-foreground dark:hover:bg-slate-700 sm:text-sm"
                       >
-                        <Edit size={14} /> Edit
+                        <Edit size={13} /> Edit
                       </Link>
                       <Link
                         href={`/dashboard/transactions/${tx.id}`}
-                        className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-[#f3f4f6] text-sm font-medium text-slate-700 transition hover:bg-[#e7ebef] dark:bg-muted dark:text-foreground dark:hover:bg-slate-700"
+                        className="flex h-9 items-center justify-center gap-1 rounded-full bg-[#f3f4f6] text-[11px] font-medium text-slate-700 transition hover:bg-[#e7ebef] dark:bg-muted dark:text-foreground dark:hover:bg-slate-700 sm:text-sm"
                       >
-                        <Eye size={14} /> Detail
+                        <Eye size={13} /> Detail
                       </Link>
                       <button
                         onClick={() => handleDelete(tx.id)}
-                        className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-[#fdecec] px-4 text-sm font-medium text-[#d14d4d] transition hover:bg-[#fbdede]"
+                        className="flex h-9 items-center justify-center gap-1 rounded-full bg-[#fdecec] px-2 text-[11px] font-medium text-[#d14d4d] transition hover:bg-[#fbdede] sm:text-sm"
                       >
-                        <Trash2 size={14} /> Hapus
+                        <Trash2 size={13} /> Hapus
                       </button>
                     </div>
                   </div>
