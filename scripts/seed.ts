@@ -71,7 +71,12 @@ async function main() {
     // Create unit settings
     await prisma.unitSetting.upsert({
       where: { unitId: unit.id },
-      update: {},
+      update: {
+        posEnabled: unitData.isRetail,
+        inventoryEnabled: unitData.isRetail,
+        autoApproval: false,
+        requiresApproval: unitData.name !== "KPAK",
+      },
       create: {
         unitId: unit.id,
         posEnabled: unitData.isRetail,

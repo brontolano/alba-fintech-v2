@@ -84,7 +84,12 @@ async function main() {
     // Unit settings
     await prisma.unitSetting.upsert({
       where: { unitId: unit.id },
-      update: {},
+      update: {
+        posEnabled: u.isRetail,
+        inventoryEnabled: u.isRetail,
+        autoApproval: false,
+        requiresApproval: u.name !== "KPAK",
+      },
       create: {
         unitId: unit.id,
         posEnabled: u.isRetail,
@@ -220,14 +225,77 @@ async function main() {
     { name: "Listrik & Air", code: "EXP-LST", type: "EXPENSE" as const },
     { name: "Pemeliharaan", code: "EXP-PEM", type: "EXPENSE" as const },
     { name: "Pembelian Bahan Baku", code: "EXP-BAH", type: "EXPENSE" as const },
+    // Kategori khusus unit; kategori tanpa unit di atas tetap untuk lembaga/pimpinan.
+    {
+      name: "Penerimaan Kas KPAK",
+      code: "KPK-INC-KAS",
+      type: "INCOME" as const,
+      unitCode: "KPK-01",
+    },
+    {
+      name: "ATK dan Administrasi KPAK",
+      code: "KPK-EXP-ATK",
+      type: "EXPENSE" as const,
+      unitCode: "KPK-01",
+    },
+    {
+      name: "Penjualan Buku Koperasi",
+      code: "KOP-INC-BUKU",
+      type: "INCOME" as const,
+      unitCode: "KOP-01",
+    },
+    {
+      name: "Pembelian Stok Koperasi",
+      code: "KOP-EXP-STOK",
+      type: "EXPENSE" as const,
+      unitCode: "KOP-01",
+    },
+    {
+      name: "Penjualan Kantin Umi",
+      code: "KNT1-INC-JUAL",
+      type: "INCOME" as const,
+      unitCode: "KNT-01",
+    },
+    {
+      name: "Bahan Baku Kantin Umi",
+      code: "KNT1-EXP-BAHAN",
+      type: "EXPENSE" as const,
+      unitCode: "KNT-01",
+    },
+    {
+      name: "Penjualan Kantin Baru",
+      code: "KNT2-INC-JUAL",
+      type: "INCOME" as const,
+      unitCode: "KNT-02",
+    },
+    {
+      name: "Bahan Baku Kantin Baru",
+      code: "KNT2-EXP-BAHAN",
+      type: "EXPENSE" as const,
+      unitCode: "KNT-02",
+    },
   ];
 
   const categories = [];
   for (const c of categoriesData) {
+    const categoryUnit = c.unitCode
+      ? units.find((unit) => unit.code === c.unitCode)
+      : null;
     const cat = await prisma.financialCategory.upsert({
       where: { code: c.code },
-      update: {},
-      create: { ...c, lembagaId: lembaga.id },
+      update: {
+        name: c.name,
+        type: c.type,
+        lembagaId: lembaga.id,
+        unitId: categoryUnit?.id ?? null,
+      },
+      create: {
+        name: c.name,
+        code: c.code,
+        type: c.type,
+        lembagaId: lembaga.id,
+        unitId: categoryUnit?.id ?? null,
+      },
     });
     categories.push(cat);
   }
