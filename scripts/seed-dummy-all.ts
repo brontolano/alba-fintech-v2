@@ -337,7 +337,9 @@ async function main() {
   const managerKantin2 = users.find(
     (u) => u.email === "manager.kantinbaru@alba.app",
   )!;
-  const staffKantin = users.find((u) => u.email === "staff.kantinumi@alba.app")!;
+  const staffKantin = users.find(
+    (u) => u.email === "staff.kantinumi@alba.app",
+  )!;
   const staffKantinBaru = users.find(
     (u) => u.email === "staff.kantinbaru@alba.app",
   )!;
