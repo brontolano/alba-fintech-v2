@@ -6,7 +6,6 @@ import {
   Wallet,
   User,
   Settings,
-  FileText,
   ShoppingCart,
   Package,
 } from "lucide-react";
@@ -15,6 +14,7 @@ import { useRouter, usePathname } from "next/navigation";
 interface MobileNavProps {
   user: {
     role?: string;
+    unitIsRetail?: boolean;
   } | null;
   className?: string;
 }
@@ -25,6 +25,8 @@ export function MobileNav({ user }: MobileNavProps) {
 
   const getNavItems = () => {
     const role = user?.role;
+    const canUseRetailModules =
+      role === "SUPERADMIN" || user?.unitIsRetail === true;
     const base = [
       { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
       {
@@ -63,11 +65,6 @@ export function MobileNav({ user }: MobileNavProps) {
             icon: <BarChart2 size={24} />,
           },
           {
-            label: "Catatan",
-            href: "/dashboard/financial-notes",
-            icon: <FileText size={24} />,
-          },
-          {
             label: "Profile",
             href: "/dashboard/profile",
             icon: <User size={24} />,
@@ -76,16 +73,24 @@ export function MobileNav({ user }: MobileNavProps) {
       case "MANAGER":
         return [
           { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
-          {
-            label: "POS",
-            href: "/dashboard/pos",
-            icon: <ShoppingCart size={24} />,
-          },
-          {
-            label: "Inventory",
-            href: "/dashboard/inventory",
-            icon: <Package size={24} />,
-          },
+          ...(canUseRetailModules
+            ? [
+                {
+                  label: "POS",
+                  href: "/dashboard/pos",
+                  icon: <ShoppingCart size={24} />,
+                },
+              ]
+            : []),
+          ...(canUseRetailModules
+            ? [
+                {
+                  label: "Inventory",
+                  href: "/dashboard/inventory",
+                  icon: <Package size={24} />,
+                },
+              ]
+            : []),
           {
             label: "Profile",
             href: "/dashboard/profile",
@@ -95,11 +100,15 @@ export function MobileNav({ user }: MobileNavProps) {
       case "STAFF":
         return [
           { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
-          {
-            label: "POS",
-            href: "/dashboard/pos",
-            icon: <ShoppingCart size={24} />,
-          },
+          ...(canUseRetailModules
+            ? [
+                {
+                  label: "POS",
+                  href: "/dashboard/pos",
+                  icon: <ShoppingCart size={24} />,
+                },
+              ]
+            : []),
           {
             label: "Wallet",
             href: "/dashboard/transactions",

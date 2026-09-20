@@ -51,6 +51,8 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [unitSearch, setUnitSearch] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [form, setForm] = useState<EditForm>({
     type: "INCOME",
@@ -64,6 +66,25 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const filteredUnits = units.filter((unit) => {
+    const query = unitSearch.trim().toLowerCase();
+    return (
+      !query ||
+      unit.name.toLowerCase().includes(query) ||
+      unit.code.toLowerCase().includes(query) ||
+      unit.id === form.unitId
+    );
+  });
+  const filteredCategories = categories.filter((category) => {
+    const query = categorySearch.trim().toLowerCase();
+    return (
+      !query ||
+      category.name.toLowerCase().includes(query) ||
+      category.code.toLowerCase().includes(query) ||
+      category.id === form.categoryId
+    );
+  });
 
   useEffect(() => {
     const extractId = async () => {
@@ -225,6 +246,14 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
             <label className="mb-1.5 block text-sm font-medium text-foreground">
               Unit
             </label>
+            <input
+              type="search"
+              value={unitSearch}
+              onChange={(e) => setUnitSearch(e.target.value)}
+              className="mb-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+              placeholder="Cari unit atau kode..."
+              aria-label="Cari unit"
+            />
             <select
               value={form.unitId}
               onChange={(e) =>
@@ -233,7 +262,7 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             >
               <option value="">Pilih unit</option>
-              {units.map((u) => (
+              {filteredUnits.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name} ({u.code})
                 </option>
@@ -244,6 +273,14 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
             <label className="mb-1.5 block text-sm font-medium text-foreground">
               Kategori
             </label>
+            <input
+              type="search"
+              value={categorySearch}
+              onChange={(e) => setCategorySearch(e.target.value)}
+              className="mb-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+              placeholder="Cari kategori atau kode..."
+              aria-label="Cari kategori"
+            />
             <select
               value={form.categoryId}
               onChange={(e) =>
@@ -252,7 +289,7 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             >
               <option value="">Pilih kategori</option>
-              {categories.map((c) => (
+              {filteredCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} ({c.code})
                 </option>

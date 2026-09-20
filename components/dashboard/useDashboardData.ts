@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-export type TxType = "INCOME" | "EXPENSE";
-export type TxStatus = "COMPLETED" | "PENDING" | "FAILED" | "REJECTED";
+export type TxType = "INCOME" | "EXPENSE" | "TRANSFER";
+export type TxStatus =
+  "DRAFT" | "PENDING" | "APPROVED" | "COMPLETED" | "FAILED" | "REJECTED";
 
 export interface Transaction {
   id: string;
@@ -113,15 +114,15 @@ const DEFAULT_DATA: DashboardData = {
 };
 
 export function useDashboardData(
-  props?: UseDashboardDataProps
+  props?: UseDashboardDataProps,
 ): UseDashboardDataResult {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeRange, setActiveRange] = useState<RangeOption>((props?.range ?? "today") as RangeOption);
-  const [selectedUnit, setSelectedUnit] = useState<string>(
-    props?.unitId ?? ""
+  const [activeRange, setActiveRange] = useState<RangeOption>(
+    (props?.range ?? "today") as RangeOption,
   );
+  const [selectedUnit, setSelectedUnit] = useState<string>(props?.unitId ?? "");
 
   const formatCurrency = useCallback((value: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -129,7 +130,10 @@ export function useDashboardData(
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(value);
-  }, []);    const transformSummary = (raw: Record<string, unknown>): DashboardSummary => ({
+  }, []);
+  const transformSummary = (
+    raw: Record<string, unknown>,
+  ): DashboardSummary => ({
     totalBalance: Number(raw.totalBalance ?? 0),
     totalIncome: Number(raw.totalIncome ?? 0),
     totalExpense: Number(raw.totalExpense ?? 0),
@@ -144,14 +148,16 @@ export function useDashboardData(
     id: String(raw.id ?? ""),
     type: raw.type as TxType,
     amount: Number(raw.amount ?? 0),
-    description: String(raw.description ?? ""),        date:
-      typeof raw.date === "string"
-        ? raw.date
-        : new Date().toISOString(),
+    description: String(raw.description ?? ""),
+    date: typeof raw.date === "string" ? raw.date : new Date().toISOString(),
     status: raw.status as TxStatus,
     category: raw.category ? String(raw.category) : undefined,
     unit: raw.unit ? String(raw.unit) : undefined,
-    unitName: raw.unitName ? String(raw.unitName) : raw.unit ? String(raw.unit) : undefined,
+    unitName: raw.unitName
+      ? String(raw.unitName)
+      : raw.unit
+        ? String(raw.unit)
+        : undefined,
   });
 
   const transformApproval = (raw: Record<string, unknown>): ApprovalEntry => ({
@@ -161,10 +167,7 @@ export function useDashboardData(
     description: String(raw.description ?? ""),
     requester: String(raw.requester ?? raw.user ?? ""),
     unit: String(raw.unit ?? ""),
-    date:
-      typeof raw.date === "string"
-        ? raw.date
-        : new Date().toISOString(),
+    date: typeof raw.date === "string" ? raw.date : new Date().toISOString(),
   });
 
   const fetchDashboardData = useCallback(
@@ -179,7 +182,9 @@ export function useDashboardData(
         const params = new URLSearchParams({ range });
         if (unit) params.set("unitId", unit);
 
-        const res = await fetch(`/api/dashboard/aggregates?${params.toString()}`);
+        const res = await fetch(
+          `/api/dashboard/aggregates?${params.toString()}`,
+        );
 
         if (!res.ok) {
           const text = await res.text();
@@ -200,17 +205,23 @@ export function useDashboardData(
 
         const result: DashboardData = {
           summary: transformSummary(apiData.summary ?? {}),
-          recentTransactions: (apiData.recentTransactions ?? []).map(transformTx),
-          recentApprovals: (apiData.recentApprovals ?? []).map(transformApproval),
-          units: (apiData.units ?? []).map((raw: Record<string, unknown>): UnitAgg => ({
-            id: String(raw.id ?? ""),
-            name: String(raw.name ?? ""),
-            type: String(raw.type ?? ""),
-            balance: Number(raw.balance ?? 0),
-            income: Number(raw.income ?? 0),
-            expense: Number(raw.expense ?? 0),
-            transactions: Number(raw.transactions ?? 0),
-          })),
+          recentTransactions: (apiData.recentTransactions ?? []).map(
+            transformTx,
+          ),
+          recentApprovals: (apiData.recentApprovals ?? []).map(
+            transformApproval,
+          ),
+          units: (apiData.units ?? []).map(
+            (raw: Record<string, unknown>): UnitAgg => ({
+              id: String(raw.id ?? ""),
+              name: String(raw.name ?? ""),
+              type: String(raw.type ?? ""),
+              balance: Number(raw.balance ?? 0),
+              income: Number(raw.income ?? 0),
+              expense: Number(raw.expense ?? 0),
+              transactions: Number(raw.transactions ?? 0),
+            }),
+          ),
           chartData: apiData.chartData
             ? {
                 labels: (apiData.chartData.labels ?? []) as string[],
@@ -219,10 +230,12 @@ export function useDashboardData(
               }
             : undefined,
           expenseByCategory: apiData.expenseByCategory
-            ? (apiData.expenseByCategory as Record<string, unknown>[]).map((c) => ({
-                name: String(c.name ?? ""),
-                amount: Number(c.amount ?? 0),
-              }))
+            ? (apiData.expenseByCategory as Record<string, unknown>[]).map(
+                (c) => ({
+                  name: String(c.name ?? ""),
+                  amount: Number(c.amount ?? 0),
+                }),
+              )
             : undefined,
         };
 
@@ -237,7 +250,7 @@ export function useDashboardData(
         setLoading(false);
       }
     },
-    [activeRange, selectedUnit]
+    [activeRange, selectedUnit],
   );
 
   const refetch = useCallback(
@@ -246,10 +259,10 @@ export function useDashboardData(
       if (unitId !== undefined) setSelectedUnit(unitId || "");
       await fetchDashboardData(
         range ?? activeRange,
-        unitId ?? selectedUnit ?? undefined
+        unitId ?? selectedUnit ?? undefined,
       );
     },
-    [fetchDashboardData, activeRange, selectedUnit]
+    [fetchDashboardData, activeRange, selectedUnit],
   );
 
   // Initial fetch only — no auto-refresh (manual refetch via returned refetch)

@@ -1,14 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { authOptions } from '@/app/api/auth/options';
-import { getServerSession } from 'next-auth';
-import { z } from 'zod';
-
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { authOptions } from "@/app/api/auth/options";
+import { getServerSession } from "next-auth";
+import { z } from "zod";
 
 // Schema for creating lembaga
 const createLembagaSchema = z.object({
-  name: z.string().min(1, 'Nama lembaga wajib diisi'),
-  code: z.string().min(1, 'Kode lembaga wajib diisi'),
+  name: z.string().min(1, "Nama lembaga wajib diisi"),
+  code: z.string().min(1, "Kode lembaga wajib diisi"),
   description: z.string().optional(),
   address: z.string().optional(),
   isActive: z.boolean().default(true),
@@ -19,13 +18,13 @@ export async function GET(_request: NextRequest) {
     // Auth check
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // RBAC
     const role = session.user.role;
-    if (role !== 'SUPERADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (role !== "SUPERADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Fetch lembagas
@@ -40,14 +39,17 @@ export async function GET(_request: NextRequest) {
         },
       },
       orderBy: {
-        name: 'asc',
+        name: "asc",
       },
     });
 
     return NextResponse.json({ data: lembagas }, { status: 200 });
   } catch (error) {
-    console.error('[Lembaga API] Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("[Lembaga API] Error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -56,20 +58,23 @@ export async function POST(request: NextRequest) {
     // Auth check
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // RBAC
     const role = session.user.role;
-    if (role !== 'SUPERADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (role !== "SUPERADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Parse body
     const body = await request.json();
     const parsed = createLembagaSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid data', details: parsed.error.errors }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid data", details: parsed.error.errors },
+        { status: 400 },
+      );
     }
 
     // Create lembaga
@@ -85,10 +90,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: lembaga }, { status: 201 });
   } catch (error: any) {
-    console.error('[Lembaga API] Error:', error);
-    if (error.code === 'P2002') {
-      return NextResponse.json({ error: 'Kode lembaga sudah digunakan' }, { status: 409 });
+    console.error("[Lembaga API] Error:", error);
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Kode lembaga sudah digunakan" },
+        { status: 409 },
+      );
     }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

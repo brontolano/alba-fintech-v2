@@ -6,6 +6,7 @@ import {
   TrendingDown,
   Target,
   Users,
+  Building2,
   LayoutGrid,
   ArrowUpRight,
   ArrowDownRight,
@@ -100,6 +101,12 @@ export default function SuperadminDashboard() {
             icon: ClipboardList,
             label: "Persetujuan",
             color: "amber",
+          },
+          {
+            href: "/dashboard/lembaga",
+            icon: Building2,
+            label: "Lembaga",
+            color: "islamic",
           },
           {
             href: "/dashboard/units",

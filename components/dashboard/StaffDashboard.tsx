@@ -12,6 +12,7 @@ import {
   Package,
 } from "lucide-react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useDashboardData } from "@/components/dashboard/useDashboardData";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatTiles } from "@/components/dashboard/StatTiles";
@@ -25,6 +26,8 @@ import {
 } from "@/components/charts/chartOptions";
 
 export default function StaffDashboard() {
+  const { data: session } = useSession();
+  const canUseRetailModules = session?.user?.unitIsRetail === true;
   const { data, loading, error, formatCurrency, refetch } = useDashboardData({
     range: "7d",
   });
@@ -123,13 +126,15 @@ export default function StaffDashboard() {
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-2.5">
-            <Link
-              href="/dashboard/pos"
-              className="flex items-center justify-center gap-2 rounded-full bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible-ring"
-            >
-              <ShoppingCart size={16} />
-              Mulai Transaksi
-            </Link>
+            {canUseRetailModules && (
+              <Link
+                href="/dashboard/pos"
+                className="flex items-center justify-center gap-2 rounded-full bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible-ring"
+              >
+                <ShoppingCart size={16} />
+                Mulai Transaksi
+              </Link>
+            )}
             <Link
               href="/dashboard/transactions/create"
               className="flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/15 active:scale-[0.98] focus-visible-ring"
@@ -259,18 +264,26 @@ export default function StaffDashboard() {
             label: "Transaksi",
             color: "islamic",
           },
-          {
-            href: "/dashboard/inventory",
-            icon: Package,
-            label: "Inventori",
-            color: "amber",
-          },
-          {
-            href: "/dashboard/pos",
-            icon: ShoppingCart,
-            label: "POS",
-            color: "orange",
-          },
+          ...(canUseRetailModules
+            ? ([
+                {
+                  href: "/dashboard/inventory",
+                  icon: Package,
+                  label: "Inventori",
+                  color: "amber",
+                },
+              ] as const)
+            : []),
+          ...(canUseRetailModules
+            ? ([
+                {
+                  href: "/dashboard/pos",
+                  icon: ShoppingCart,
+                  label: "POS",
+                  color: "orange",
+                },
+              ] as const)
+            : []),
         ]}
       />
 

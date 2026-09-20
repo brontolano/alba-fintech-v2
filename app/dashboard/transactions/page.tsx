@@ -290,6 +290,25 @@ export default function TransactionsPage() {
         </Link>
       </div>
 
+      {(session?.user?.role === "SUPERADMIN" ||
+        session?.user?.role === "PIMPINAN" ||
+        session?.user?.role === "MANAGER") && (
+        <div className="flex w-fit items-center gap-1 rounded-full border border-border bg-muted/50 p-1">
+          <Link
+            href="/dashboard/transactions"
+            className="rounded-full bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm"
+          >
+            Transaksi Operasional
+          </Link>
+          <Link
+            href="/dashboard/financial-notes"
+            className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-card hover:text-foreground"
+          >
+            Catatan Keuangan
+          </Link>
+        </div>
+      )}
+
       <div className="space-y-2.5">
         <div className="relative">
           <Search

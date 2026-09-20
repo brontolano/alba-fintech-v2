@@ -6,7 +6,6 @@ import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Receipt,
-  FileText as FileTextIcon,
   ClipboardList,
   LayoutGrid,
   Users,
@@ -29,6 +28,7 @@ interface SidebarProps {
     image?: string | null;
     role?: string;
     unitId?: string | null;
+    unitIsRetail?: boolean;
     lembagaId?: string | null;
   } | null;
   expanded: boolean;
@@ -57,12 +57,6 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/transactions",
     icon: <Receipt size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
-  },
-  {
-    label: "Catatan Keuangan",
-    href: "/dashboard/financial-notes",
-    icon: <FileTextIcon size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
   },
   {
     label: "Persetujuan",
@@ -137,9 +131,15 @@ export function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
   const role = user?.role || "STAFF";
+  const canUseRetailModules =
+    role === "SUPERADMIN" || user?.unitIsRetail === true;
 
   const items = NAV_ITEMS.filter(
-    (item) => !item.roles || item.roles.includes(role),
+    (item) =>
+      (!item.roles || item.roles.includes(role)) &&
+      (canUseRetailModules ||
+        (item.href !== "/dashboard/inventory" &&
+          item.href !== "/dashboard/pos")),
   );
   const isActive = (href: string) =>
     href === "/dashboard"

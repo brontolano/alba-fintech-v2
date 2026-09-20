@@ -13,6 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useDashboardData } from "@/components/dashboard/useDashboardData";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatTiles } from "@/components/dashboard/StatTiles";
@@ -28,6 +29,8 @@ import {
 import { UnitVirtualCard } from "@/components/dashboard/UnitVirtualCard";
 
 export default function ManagerDashboard() {
+  const { data: session } = useSession();
+  const canUseRetailModules = session?.user?.unitIsRetail === true;
   const { data, loading, error, formatCurrency, refetch } = useDashboardData({
     range: "7d",
   });
@@ -99,18 +102,26 @@ export default function ManagerDashboard() {
             label: "Catatan Keuangan",
             color: "blue",
           },
-          {
-            href: "/dashboard/inventory",
-            icon: Package,
-            label: "Inventori",
-            color: "amber",
-          },
-          {
-            href: "/dashboard/pos",
-            icon: ShoppingCart,
-            label: "POS",
-            color: "orange",
-          },
+          ...(canUseRetailModules
+            ? ([
+                {
+                  href: "/dashboard/inventory",
+                  icon: Package,
+                  label: "Inventori",
+                  color: "amber",
+                },
+              ] as const)
+            : []),
+          ...(canUseRetailModules
+            ? ([
+                {
+                  href: "/dashboard/pos",
+                  icon: ShoppingCart,
+                  label: "POS",
+                  color: "orange",
+                },
+              ] as const)
+            : []),
           {
             href: "/dashboard/reports",
             icon: BarChart3,

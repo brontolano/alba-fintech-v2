@@ -39,13 +39,6 @@ export function useLiveTransactions(
       const txList = json.data ?? json.transactions ?? json ?? [];
       const items: Transaction[] = txList.map(
         (raw: Record<string, unknown>) => {
-          // Map API status to frontend status
-          const apiStatus = String(raw.status ?? "");
-          const status: Transaction["status"] =
-            apiStatus === "APPROVED"
-              ? "COMPLETED"
-              : (apiStatus as Transaction["status"]);
-
           return {
             id: String(raw.id ?? ""),
             type: raw.type as Transaction["type"],
@@ -55,7 +48,7 @@ export function useLiveTransactions(
               typeof raw.date === "string"
                 ? raw.date
                 : new Date().toISOString(),
-            status,
+            status: raw.status as Transaction["status"],
             unit: raw.unit ? String(raw.unit) : undefined,
             unitName: raw.unitName
               ? String(raw.unitName)

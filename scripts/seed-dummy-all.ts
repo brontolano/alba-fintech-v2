@@ -98,56 +98,67 @@ async function main() {
   // ============================================
   // 3. USERS (8 users)
   // ============================================
-  const hashedPassword = await bcrypt.hash("Bismillah123!", 12);
+  const hashedPassword = await bcrypt.hash("bismillah", 12);
 
   const usersData = [
     {
-      email: "superadmin@alba.local",
-      name: "Hamdan (Superadmin)",
+      email: "admin@brontolano.com",
+      name: "Superadmin ALBA",
       role: "SUPERADMIN" as const,
       unitCode: null,
     },
     {
-      email: "pimpinan@alba.local",
-      name: "Ust. Ahmad (Pimpinan)",
+      email: "pimpinan@alba.app",
+      name: "Pimpinan ALBA",
       role: "PIMPINAN" as const,
       unitCode: null,
     },
     {
-      email: "manager.kpk@alba.local",
-      name: "Ali (Manager KPAK)",
+      email: "manager.kpak@alba.app",
+      name: "Manager KPAK",
       role: "MANAGER" as const,
       unitCode: "KPK-01",
     },
     {
-      email: "manager.koperasi@alba.local",
-      name: "Budi (Manager Koperasi)",
+      email: "manager.koperasi@alba.app",
+      name: "Manager Koperasi Buku",
       role: "MANAGER" as const,
       unitCode: "KOP-01",
     },
     {
-      email: "manager.kantin1@alba.local",
-      name: "Diana (Manager Kantin Umi)",
+      email: "manager.kantinumi@alba.app",
+      name: "Manager Kantin Umi",
       role: "MANAGER" as const,
       unitCode: "KNT-01",
     },
     {
-      email: "manager.kantin2@alba.local",
-      name: "Eka (Manager Kantin Baru)",
+      email: "manager.kantinbaru@alba.app",
+      name: "Manager Kantin Baru",
       role: "MANAGER" as const,
       unitCode: "KNT-02",
     },
     {
-      email: "staff.kantin@alba.local",
-      name: "Charlie (Staff Kantin)",
+      email: "staff.kpak@alba.app",
+      name: "Staff KPAK",
+      role: "STAFF" as const,
+      unitCode: "KPK-01",
+    },
+    {
+      email: "staff.koperasi@alba.app",
+      role: "STAFF" as const,
+      unitCode: "KOP-01",
+    },
+    {
+      email: "staff.kantinumi@alba.app",
+      name: "Staff Kantin Umi",
       role: "STAFF" as const,
       unitCode: "KNT-01",
     },
     {
-      email: "staff.koperasi@alba.local",
-      name: "Fajar (Staff Koperasi)",
+      email: "staff.kantinbaru@alba.app",
+      name: "Staff Kantin Baru",
       role: "STAFF" as const,
-      unitCode: "KOP-01",
+      unitCode: "KNT-02",
     },
   ];
 
@@ -158,7 +169,14 @@ async function main() {
       : null;
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: {},
+      update: {
+        name: u.name,
+        role: u.role,
+        passwordHash: hashedPassword,
+        lembagaId: lembaga.id,
+        unitId: unit?.id || null,
+        isActive: true,
+      },
       create: {
         email: u.email,
         name: u.name,

@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   ArrowDownRight,
+  ArrowLeftRight,
   Clock,
   AlertCircle,
   CheckCircle2,
@@ -37,14 +38,17 @@ export interface TxCompactListProps {
 const TYPE_ICON: Record<TxType, ComponentType<{ className?: string }>> = {
   INCOME: ArrowUpRight,
   EXPENSE: ArrowDownRight,
+  TRANSFER: ArrowLeftRight,
 };
 
 const STATUS_CONFIG: Record<
   TxStatus,
   { icon: ComponentType<{ className?: string }>; label: string }
 > = {
-  COMPLETED: { icon: CheckCircle2, label: "Selesai" },
+  DRAFT: { icon: Clock, label: "Draft" },
   PENDING: { icon: Clock, label: "Menunggu" },
+  APPROVED: { icon: CheckCircle2, label: "Disetujui" },
+  COMPLETED: { icon: CheckCircle2, label: "Selesai" },
   FAILED: { icon: AlertCircle, label: "Gagal" },
   REJECTED: { icon: AlertCircle, label: "Ditolak" },
 };
@@ -52,6 +56,7 @@ const STATUS_CONFIG: Record<
 const TYPE_LABEL: Record<TxType, string> = {
   INCOME: "Pemasukan",
   EXPENSE: "Pengeluaran",
+  TRANSFER: "Transfer",
 };
 
 function getRelativeDate(dateString: string): string {
@@ -98,18 +103,20 @@ export function TxCompactList({
   return (
     <div className="divide-y divide-border/40">
       {visibleItems.map((tx) => {
-        const TypeIcon = TYPE_ICON[tx.type];
+        const TypeIcon = TYPE_ICON[tx.type] ?? ArrowLeftRight;
         const typeColor =
           tx.type === "INCOME"
             ? "text-emerald-600 dark:text-emerald-400"
-            : "text-rose-600 dark:text-rose-400";
+            : tx.type === "TRANSFER"
+              ? "text-sky-600 dark:text-sky-400"
+              : "text-rose-600 dark:text-rose-400";
         const relativeDate = getRelativeDate(tx.date);
-        const statusConf = STATUS_CONFIG[tx.status];
+        const statusConf = STATUS_CONFIG[tx.status] ?? STATUS_CONFIG.PENDING;
         const StatusIcon = statusConf.icon;
         const statusColor =
-          tx.status === "COMPLETED"
+          tx.status === "COMPLETED" || tx.status === "APPROVED"
             ? "text-emerald-600 dark:text-emerald-400"
-            : tx.status === "PENDING"
+            : tx.status === "PENDING" || tx.status === "DRAFT"
               ? "text-amber-600 dark:text-amber-400"
               : "text-rose-600 dark:text-rose-400";
 
