@@ -1,10 +1,12 @@
 #!/bin/bash
 # Smoke test integrasi API ALBA Finance
-BASE="http://localhost:57216"
+BASE="${BASE:-http://127.0.0.1:57216}"
 JAR=".freebuff/jar-superadmin.txt"
 JAR2=".freebuff/jar-manager.txt"
 PASS=0
 FAIL=0
+
+mkdir -p .freebuff
 
 check() {
   local name="$1" expected="$2" actual="$3"
@@ -24,8 +26,11 @@ let d='';
 process.stdin.on('data',c=>d+=c).on('end',()=>{
   try {
     let v=JSON.parse(d);
-    for (const k of process.argv[1].split('.')) v = v?.[k];
-    console.log(typeof v === 'object' ? JSON.stringify(v) : String(v ?? ''));
+    for (const k of process.argv[1].split('.')) {
+      if (v == null) break;
+      v = v[k];
+    }
+    console.log(typeof v === 'object' ? JSON.stringify(v) : String(v == null ? '' : v));
   } catch { console.log(''); }
 });" "$1"
 }
@@ -44,8 +49,8 @@ login() {
 }
 
 echo "== 1. Login =="
-login "$JAR" "superadmin@alba.local" "bismillah"
-login "$JAR2" "manager.kantin1@alba.local" "Bismillah123!"
+login "$JAR" "admin@brontolano.com" "bismillah"
+login "$JAR2" "manager.kantinumi@alba.app" "bismillah"
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" "$BASE/api/users/profile")
 check "GET /api/users/profile (superadmin)" 200 "$code"
 
