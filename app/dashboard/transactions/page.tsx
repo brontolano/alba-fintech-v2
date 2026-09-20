@@ -269,6 +269,39 @@ export default function TransactionsPage() {
     (v) => v !== "" && v !== undefined,
   );
 
+  const overviewStats = [
+    {
+      label: "Hari ini",
+      value: `${
+        transactions.filter((tx) => {
+          const d = new Date(tx.date);
+          const today = new Date();
+          const start = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+          );
+          return d >= start;
+        }).length
+      } transaksi`,
+      tone: "emerald",
+    },
+    {
+      label: "Pending",
+      value: `${
+        transactions.filter((tx) => tx.status === "PENDING").length
+      } menunggu`,
+      tone: "amber",
+    },
+    {
+      label: "Rekonsiliasi",
+      value: `${
+        transactions.filter((tx) => tx.status === "DRAFT").length
+      } draft`,
+      tone: "sky",
+    },
+  ];
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -320,11 +353,7 @@ export default function TransactionsPage() {
         </div>
 
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          {[
-            { label: "Hari ini", value: "12 transaksi", tone: "emerald" },
-            { label: "Pending", value: "4 menunggu", tone: "amber" },
-            { label: "Rekonsiliasi", value: "2 draft", tone: "sky" },
-          ].map((item) => (
+          {overviewStats.map((item) => (
             <div
               key={item.label}
               className="rounded-2xl border border-white/70 bg-white/75 p-3 shadow-sm dark:border-border dark:bg-card/80"
