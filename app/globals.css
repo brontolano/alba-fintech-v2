@@ -164,6 +164,54 @@
   }
 }
 
+@layer utilities {
+  /* Keep legacy pastel badges readable when dark mode is active. */
+  .dark .bg-emerald-50,
+  .dark .bg-emerald-100,
+  .dark .bg-green-50,
+  .dark .bg-green-100 {
+    background-color: rgb(16 185 129 / 0.16) !important;
+  }
+
+  .dark .bg-rose-50,
+  .dark .bg-rose-100,
+  .dark .bg-red-50,
+  .dark .bg-red-100 {
+    background-color: rgb(244 63 94 / 0.16) !important;
+  }
+
+  .dark .bg-amber-50,
+  .dark .bg-amber-100 {
+    background-color: rgb(245 158 11 / 0.16) !important;
+  }
+
+  .dark .bg-blue-50,
+  .dark .bg-blue-100,
+  .dark .bg-sky-50,
+  .dark .bg-sky-100 {
+    background-color: rgb(14 165 233 / 0.16) !important;
+  }
+
+  .dark .text-emerald-700,
+  .dark .text-green-700 {
+    color: rgb(110 231 183) !important;
+  }
+
+  .dark .text-rose-700,
+  .dark .text-red-700 {
+    color: rgb(253 164 175) !important;
+  }
+
+  .dark .text-amber-700 {
+    color: rgb(252 211 77) !important;
+  }
+
+  .dark .text-blue-700,
+  .dark .text-sky-700 {
+    color: rgb(125 211 252) !important;
+  }
+}
+
 /* RTL Support */
 [dir="rtl"] {
   direction: rtl;

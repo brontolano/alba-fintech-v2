@@ -312,7 +312,7 @@ export default function TransactionsPage() {
       <div className="space-y-2.5">
         <div className="relative">
           <Search
-            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#6b7280]"
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#6b7280] dark:text-muted-foreground"
             size={18}
           />
           <input
@@ -320,13 +320,13 @@ export default function TransactionsPage() {
             placeholder="Cari deskripsi atau referensi..."
             value={filters.search}
             onChange={(e) => handleFilterChange("search", e.target.value)}
-            className="h-[46px] w-full rounded-full border border-[#e5e7eb] bg-[#f3f4f6] pl-11 pr-14 text-[15px] text-foreground outline-none transition focus:border-[#1bb0a6] focus:bg-white"
+            className="h-[46px] w-full rounded-full border border-[#e5e7eb] bg-[#f3f4f6] pl-11 pr-14 text-[15px] text-slate-700 outline-none transition focus:border-[#1bb0a6] focus:bg-white dark:border-border dark:bg-muted dark:text-foreground dark:focus:bg-card"
           />
 
           <button
             type="button"
             onClick={() => setShowDateMenu((prev) => !prev)}
-            className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#374151] shadow-sm ring-1 ring-[#e5e7eb] transition hover:bg-[#f3faf9]"
+            className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#374151] shadow-sm ring-1 ring-[#e5e7eb] transition hover:bg-[#f3faf9] dark:bg-card dark:text-foreground dark:ring-border dark:hover:bg-muted"
             aria-label="Pilih periode"
           >
             <CalendarDays size={18} />
@@ -384,7 +384,7 @@ export default function TransactionsPage() {
                         e.target.value || filters.endDate ? "custom" : "all",
                       );
                     }}
-                    className="h-10 w-full rounded-full border border-border bg-white px-3 text-sm text-foreground outline-none focus:border-[#1bb0a6]"
+                    className="h-10 w-full rounded-full border border-border bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#1bb0a6] dark:bg-card dark:text-foreground"
                   />
                 </div>
 
@@ -401,7 +401,7 @@ export default function TransactionsPage() {
                         filters.startDate || e.target.value ? "custom" : "all",
                       );
                     }}
-                    className="h-10 w-full rounded-full border border-border bg-white px-3 text-sm text-foreground outline-none focus:border-[#1bb0a6]"
+                    className="h-10 w-full rounded-full border border-border bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#1bb0a6] dark:bg-card dark:text-foreground"
                   />
                 </div>
               </div>
@@ -414,7 +414,7 @@ export default function TransactionsPage() {
             <select
               value={filters.unitId}
               onChange={(e) => handleFilterChange("unitId", e.target.value)}
-              className="h-[52px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-[#f3f4f6] px-4 pr-10 text-[15px] text-foreground outline-none transition focus:border-[#1bb0a6] focus:bg-white"
+              className="h-[52px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-[#f3f4f6] px-4 pr-10 text-[15px] text-slate-700 outline-none transition focus:border-[#1bb0a6] focus:bg-white dark:border-border dark:bg-muted dark:text-foreground dark:focus:bg-card"
               aria-label="Filter unit"
             >
               <option value="">Semua Unit</option>
@@ -425,7 +425,7 @@ export default function TransactionsPage() {
               ))}
             </select>
             <ChevronDown
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7280]"
+              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7280] dark:text-muted-foreground"
               size={18}
             />
           </div>
@@ -434,7 +434,7 @@ export default function TransactionsPage() {
             <select
               value={filters.type}
               onChange={(e) => handleFilterChange("type", e.target.value)}
-              className="h-[52px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-[#f3f4f6] px-4 pr-10 text-[15px] text-foreground outline-none transition focus:border-[#1bb0a6] focus:bg-white"
+              className="h-[52px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-[#f3f4f6] px-4 pr-10 text-[15px] text-slate-700 outline-none transition focus:border-[#1bb0a6] focus:bg-white dark:border-border dark:bg-muted dark:text-foreground dark:focus:bg-card"
               aria-label="Filter tipe"
             >
               <option value="">Semua Tipe</option>
@@ -443,7 +443,7 @@ export default function TransactionsPage() {
               <option value="TRANSFER">Transfer</option>
             </select>
             <ChevronDown
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7280]"
+              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7280] dark:text-muted-foreground"
               size={18}
             />
           </div>
@@ -452,7 +452,7 @@ export default function TransactionsPage() {
             <select
               value={filters.status}
               onChange={(e) => handleFilterChange("status", e.target.value)}
-              className="h-[52px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-[#f3f4f6] px-4 pr-10 text-[15px] text-foreground outline-none transition focus:border-[#1bb0a6] focus:bg-white"
+              className="h-[52px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-[#f3f4f6] px-4 pr-10 text-[15px] text-slate-700 outline-none transition focus:border-[#1bb0a6] focus:bg-white dark:border-border dark:bg-muted dark:text-foreground dark:focus:bg-card"
               aria-label="Filter status"
             >
               <option value="">Semua Status</option>
@@ -462,7 +462,7 @@ export default function TransactionsPage() {
               <option value="DRAFT">Draft</option>
             </select>
             <ChevronDown
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7280]"
+              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7280] dark:text-muted-foreground"
               size={18}
             />
           </div>
@@ -471,7 +471,7 @@ export default function TransactionsPage() {
             <select
               value={filters.categoryId}
               onChange={(e) => handleFilterChange("categoryId", e.target.value)}
-              className="h-[52px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-[#f3f4f6] px-4 pr-10 text-[15px] text-foreground outline-none transition focus:border-[#1bb0a6] focus:bg-white"
+              className="h-[52px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-[#f3f4f6] px-4 pr-10 text-[15px] text-slate-700 outline-none transition focus:border-[#1bb0a6] focus:bg-white dark:border-border dark:bg-muted dark:text-foreground dark:focus:bg-card"
               aria-label="Filter kategori"
             >
               <option value="">Semua Kategori</option>
@@ -482,7 +482,7 @@ export default function TransactionsPage() {
               ))}
             </select>
             <ChevronDown
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7280]"
+              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7280] dark:text-muted-foreground"
               size={18}
             />
           </div>
@@ -490,11 +490,11 @@ export default function TransactionsPage() {
       </div>
 
       {loading ? (
-        <div className="rounded-[24px] border border-[#e5e7eb] bg-white py-12 text-center text-sm text-muted-foreground">
+        <div className="rounded-[24px] border border-[#e5e7eb] bg-white py-12 text-center text-sm text-muted-foreground dark:border-border dark:bg-card">
           Memuat data...
         </div>
       ) : transactions.length === 0 ? (
-        <div className="rounded-[24px] border border-[#e5e7eb] bg-white py-12 text-center text-sm text-muted-foreground">
+        <div className="rounded-[24px] border border-[#e5e7eb] bg-white py-12 text-center text-sm text-muted-foreground dark:border-border dark:bg-card">
           Tidak ada transaksi ditemukan
         </div>
       ) : (
@@ -512,7 +512,7 @@ export default function TransactionsPage() {
             return (
               <div
                 key={tx.id}
-                className="rounded-[22px] border border-[#e5e7eb] bg-white px-3 py-3 shadow-[0_1px_0_rgba(15,23,42,0.02)]"
+                className="rounded-[22px] border border-[#e5e7eb] bg-white px-3 py-3 shadow-[0_1px_0_rgba(15,23,42,0.02)] dark:border-border dark:bg-card"
               >
                 <div className="flex items-center gap-3">
                   <div
@@ -607,13 +607,13 @@ export default function TransactionsPage() {
                     <div className="mt-3 flex gap-2">
                       <Link
                         href={`/dashboard/transactions/${tx.id}/edit`}
-                        className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-[#f3f4f6] text-sm font-medium text-foreground transition hover:bg-[#e7ebef]"
+                        className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-[#f3f4f6] text-sm font-medium text-slate-700 transition hover:bg-[#e7ebef] dark:bg-muted dark:text-foreground dark:hover:bg-slate-700"
                       >
                         <Edit size={14} /> Edit
                       </Link>
                       <Link
                         href={`/dashboard/transactions/${tx.id}`}
-                        className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-[#f3f4f6] text-sm font-medium text-foreground transition hover:bg-[#e7ebef]"
+                        className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-[#f3f4f6] text-sm font-medium text-slate-700 transition hover:bg-[#e7ebef] dark:bg-muted dark:text-foreground dark:hover:bg-slate-700"
                       >
                         <Eye size={14} /> Detail
                       </Link>
