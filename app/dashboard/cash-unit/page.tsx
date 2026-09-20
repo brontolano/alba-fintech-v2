@@ -5,6 +5,10 @@ import { ArrowDownRight, ArrowLeft, ArrowUpRight, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import {
+  getDefaultCategorySuggestions,
+  validateBusinessFlow,
+} from "@/lib/modules/units/business-rules";
 
 interface Category {
   id: string;
@@ -26,6 +30,14 @@ export default function UnitCashPage() {
     categoryId: "",
     reference: "",
     date: new Date().toISOString().split("T")[0],
+  });
+
+  const kpakSuggestions = getDefaultCategorySuggestions("KPAK", false, form.type);
+  const flowValidation = validateBusinessFlow({
+    unitType: "KPAK",
+    isRetail: false,
+    transactionType: form.type,
+    description: form.description,
   });
 
   useEffect(() => {
@@ -84,10 +96,31 @@ export default function UnitCashPage() {
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Kas Unit</h1>
+          <h1 className="text-2xl font-bold text-foreground">Kas Unit KPAK</h1>
           <p className="text-sm text-muted-foreground">
-            Catat pemasukan dan pengeluaran unit sederhana.
+            Catat masuk/keluar uang internal KPAK seperti setoran, penarikan,
+            dan kebutuhan operasional unit.
           </p>
+        </div>
+      </div>
+      <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+        <div className="mb-2 font-semibold">Alur kas KPAK</div>
+        <div className="text-xs text-amber-800/80">
+          {form.type === "INCOME"
+            ? "Contoh: setoran tabungan, daftar ulang, HER/SPP, keuangan internal masuk"
+            : "Contoh: tarik tabungan, pengeluaran internal, biaya administrasi, operasional"}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {kpakSuggestions.slice(0, 4).map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => setForm((prev) => ({ ...prev, description: suggestion }))}
+              className="rounded-full border border-amber-300 bg-white/70 px-2.5 py-1 text-[11px] font-medium transition hover:bg-white"
+            >
+              {suggestion}
+            </button>
+          ))}
         </div>
       </div>
       <form
@@ -162,8 +195,17 @@ export default function UnitCashPage() {
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             className="mt-1.5 w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 font-normal"
-            placeholder="Contoh: Pembelian ATK kantor"
+            placeholder={
+              form.type === "INCOME"
+                ? "Contoh: Setoran tabungan santri"
+                : "Contoh: Tarik tabungan santri"
+            }
           />
+          {form.description.trim() && !flowValidation.valid && (
+            <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50/80 p-2 text-xs text-amber-900">
+              {flowValidation.reason}
+            </div>
+          )}
         </label>
         <label className="block text-sm font-medium text-foreground">
           Referensi atau catatan tambahan
@@ -175,7 +217,12 @@ export default function UnitCashPage() {
           />
         </label>
         <button
-          disabled={saving}
+          disabled={
+            saving ||
+            !form.amount ||
+            !form.description ||
+            (form.description.trim() !== "" && !flowValidation.valid)
+          }
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
         >
           <Save size={17} /> {saving ? "Menyimpan..." : "Simpan Transaksi"}

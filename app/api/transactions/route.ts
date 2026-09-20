@@ -13,6 +13,8 @@ import {
   notifyPendingApproval,
   LEMBAGA_UNIT_SENTINEL,
 } from "@/lib/approvalRouting";
+import { buildTransactionSummary } from "@/lib/modules/transactions/summary";
+import { validateBusinessFlow } from "@/lib/modules/units/business-rules";
 
 // Allowed file types for photo uploads
 const ALLOWED_PHOTO_TYPES = [
@@ -209,6 +211,91 @@ export async function GET(request: NextRequest) {
 
     const total = await prisma.transaction.count({ where });
 
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const summaryBaseWhere = {
+      ...where,
+      date: where.date ? { ...where.date } : undefined,
+    };
+
+    const [
+      todayCount,
+      pendingCount,
+      draftCount,
+      ledgerTotals,
+      todayLedgerTotals,
+    ] = await Promise.all([
+      prisma.transaction.count({
+        where: {
+          ...summaryBaseWhere,
+          date: {
+            ...(summaryBaseWhere.date || {}),
+            gte: todayStart,
+          },
+        },
+      }),
+      prisma.transaction.count({
+        where: {
+          ...summaryBaseWhere,
+          status: "PENDING",
+        },
+      }),
+      prisma.transaction.count({
+        where: {
+          ...summaryBaseWhere,
+          status: "DRAFT",
+        },
+      }),
+      prisma.transaction.findMany({
+        where: summaryBaseWhere,
+        select: {
+          type: true,
+          amount: true,
+        },
+      }),
+      prisma.transaction.findMany({
+        where: {
+          ...summaryBaseWhere,
+          date: {
+            ...(summaryBaseWhere.date || {}),
+            gte: todayStart,
+          },
+        },
+        select: {
+          type: true,
+          amount: true,
+        },
+      }),
+    ]);
+
+    const totalIncome = ledgerTotals
+      .filter((tx) => tx.type === "INCOME")
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    const totalExpense = ledgerTotals
+      .filter((tx) => tx.type === "EXPENSE")
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    const todayIncome = todayLedgerTotals
+      .filter((tx) => tx.type === "INCOME")
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    const todayExpense = todayLedgerTotals
+      .filter((tx) => tx.type === "EXPENSE")
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+
+    const summary = buildTransactionSummary({
+      total,
+      limit: parsed.data.limit,
+      todayCount,
+      pendingCount,
+      draftCount,
+      totalIncome,
+      totalExpense,
+      netBalance: totalIncome - totalExpense,
+      todayIncome,
+      todayExpense,
+      netToday: todayIncome - todayExpense,
+    });
+
     // Transform data to match frontend expectations
     const transformedTransactions = transactions.map((tx) => ({
       ...tx,
@@ -221,10 +308,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         data: transformedTransactions,
-        summary: {
-          total,
-          pages: Math.ceil(total / parsed.data.limit),
-        },
+        summary,
       },
       { status: 200 },
     );
@@ -391,14 +475,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const targetUnit = await prisma.unit.findUnique({
+      where: { id: parsedData.unitId },
+      select: { id: true, type: true, isRetail: true },
+    });
+
+    if (!targetUnit) {
+      return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 400 });
+    }
+
     if (role === "PIMPINAN" && !isLembagaScope) {
-      const targetUnit = await prisma.unit.findFirst({
+      const unitInLembaga = await prisma.unit.findFirst({
         where: { id: parsedData.unitId, lembagaId: session.user.lembagaId },
         select: { id: true },
       });
-      if (!targetUnit) {
+      if (!unitInLembaga) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
+    }
+
+    const businessCheck = validateBusinessFlow({
+      unitType: targetUnit.type || undefined,
+      isRetail: targetUnit.isRetail ?? false,
+      transactionType: parsed.data.type,
+      description: parsed.data.description,
+    });
+
+    if (!businessCheck.valid) {
+      return NextResponse.json(
+        {
+          error: businessCheck.reason,
+          expectedExamples: businessCheck.expectedExamples,
+        },
+        { status: 400 },
+      );
     }
 
     // Parse orderItems if present

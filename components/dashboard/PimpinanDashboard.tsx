@@ -69,6 +69,7 @@ export default function PimpinanDashboard() {
   const netIncome = summary.totalIncome - summary.totalExpense;
   const netMargin =
     summary.totalIncome > 0 ? (netIncome / summary.totalIncome) * 100 : 0;
+  const todayNet = summary.todayIncome - summary.todayExpense;
 
   return (
     <div className="space-y-4">
@@ -126,6 +127,12 @@ export default function PimpinanDashboard() {
             tone: "islamic",
           },
           {
+            label: "Hari Ini",
+            value: formatCurrency(todayNet),
+            icon: TrendingUp,
+            tone: todayNet >= 0 ? "green" : "red",
+          },
+          {
             label: "Pemasukan",
             value: formatCurrency(summary.totalIncome),
             icon: TrendingUp,
@@ -137,14 +144,28 @@ export default function PimpinanDashboard() {
             icon: TrendingDown,
             tone: "red",
           },
-          {
-            label: "Margin Bersih",
-            value: `${netMargin.toFixed(1)}%`,
-            icon: Target,
-            tone: "blue",
-          },
         ]}
       />
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-[22px] border border-border bg-card/90 p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Margin Bersih
+          </div>
+          <div className="mt-2 text-2xl font-bold text-foreground">
+            {`${netMargin.toFixed(1)}%`}
+          </div>
+        </div>
+        <div className="rounded-[22px] border border-border bg-card/90 p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Arus Kas Hari Ini
+          </div>
+          <div className="mt-2 text-2xl font-bold text-foreground">
+            {formatCurrency(summary.todayIncome)} masuk /{" "}
+            {formatCurrency(summary.todayExpense)} keluar
+          </div>
+        </div>
+      </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

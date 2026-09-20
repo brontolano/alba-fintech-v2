@@ -29,9 +29,11 @@ import { UnitVirtualCard } from "@/components/dashboard/UnitVirtualCard";
 
 export default function ManagerDashboard() {
   const { data: session } = useSession();
+  const unitId = session?.user?.unitId;
   const canUseRetailModules = session?.user?.unitIsRetail === true;
   const { data, loading, error, formatCurrency, refetch } = useDashboardData({
-    range: "7d",
+    range: "30d",
+    unitId: unitId ?? undefined,
   });
 
   if (loading) {
@@ -67,20 +69,9 @@ export default function ManagerDashboard() {
     data;
 
   const netIncome = summary.totalIncome - summary.totalExpense;
-  const todayIncome = recentTransactions
-    .filter(
-      (t) =>
-        t.type === "INCOME" &&
-        new Date(t.date).toDateString() === new Date().toDateString(),
-    )
-    .reduce((s, t) => s + t.amount, 0);
-  const todayExpense = recentTransactions
-    .filter(
-      (t) =>
-        t.type === "EXPENSE" &&
-        new Date(t.date).toDateString() === new Date().toDateString(),
-    )
-    .reduce((s, t) => s + t.amount, 0);
+  const todayIncome = summary.todayIncome;
+  const todayExpense = summary.todayExpense;
+  const netToday = summary.netToday;
 
   return (
     <div className="space-y-4">
@@ -143,7 +134,13 @@ export default function ManagerDashboard() {
       <StatTiles
         stats={[
           {
-            label: "Omzet Hari Ini",
+            label: "Saldo Unit",
+            value: formatCurrency(summary.totalBalance),
+            icon: Wallet,
+            tone: "islamic",
+          },
+          {
+            label: "Pemasukan Hari Ini",
             value: formatCurrency(todayIncome),
             icon: TrendingUp,
             tone: "green",
@@ -155,13 +152,33 @@ export default function ManagerDashboard() {
             tone: "red",
           },
           {
-            label: "Margin Bersih",
-            value: formatCurrency(netIncome),
-            icon: Wallet,
-            tone: "islamic",
+            label: "Arus Kas Bersih",
+            value: formatCurrency(netToday),
+            icon: netToday >= 0 ? TrendingUp : TrendingDown,
+            tone: netToday >= 0 ? "green" : "red",
           },
         ]}
       />
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-[22px] border border-border bg-card/90 p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Total Unit (30d)
+          </div>
+          <div className="mt-2 text-2xl font-bold text-foreground">
+            {formatCurrency(summary.totalIncome)} masuk /{" "}
+            {formatCurrency(summary.totalExpense)} keluar
+          </div>
+        </div>
+        <div className="rounded-[22px] border border-border bg-card/90 p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Margin Bersih Unit
+          </div>
+          <div className="mt-2 text-2xl font-bold text-foreground">
+            {formatCurrency(netIncome)}
+          </div>
+        </div>
+      </div>
 
       {/* Ringkasan Unit */}
       {units.length > 0 && (

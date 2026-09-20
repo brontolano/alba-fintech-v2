@@ -10,8 +10,12 @@ import {
   Tag,
   FileText,
   LayoutDashboard,
+  Wallet,
+  ArrowUpRight,
+  ArrowDownRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { buildCashbookEntries } from "@/lib/modules/ledger/ledger";
 
 interface UnitType {
   value: string;
@@ -64,6 +68,8 @@ export default function EditUnitPage({ params }: Props) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [ledgerRows, setLedgerRows] = useState<any[]>([]);
+  const [ledgerLoading, setLedgerLoading] = useState(true);
 
   // Check authorization
   useEffect(() => {
@@ -135,11 +141,45 @@ export default function EditUnitPage({ params }: Props) {
     }
   };
 
+  const fetchLedger = async () => {
+    if (!unitId) return;
+    setLedgerLoading(true);
+    try {
+      const res = await fetch(
+        `/api/transactions?unitId=${encodeURIComponent(unitId)}&status=APPROVED&limit=200`,
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Gagal memuat buku kas unit");
+      }
+      const result = await res.json();
+      const entries = buildCashbookEntries(
+        (result.data ?? []).map((tx: any) => ({
+          id: tx.id,
+          date: tx.date,
+          type: tx.type,
+          amount: Number(tx.amount ?? 0),
+          description: tx.description || tx.reference || "Transaksi",
+          reference: tx.reference,
+          unitName: tx.unitName || null,
+          categoryName: tx.categoryName || null,
+        })),
+      );
+      setLedgerRows(entries);
+    } catch (error) {
+      console.error("Error fetching unit ledger:", error);
+      setLedgerRows([]);
+    } finally {
+      setLedgerLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUnit();
     fetchLembihs();
     fetchUnits();
-  }, []);
+    fetchLedger();
+  }, [unitId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,6 +209,24 @@ export default function EditUnitPage({ params }: Props) {
       setSubmitting(false);
     }
   };
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(amount);
+
+  const ledgerSummary = ledgerRows.reduce(
+    (acc, row) => {
+      acc.debit += row.debit;
+      acc.credit += row.credit;
+      return acc;
+    },
+    { debit: 0, credit: 0 },
+  );
+
+  const currentBalance = ledgerRows.at(-1)?.balance ?? 0;
 
   if (loading) {
     return (
@@ -403,6 +461,103 @@ export default function EditUnitPage({ params }: Props) {
           </button>
         </div>
       </form>
+
+      <div className="rounded-[22px] border border-border bg-card p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-foreground">Buku Kas Unit</h2>
+            <p className="text-sm text-muted-foreground">
+              Saldo berjalan berdasarkan transaksi yang sudah disetujui.
+            </p>
+          </div>
+          <div className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+            Saldo saat ini: {formatCurrency(currentBalance)}
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-500/20 dark:bg-emerald-500/5">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-300">
+              <ArrowUpRight size={14} /> Debet
+            </div>
+            <div className="mt-2 text-xl font-bold text-emerald-700 dark:text-emerald-300">
+              {formatCurrency(ledgerSummary.debit)}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 dark:border-rose-500/20 dark:bg-rose-500/5">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-rose-700 dark:text-rose-300">
+              <ArrowDownRight size={14} /> Kredit
+            </div>
+            <div className="mt-2 text-xl font-bold text-rose-700 dark:text-rose-300">
+              {formatCurrency(ledgerSummary.credit)}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3 dark:border-sky-500/20 dark:bg-sky-500/5">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-sky-700 dark:text-sky-300">
+              <Wallet size={14} /> Saldo
+            </div>
+            <div className="mt-2 text-xl font-bold text-sky-700 dark:text-sky-300">
+              {formatCurrency(currentBalance)}
+            </div>
+          </div>
+        </div>
+
+        {ledgerLoading ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-border bg-muted/30 py-8 text-center text-sm text-muted-foreground">
+            Memuat buku kas unit...
+          </div>
+        ) : ledgerRows.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-border bg-muted/30 py-8 text-center text-sm text-muted-foreground">
+            Belum ada transaksi yang disetujui untuk unit ini.
+          </div>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-0 text-sm">
+              <thead>
+                <tr className="bg-muted/50 text-left text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                  <th className="px-3 py-2 font-semibold">Tanggal</th>
+                  <th className="px-3 py-2 font-semibold">Keterangan</th>
+                  <th className="px-3 py-2 font-semibold text-right">Debet</th>
+                  <th className="px-3 py-2 font-semibold text-right">Kredit</th>
+                  <th className="px-3 py-2 font-semibold text-right">Saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ledgerRows.map((row) => (
+                  <tr key={row.id} className="border-t border-border">
+                    <td className="px-3 py-2.5 align-top text-foreground">
+                      {row.date
+                        ? new Date(row.date).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "-"}
+                    </td>
+                    <td className="px-3 py-2.5 align-top text-foreground">
+                      <div className="font-medium">{row.description}</div>
+                      {row.reference && (
+                        <div className="mt-1 text-[11px] text-muted-foreground">
+                          Ref: {row.reference}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 text-right align-top font-medium text-emerald-600 dark:text-emerald-400">
+                      {row.debit > 0 ? formatCurrency(row.debit) : "-"}
+                    </td>
+                    <td className="px-3 py-2.5 text-right align-top font-medium text-rose-600 dark:text-rose-400">
+                      {row.credit > 0 ? formatCurrency(row.credit) : "-"}
+                    </td>
+                    <td className="px-3 py-2.5 text-right align-top font-semibold text-foreground">
+                      {formatCurrency(row.balance)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -54,11 +54,13 @@ interface TransactionsResponse {
   data: Transaction[];
   summary: {
     total: number;
+    pages: number;
+    todayCount: number;
+    pendingCount: number;
+    draftCount: number;
     totalIncome: number;
     totalExpense: number;
-    totalTransfer: number;
-    pages: number;
-    currentPage: number;
+    netBalance: number;
   };
 }
 
@@ -92,6 +94,16 @@ export default function TransactionsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [summary, setSummary] = useState({
+    total: 0,
+    pages: 1,
+    todayCount: 0,
+    pendingCount: 0,
+    draftCount: 0,
+    totalIncome: 0,
+    totalExpense: 0,
+    netBalance: 0,
+  });
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const limit = 10;
 
@@ -149,6 +161,16 @@ export default function TransactionsPage() {
       setTransactions(result.data ?? []);
       setTotalPages(result.summary?.pages ?? 1);
       setTotalItems(result.summary?.total ?? 0);
+      setSummary({
+        total: result.summary?.total ?? 0,
+        pages: result.summary?.pages ?? 1,
+        todayCount: result.summary?.todayCount ?? 0,
+        pendingCount: result.summary?.pendingCount ?? 0,
+        draftCount: result.summary?.draftCount ?? 0,
+        totalIncome: result.summary?.totalIncome ?? 0,
+        totalExpense: result.summary?.totalExpense ?? 0,
+        netBalance: result.summary?.netBalance ?? 0,
+      });
     } catch (err: any) {
       toast.error(err.message || "Gagal memuat transaksi");
     } finally {
@@ -171,6 +193,7 @@ export default function TransactionsPage() {
     filters.type,
     filters.status,
     filters.categoryId,
+    filters.search,
     filters.startDate,
     filters.endDate,
   ]);
@@ -272,32 +295,17 @@ export default function TransactionsPage() {
   const overviewStats = [
     {
       label: "Hari ini",
-      value: `${
-        transactions.filter((tx) => {
-          const d = new Date(tx.date);
-          const today = new Date();
-          const start = new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            today.getDate(),
-          );
-          return d >= start;
-        }).length
-      } transaksi`,
+      value: `${summary.todayCount} transaksi`,
       tone: "emerald",
     },
     {
-      label: "Pending",
-      value: `${
-        transactions.filter((tx) => tx.status === "PENDING").length
-      } menunggu`,
+      label: "Saldo berjalan",
+      value: formatCurrency(summary.netBalance),
       tone: "amber",
     },
     {
-      label: "Rekonsiliasi",
-      value: `${
-        transactions.filter((tx) => tx.status === "DRAFT").length
-      } draft`,
+      label: "Pending",
+      value: `${summary.pendingCount} menunggu`,
       tone: "sky",
     },
   ];

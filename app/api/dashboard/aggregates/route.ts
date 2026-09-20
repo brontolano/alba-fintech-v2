@@ -5,6 +5,8 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { buildLedgerSummary } from "@/lib/modules/ledger/ledger";
+import { buildApprovalScope } from "@/lib/modules/approvals/scope";
 
 // Schema for query parameters
 const querySchema = z.object({
@@ -115,24 +117,47 @@ export async function GET(request: NextRequest) {
       txWhere.unitId = parsed.data.unitId;
     }
 
-    // Get approved transactions for aggregation
-    const transactions = await prisma.transaction.findMany({
-      where: txWhere,
-      select: {
-        id: true,
-        unitId: true,
-        units: {
-          select: { id: true, name: true, type: true, lembagaId: true },
-        },
-        type: true,
-        amount: true,
-        date: true,
-        createdAt: true,
-        financial_categories: {
-          select: { name: true },
-        },
-      },
+    const lembagaUnitIds = lembagaId
+      ? await prisma.unit
+          .findMany({
+            where: { lembagaId },
+            select: { id: true },
+          })
+          .then((units) => units.map((u) => u.id))
+      : [];
+
+    const approvalWhere = buildApprovalScope({
+      role,
+      userId: (session.user as any)?.id,
+      lembagaId,
+      requestedUnitId: parsed.data.unitId,
+      lembagaUnitIds,
     });
+
+    // Get approved transactions for aggregation
+    const [transactions, pendingApprovals] = await Promise.all([
+      prisma.transaction.findMany({
+        where: txWhere,
+        select: {
+          id: true,
+          unitId: true,
+          units: {
+            select: { id: true, name: true, type: true, lembagaId: true },
+          },
+          type: true,
+          amount: true,
+          description: true,
+          date: true,
+          createdAt: true,
+          financial_categories: {
+            select: { name: true },
+          },
+        },
+      }),
+      prisma.approval.count({
+        where: approvalWhere,
+      }),
+    ]);
 
     // Build unit aggregation map
     const unitAggMap: Record<
@@ -179,10 +204,41 @@ export async function GET(request: NextRequest) {
 
     const units = Object.values(unitAggMap).sort((a, b) => b.income - a.income);
 
-    // Calculate totals
+    // Calculate totals using the same cashbook-ledger semantics across the dashboard.
+    const ledgerSummary = buildLedgerSummary(
+      transactions.map((tx) => ({
+        id: tx.id,
+        date: tx.date,
+        type: tx.type,
+        amount: Number(tx.amount ?? 0),
+        description:
+          tx.description || tx.financial_categories?.name || "Transaksi",
+        reference: tx.financial_categories?.name || null,
+        unitName: tx.units?.name || null,
+        categoryName: tx.financial_categories?.name || null,
+      })),
+    );
+
     const totalBalance = units.reduce((sum, u) => sum + u.balance, 0);
-    const totalIncome = units.reduce((sum, u) => sum + u.income, 0);
-    const totalExpense = units.reduce((sum, u) => sum + u.expense, 0);
+    const totalIncome = ledgerSummary.totalIncome;
+    const totalExpense = ledgerSummary.totalExpense;
+
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const todayTransactions = transactions.filter(
+      (tx) => tx.date && new Date(tx.date) >= todayStart,
+    );
+    const todayIncome = todayTransactions
+      .filter((tx) => tx.type === "INCOME")
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    const todayExpense = todayTransactions
+      .filter((tx) => tx.type === "EXPENSE")
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    const todayTransactionsCount = todayTransactions.length;
+    const netToday = todayIncome - todayExpense;
 
     // Build time-series chart data (income vs expense per period)
     const chartLabels: string[] = [];
@@ -294,16 +350,6 @@ export async function GET(request: NextRequest) {
       status: tx.status ?? "PENDING",
     }));
 
-    // Count today's transactions
-    const todayStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-    );
-    const todayCount = transactions.filter(
-      (tx) => tx.date && new Date(tx.date) >= todayStart,
-    ).length;
-
     return NextResponse.json(
       {
         data: {
@@ -311,7 +357,11 @@ export async function GET(request: NextRequest) {
             totalBalance,
             totalIncome,
             totalExpense,
-            todayTransactions: todayCount,
+            todayTransactions: todayTransactionsCount,
+            todayIncome,
+            todayExpense,
+            netToday,
+            pendingApprovals,
           },
           units,
           recentTransactions: formattedRecent,

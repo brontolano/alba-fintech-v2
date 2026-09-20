@@ -614,6 +614,29 @@ export default function SettingsPage() {
                     </button>
                   </div>
 
+                  <div className="rounded-[18px] border border-border bg-background/70 p-4">
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
+                        <Settings size={20} className="text-amber-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">
+                          Kategori Keuangan
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Manager unit bisa mengelola kategori milik unitnya,
+                          sementara pimpinan mengelola kategori lembaga.
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href="/dashboard/settings/categories"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600"
+                    >
+                      Buka Pengaturan Kategori
+                    </a>
+                  </div>
+
                   {/* Import Section */}
                   <div className="rounded-[18px] border border-border bg-background/70 p-4">
                     <div className="mb-3 flex items-center gap-3">

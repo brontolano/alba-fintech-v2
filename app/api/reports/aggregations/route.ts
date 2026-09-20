@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/options';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
+import { buildReportScope } from '@/lib/modules/reports/scope';
 
 // Schema for query parameters
 const querySchema = z.object({
@@ -20,9 +21,11 @@ export async function GET(request: NextRequest) {
 
     // RBAC
     const role = (session.user as any)?.role;
-    if (role !== 'PIMPINAN' && role !== 'MANAGER' && role !== 'SUPERADMIN') {
+    if (!['PIMPINAN', 'MANAGER', 'STAFF', 'SUPERADMIN'].includes(role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }    // Parse query
+    }
+
+    // Parse query
     const { searchParams } = new URL(request.url);
     const parsed = querySchema.safeParse(Object.fromEntries(searchParams));
     if (!parsed.success) {
@@ -56,41 +59,28 @@ export async function GET(request: NextRequest) {
       date: { gte: startDate },
     };
 
-    // Role-based filtering
-    if (role === 'STAFF' || role === 'MANAGER') {
-      if (!unitId) {
-        return NextResponse.json({ error: 'User tidak memiliki unit' }, { status: 400 });
-      }
-      txWhere.unitId = unitId;
-    } else if (role === 'PIMPINAN') {
-      if (!lembagaId) {
-        return NextResponse.json({ error: 'Pimpinan tidak memiliki lembaga' }, { status: 403 });
-      }
-      // Pimpinan sees transactions from units in their lembaga
-      const unitIds = await prisma.unit.findMany({
-        where: { lembagaId },
-        select: { id: true },
-      }).then(units => units.map(u => u.id));
-      txWhere.unitId = { in: unitIds };
+    const lembagaUnitIds = lembagaId
+      ? await prisma.unit.findMany({
+          where: { lembagaId },
+          select: { id: true },
+        }).then((units) => units.map((u) => u.id))
+      : [];
+
+    const reportScope = buildReportScope({
+      role,
+      userUnitId: unitId,
+      lembagaId,
+      requestedUnitId: parsed.data.unitId,
+      lembagaUnitIds,
+    });
+
+    if (!reportScope.allowed) {
+      return NextResponse.json({ error: reportScope.reason || 'Forbidden' }, {
+        status: reportScope.reason === 'User tidak memiliki unit' ? 400 : 403,
+      });
     }
 
-    // A requested unit may only narrow the user's existing scope.
-    if (parsed.data.unitId) {
-      if (role === 'MANAGER') {
-        if (parsed.data.unitId !== unitId) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
-      } else if (role === 'PIMPINAN') {
-        const targetUnit = await prisma.unit.findFirst({
-          where: { id: parsed.data.unitId, lembagaId },
-          select: { id: true },
-        });
-        if (!targetUnit) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
-      }
-      txWhere.unitId = parsed.data.unitId;
-    }
+    txWhere.unitId = reportScope.unitFilter;
 
     // Fetch transactions for monthly aggregation
     const transactions = await prisma.transaction.findMany({

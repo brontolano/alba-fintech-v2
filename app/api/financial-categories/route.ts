@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
+import { buildCategoryVisibilityWhere } from "@/lib/modules/financial-categories/category-visibility";
 
 const createCategorySchema = z.object({
   name: z.string().min(1, "Nama kategori wajib diisi"),
@@ -31,29 +32,14 @@ export async function GET(request: NextRequest) {
 
     const where: any = {};
 
-    // Role-based filtering
-    if (role === "SUPERADMIN") {
-      // Can see all categories (with optional lembagaId filter)
-      if (searchParams.has("lembagaId")) {
-        where.lembagaId = searchParams.get("lembagaId");
-      }
-    } else {
-      // Non-superadmin only see categories tied to their lembaga
-      where.OR = [
-        { lembagaId: lembagaId },
-        { lembagaId: null }, // global categories
-      ];
-    }
+    const visibilityWhere = buildCategoryVisibilityWhere({
+      role,
+      lembagaId,
+      unitId: unitId || null,
+      sessionUnitId: (session.user as any)?.unitId ?? null,
+    });
 
-    if (unitId) {
-      where.AND = [
-        where.OR ? { OR: where.OR } : {},
-        { OR: [{ unitId }, { unitId: null }] },
-      ];
-      delete where.OR;
-    } else {
-      where.unitId = null;
-    }
+    Object.assign(where, visibilityWhere);
 
     if (type) {
       where.type = type;

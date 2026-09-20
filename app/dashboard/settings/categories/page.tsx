@@ -29,6 +29,14 @@ export default function CategorySettingsPage() {
     code: "",
     type: "EXPENSE" as Category["type"],
   });
+  const scopeLabel =
+    role === "MANAGER"
+      ? "Kategori unit Anda"
+      : role === "PIMPINAN"
+        ? "Kategori lembaga dan umum"
+        : role === "SUPERADMIN"
+          ? "Semua kategori"
+          : "Kategori akses terbatas";
   const [loading, setLoading] = useState(true);
 
   const loadCategories = async () => {
@@ -87,11 +95,7 @@ export default function CategorySettingsPage() {
         <h1 className="text-2xl font-bold text-foreground">
           Kategori Keuangan
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {role === "MANAGER"
-            ? "Kategori khusus unit Anda."
-            : "Kategori umum untuk transaksi lembaga/pimpinan."}
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{scopeLabel}</p>
       </div>
       <form
         onSubmit={addCategory}

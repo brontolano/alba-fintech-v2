@@ -3,13 +3,21 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, Save, Upload, X } from "lucide-react";
+import { ArrowLeft, Save, Upload, X, BriefcaseBusiness } from "lucide-react";
 import { toast } from "sonner";
+import {
+  getBusinessPrompt,
+  getDefaultCategorySuggestions,
+  getOperationalScope,
+  validateBusinessFlow,
+} from "@/lib/modules/units/business-rules";
 
 interface Unit {
   id: string;
   name: string;
   code: string;
+  type?: string;
+  isRetail?: boolean;
 }
 
 interface Category {
@@ -40,8 +48,6 @@ export default function CreateTransactionPage() {
   const role = session?.user?.role as string | undefined;
   const userUnitId = session?.user?.unitId as string | undefined;
 
-  const isPimpinan = role === "PIMPINAN";
-
   const [units, setUnits] = useState<Unit[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState<CreateForm>({
@@ -57,6 +63,30 @@ export default function CreateTransactionPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+
+  const isPimpinan = role === "PIMPINAN";
+  const activeUnit =
+    units.find((unit) => unit.id === form.unitId) ??
+    units.find((unit) => unit.id === userUnitId) ??
+    null;
+  const activeUnitType = activeUnit?.type || "UMUM";
+  const activeScope = getOperationalScope(activeUnit?.isRetail, activeUnitType);
+  const businessPrompt = getBusinessPrompt(
+    activeUnitType,
+    form.type,
+    activeUnit?.isRetail,
+  );
+  const defaultCategorySuggestions = getDefaultCategorySuggestions(
+    activeUnitType,
+    activeUnit?.isRetail,
+    form.type,
+  );
+  const flowValidation = validateBusinessFlow({
+    unitType: activeUnitType,
+    isRetail: activeUnit?.isRetail,
+    transactionType: form.type,
+    description: form.description,
+  });
 
   const fetchUnits = async () => {
     try {
@@ -182,6 +212,39 @@ export default function CreateTransactionPage() {
       </div>
 
       <div className="rounded-[22px] border border-border bg-card p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        {activeUnit && (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+            <div className="mb-2 flex items-center gap-2 font-semibold">
+              <BriefcaseBusiness size={16} />
+              Alur bisnis unit: {activeUnit.name} ({activeUnitType})
+            </div>
+            <div className="font-medium text-amber-800">
+              {businessPrompt.title}
+            </div>
+            <div className="mt-2 text-xs text-amber-800/80">
+              Contoh {form.type === "INCOME" ? "pemasukan" : "pengeluaran"}:{" "}
+              {businessPrompt.examples.join(", ")}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-amber-800">
+              {defaultCategorySuggestions.slice(0, 4).map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() =>
+                    setForm((prev) => ({ ...prev, description: suggestion }))
+                  }
+                  className="rounded-full border border-amber-300 bg-white/60 px-2.5 py-1 font-medium transition hover:bg-white"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 text-[11px] uppercase tracking-[0.12em] text-amber-700">
+              Scope: {activeScope}
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Transaction Type */}
           <div>
@@ -268,6 +331,11 @@ export default function CreateTransactionPage() {
               placeholder="Deskripsi transaksi"
               required
             />
+            {form.description.trim() && !flowValidation.valid && (
+              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50/80 p-2 text-xs text-amber-900">
+                {flowValidation.reason}
+              </div>
+            )}
           </div>
 
           <div>
@@ -309,7 +377,7 @@ export default function CreateTransactionPage() {
                 <option value="">Pilih Unit</option>
                 {units.map((unit) => (
                   <option key={unit.id} value={unit.id}>
-                    {unit.name} ({unit.code})
+                    {unit.name} ({unit.code}) · {unit.type || "UMUM"}
                   </option>
                 ))}
               </select>
@@ -419,7 +487,8 @@ export default function CreateTransactionPage() {
                 submitting ||
                 !form.amount ||
                 !form.description ||
-                (!form.unitId && !isPimpinan)
+                (!form.unitId && !isPimpinan) ||
+                (form.description.trim() !== "" && !flowValidation.valid)
               }
               className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
             >

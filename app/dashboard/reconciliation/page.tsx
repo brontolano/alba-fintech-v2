@@ -5,6 +5,7 @@ import { Search, CheckCircle, Clock, Download } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
+import { buildReconciliationSummary } from "@/lib/modules/reconciliation/summary";
 
 interface Unit {
   id: string;
@@ -159,21 +160,20 @@ export default function ReconciliationPage() {
     return matchSearch && matchStatus;
   });
 
-  const totalIncome = filteredTasks.reduce((sum, task) => sum + task.income, 0);
-  const totalExpense = filteredTasks.reduce(
-    (sum, task) => sum + task.expense,
-    0,
+  const reconciliationSummary = buildReconciliationSummary(
+    filteredTasks.map((task) => ({
+      income: task.income,
+      expense: task.expense,
+      variance: task.variance,
+      status: task.status,
+    })),
   );
-  const totalVariance = filteredTasks.reduce(
-    (sum, task) => sum + task.variance,
-    0,
-  );
-  const reconciledCount = filteredTasks.filter(
-    (t) => t.status === "RECONCILED",
-  ).length;
-  const pendingCount = filteredTasks.filter(
-    (t) => t.status === "PENDING",
-  ).length;
+
+  const totalIncome = reconciliationSummary.totalIncome;
+  const totalExpense = reconciliationSummary.totalExpense;
+  const totalVariance = reconciliationSummary.totalVariance;
+  const reconciledCount = reconciliationSummary.reconciledCount;
+  const pendingCount = reconciliationSummary.pendingCount;
 
   const handleReconcile = async (taskId: string) => {
     const task = filteredTasks.find((t) => t.id === taskId);

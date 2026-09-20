@@ -129,10 +129,11 @@ export default function SavingsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Tabungan Santri
+            KPAK - Tabungan Santri
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Setor, tarik, dan cek saldo santri melalui nomor atau kartu NFC.
+            Fokus operasional KPAK: setor, tarik, dan cek saldo santri untuk
+            pendaftaran, HER/SPP, serta keuangan internal.
           </p>
         </div>
         {session?.user?.role !== "STAFF" && (
