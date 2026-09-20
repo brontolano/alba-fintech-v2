@@ -64,14 +64,14 @@ const UNITS = [
 ];
 
 const CATEGORIES = [
-  ["Pemasukan Administrasi", "INC-ADM", "INCOME"],
-  ["Penjualan Barang", "INC-PEN", "INCOME"],
-  ["SPP dan Biaya Pendidikan", "INC-SPP", "INCOME"],
-  ["Donasi", "INC-DON", "INCOME"],
-  ["Pengeluaran Operasional", "EXP-OPR", "EXPENSE"],
-  ["Pembelian Barang", "EXP-BEL", "EXPENSE"],
-  ["Gaji Karyawan", "EXP-GAJ", "EXPENSE"],
-  ["Listrik dan Air", "EXP-LST", "EXPENSE"],
+  ["Setoran Unit", "INC-SETOR", "INCOME"],
+  ["Penjualan Unit Retail", "INC-PENJUALAN", "INCOME"],
+  ["Pemasukan Lembaga", "INC-LEMBAGA", "INCOME"],
+  ["Donasi & Bantuan", "INC-DONASI", "INCOME"],
+  ["Biaya Operasional", "EXP-OPR", "EXPENSE"],
+  ["Pembelian Stok", "EXP-STOK", "EXPENSE"],
+  ["Gaji & Honor", "EXP-HONOR", "EXPENSE"],
+  ["Listrik, Air & Utility", "EXP-UTIL", "EXPENSE"],
 ] as const;
 
 const DEMO_USERS = [
@@ -366,46 +366,46 @@ export async function seedDemoData(prisma: PrismaClient) {
         [
           "KPK-01",
           "manager.kpak.demo@alba.local",
-          "INC-SPP",
+          "INC-SETOR",
           "INCOME",
           12000000,
-          "Pembayaran SPP santri bulan ini",
+          "Setoran kas harian KPAK dari unit administrasi",
           "APPROVED",
         ],
         [
           "KPK-01",
           "manager.kpak.demo@alba.local",
-          "EXP-OPR",
+          "EXP-UTIL",
           "EXPENSE",
           2500000,
-          "Pembayaran listrik dan air KPAK",
+          "Pembayaran listrik dan air kantor KPAK",
           "PENDING",
         ],
         [
           "KPK-01",
           "manager.kpak.demo@alba.local",
-          "INC-ADM",
+          "INC-LEMBAGA",
           "INCOME",
           1800000,
-          "Pendaftaran ulang santri baru",
+          "Pemasukan lembaga dari iuran operasional",
           "APPROVED",
         ],
         [
           "KNT-02",
           "manager.kantinbaru.demo@alba.local",
-          "INC-PEN",
+          "INC-PENJUALAN",
           "INCOME",
           680000,
-          "Penjualan menu sarapan Kantin Baru",
+          "Penjualan harian menu siang Kantin Baru",
           "APPROVED",
         ],
         [
           "KNT-02",
           "staff.kantinbaru.demo@alba.local",
-          "EXP-BEL",
+          "EXP-STOK",
           "EXPENSE",
           220000,
-          "Pembelian bahan dan minuman",
+          "Pembelian stok bahan baku dan minuman",
           "PENDING",
         ],
         [
@@ -414,13 +414,13 @@ export async function seedDemoData(prisma: PrismaClient) {
           "EXP-OPR",
           "EXPENSE",
           150000,
-          "Biaya kebersihan dan gas",
+          "Biaya kebersihan, gas, dan operasional kecil",
           "APPROVED",
         ],
         [
           "KNT-01",
           "manager.kantinumi.demo@alba.local",
-          "INC-PEN",
+          "INC-PENJUALAN",
           "INCOME",
           510000,
           "Penjualan paket makan siang Kantin Umi",
@@ -429,10 +429,10 @@ export async function seedDemoData(prisma: PrismaClient) {
         [
           "KNT-01",
           "staff.kantinumi.demo@alba.local",
-          "EXP-BEL",
+          "EXP-STOK",
           "EXPENSE",
           180000,
-          "Pembelian bahan baku masak",
+          "Pembelian bahan baku masakan hari ini",
           "PENDING",
         ],
         [
@@ -441,34 +441,34 @@ export async function seedDemoData(prisma: PrismaClient) {
           "EXP-OPR",
           "EXPENSE",
           120000,
-          "Pembayaran kebersihan kantin",
+          "Pembayaran kebersihan dan perlengkapan kantin",
           "APPROVED",
         ],
         [
           "KOP-01",
           "manager.koperasi.demo@alba.local",
-          "INC-PEN",
+          "INC-PENJUALAN",
           "INCOME",
           750000,
-          "Penjualan buku pelajaran",
+          "Penjualan buku pelajaran dan perlengkapan sekolah",
           "APPROVED",
         ],
         [
           "KOP-01",
           "staff.koperasi.demo@alba.local",
-          "EXP-BEL",
+          "EXP-STOK",
           "EXPENSE",
           300000,
-          "Pembelian buku dari penerbit",
+          "Pembelian stok buku dan alat tulis baru",
           "PENDING",
         ],
         [
           "KOP-01",
           "manager.koperasi.demo@alba.local",
-          "INC-ADM",
+          "INC-SETOR",
           "INCOME",
           900000,
-          "Pembayaran administrasi koperasi",
+          "Setoran kas dari penjualan buku dan admin koperasi",
           "APPROVED",
         ],
       ] as const;
@@ -554,9 +554,9 @@ export async function seedDemoData(prisma: PrismaClient) {
       await tx.notification.create({
         data: {
           userId: pimpinan.id,
-          title: "Data Demo Operasional Aktif",
+          title: "Demo Modul Operasional Siap",
           message:
-            "Data contoh empat unit sudah siap untuk latihan input transaksi, persetujuan, dan rekonsiliasi.",
+            "Data demo sekarang mengikuti alur aplikasi saat ini: input transaksi, persetujuan khusus, rekonsiliasi unit, dan laporan setoran ke pimpinan.",
           type: "INFO",
         },
       });
@@ -565,7 +565,7 @@ export async function seedDemoData(prisma: PrismaClient) {
 
       return {
         message:
-          "Data demo operasional empat unit berhasil dibuat untuk transaksi, approval, dan rekonsiliasi.",
+          "Data demo berhasil disesuaikan dengan modul operasional saat ini: transaksi harian, persetujuan khusus, inventory retail, dan rekonsiliasi unit.",
         units: UNITS.map((unit) => unit.name),
         demoPassword: DEMO_PASSWORD,
       };
