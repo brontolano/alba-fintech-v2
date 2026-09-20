@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
+  Monitor,
   Receipt,
   ClipboardList,
   LayoutGrid,
@@ -55,13 +56,13 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
   },
   {
-    label: "Input Data",
-    href: "/dashboard/transactions",
-    icon: <Receipt size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+    label: "Papan Pantau",
+    href: "/dashboard/monitor",
+    icon: <Monitor size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN"],
   },
   {
-    label: "Transaksi Berjalan",
+    label: "Buku Kas",
     href: "/dashboard/transactions",
     icon: <Receipt size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
@@ -70,19 +71,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Pengajuan Khusus",
     href: "/dashboard/approvals",
     icon: <ClipboardList size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN"],
-  },
-  {
-    label: "Unit",
-    href: "/dashboard/units",
-    icon: <LayoutGrid size={20} />,
-    roles: ["SUPERADMIN"],
-  },
-  {
-    label: "Pengguna",
-    href: "/dashboard/users",
-    icon: <Users size={20} />,
-    roles: ["SUPERADMIN"],
+    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
   },
   {
     label: "Tabungan Santri",
@@ -120,6 +109,18 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/reconciliation",
     icon: <Clock size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
+  },
+  {
+    label: "Unit",
+    href: "/dashboard/units",
+    icon: <LayoutGrid size={20} />,
+    roles: ["SUPERADMIN"],
+  },
+  {
+    label: "Pengguna",
+    href: "/dashboard/users",
+    icon: <Users size={20} />,
+    roles: ["SUPERADMIN"],
   },
   {
     label: "Pengaturan",

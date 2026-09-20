@@ -5,9 +5,11 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   CreditCard,
+  ExternalLink,
   Search,
   UserPlus,
 } from "lucide-react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 
@@ -136,14 +138,23 @@ export default function SavingsPage() {
             pendaftaran, HER/SPP, serta keuangan internal.
           </p>
         </div>
-        {session?.user?.role !== "STAFF" && (
-          <button
-            onClick={() => setShowRegister((value) => !value)}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/kiosk"
+            target="_blank"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
           >
-            <UserPlus size={16} /> Santri Baru
-          </button>
-        )}
+            <ExternalLink size={16} /> Buka Anjungan Santri
+          </Link>
+          {session?.user?.role !== "STAFF" && (
+            <button
+              onClick={() => setShowRegister((value) => !value)}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+            >
+              <UserPlus size={16} /> Santri Baru
+            </button>
+          )}
+        </div>
       </div>
 
       {showRegister && (

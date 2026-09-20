@@ -11,6 +11,7 @@ import {
   ClipboardList,
   BarChart3,
   Clock,
+  Monitor,
 } from "lucide-react";
 import { useDashboardData } from "@/components/dashboard/useDashboardData";
 import { useLiveTransactions } from "@/components/dashboard/useLiveTransactions";
@@ -84,8 +85,14 @@ export default function PimpinanDashboard() {
           {
             href: "/dashboard/transactions/create",
             icon: Receipt,
-            label: "Input Data",
+            label: "Buku Kas",
             color: "islamic",
+          },
+          {
+            href: "/dashboard/monitor",
+            icon: Monitor,
+            label: "Papan Pantau",
+            color: "blue",
           },
           {
             href: "/dashboard/transactions",

@@ -296,6 +296,29 @@ export async function GET(request: NextRequest) {
       netToday: todayIncome - todayExpense,
     });
 
+    // Saldo berjalan untuk format Buku Kas: hitung dari seluruh transaksi
+    // dalam lingkup filter (urut tanggal naik). INCOME menambah kas, EXPENSE
+    // mengurangi; TRANSFER & REJECTED tidak memengaruhi saldo (konsisten
+    // dengan netBalance pada summary).
+    const ledgerForBalance = await prisma.transaction.findMany({
+      where,
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        status: true,
+      },
+      orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+    });
+    let running = 0;
+    const balanceAfter = new Map<string, number>();
+    for (const tx of ledgerForBalance) {
+      if (tx.status === "REJECTED") continue;
+      if (tx.type === "INCOME") running += Number(tx.amount || 0);
+      else if (tx.type === "EXPENSE") running -= Number(tx.amount || 0);
+      balanceAfter.set(tx.id, running);
+    }
+
     // Transform data to match frontend expectations
     const transformedTransactions = transactions.map((tx) => ({
       ...tx,
@@ -303,6 +326,7 @@ export async function GET(request: NextRequest) {
       accountName: tx.bank_accounts?.name,
       categoryName: tx.financial_categories?.name,
       createdByName: tx.users_transactions_createdByIdTousers?.name,
+      balanceAfter: balanceAfter.get(tx.id) ?? 0,
     }));
 
     return NextResponse.json(
@@ -481,7 +505,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (!targetUnit) {
-      return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Unit tidak ditemukan" },
+        { status: 400 },
+      );
     }
 
     if (role === "PIMPINAN" && !isLembagaScope) {

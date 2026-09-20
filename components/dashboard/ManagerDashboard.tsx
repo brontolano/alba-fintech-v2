@@ -83,7 +83,7 @@ export default function ManagerDashboard() {
           {
             href: "/dashboard/transactions/create",
             icon: Receipt,
-            label: "Input Data",
+            label: "Buku Kas",
             color: "islamic",
           },
           {

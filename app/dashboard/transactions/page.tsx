@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import {
   Search,
   Eye,
@@ -12,9 +12,6 @@ import {
   ChevronRight,
   Edit,
   ChevronDown,
-  TrendingUp,
-  TrendingDown,
-  ArrowLeftRight,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -43,6 +40,7 @@ interface Transaction {
   reference?: string;
   createdByName?: string;
   createdAt: string;
+  balanceAfter?: number;
 }
 
 interface Unit {
@@ -105,6 +103,17 @@ export default function TransactionsPage() {
     netBalance: 0,
   });
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // State Buku Kas: form input cepat
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickSaving, setQuickSaving] = useState(false);
+  const [quick, setQuick] = useState({
+    type: "INCOME",
+    amount: "",
+    description: "",
+    categoryId: "",
+    unitId: "",
+    date: "",
+  });
   const limit = 10;
 
   // Set default unit filter for MANAGER/STAFF
@@ -268,24 +277,69 @@ export default function TransactionsPage() {
       minimumFractionDigits: 0,
     }).format(amount);
 
-  const typeMeta = (type: Transaction["type"]) => {
-    if (type === "INCOME")
-      return {
-        icon: <TrendingUp size={16} />,
-        tone: "income" as const,
-        sign: "+",
-      };
-    if (type === "EXPENSE")
-      return {
-        icon: <TrendingDown size={16} />,
-        tone: "expense" as const,
-        sign: "−",
-      };
-    return {
-      icon: <ArrowLeftRight size={16} />,
-      tone: "transfer" as const,
-      sign: "",
+  const openQuickForm = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    setQuick({
+      type: "INCOME",
+      amount: "",
+      description: "",
+      categoryId: "",
+      unitId: session?.user?.unitId || filters.unitId || "",
+      date: `${year}-${month}-${day}`,
+    });
+    setQuickOpen((prev) => !prev);
+  };
+
+  const submitQuick = async () => {
+    const amount = Number(quick.amount);
+    if (!amount || amount <= 0) {
+      toast.error("Jumlah harus diisi");
+      return;
+    }
+    if (!quick.description.trim()) {
+      toast.error("Keterangan wajib diisi");
+      return;
+    }
+    const isUnitBounded =
+      session?.user?.role === "MANAGER" || session?.user?.role === "STAFF";
+    const payload: Record<string, unknown> = {
+      type: quick.type,
+      amount,
+      description: quick.description.trim(),
+      categoryId: quick.categoryId || undefined,
+      date: quick.date || undefined,
     };
+    if (!isUnitBounded) {
+      if (!quick.unitId) {
+        toast.error("Unit wajib dipilih");
+        return;
+      }
+      payload.unitId = quick.unitId;
+    }
+
+    setQuickSaving(true);
+    try {
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Gagal mencatat transaksi");
+      }
+      toast.success("Transaksi tercatat");
+      setQuickOpen(false);
+      setCurrentPage(1);
+      fetchTransactions();
+    } catch (err: any) {
+      toast.error(err.message || "Gagal mencatat transaksi");
+    } finally {
+      setQuickSaving(false);
+    }
   };
 
   const hasFilter = Object.values(filters).some(
@@ -299,7 +353,7 @@ export default function TransactionsPage() {
       tone: "emerald",
     },
     {
-      label: "Saldo berjalan",
+      label: "Saldo terakhir",
       value: formatCurrency(summary.netBalance),
       tone: "amber",
     },
@@ -315,22 +369,173 @@ export default function TransactionsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[2rem] font-bold tracking-[-0.04em] text-foreground">
-            Transaksi Operasional
+            Buku Kas {units.find((u) => u.id === filters.unitId)?.name ? `· ${units.find((u) => u.id === filters.unitId)?.name}` : ""}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Input data, pantau transaksi berjalan, lalu rekonsiliasi dan
-            laporkan ke pimpinan.
+            Format <span className="font-medium text-foreground">Tanggal · Keterangan · Debet · Kredit · Saldo</span> —
+            catat pemasukan &amp; pengeluaran, saldo berjalan otomatis dihitung.
           </p>
         </div>
 
-        <Link
-          href="/dashboard/transactions/create"
-          className="inline-flex h-[46px] items-center justify-center gap-2 self-start rounded-full bg-[#1bb0a6] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#17a199] active:scale-[0.99]"
-        >
-          <Plus size={18} />
-          <span>Input Data</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={openQuickForm}
+            className="inline-flex h-[46px] items-center justify-center gap-2 self-start rounded-full border border-[#1bb0a6] px-5 text-sm font-semibold text-[#1bb0a6] transition hover:bg-[#eafaf7] active:scale-[0.99] dark:hover:bg-emerald-500/10"
+          >
+            <Plus size={18} />
+            <span>{quickOpen ? "Tutup" : "Catat cepat"}</span>
+          </button>
+          <Link
+            href="/dashboard/transactions/create"
+            className="inline-flex h-[46px] items-center justify-center gap-2 self-start rounded-full bg-[#1bb0a6] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#17a199] active:scale-[0.99]"
+          >
+            <Plus size={18} />
+            <span>Input Data</span>
+          </Link>
+        </div>
       </div>
+
+      {quickOpen && (
+        <div className="rounded-[24px] border border-[#1bb0a6]/40 bg-gradient-to-r from-teal-50 via-white to-emerald-50 p-4 shadow-sm dark:border-emerald-500/30 dark:from-emerald-500/10 dark:via-card dark:to-teal-500/10">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1bb0a6] text-white">
+              <Plus size={16} />
+            </span>
+            <div>
+              <div className="text-sm font-bold text-foreground">
+                Catat Cepat
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                Pemasukan atau pengeluaran hari ini tanpa buka halaman baru
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              <div className="flex rounded-full border border-[#e5e7eb] bg-white p-1 dark:border-border dark:bg-card">
+                {[
+                  { id: "INCOME", label: "Pemasukan" },
+                  { id: "EXPENSE", label: "Pengeluaran" },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() =>
+                      setQuick((prev) => ({ ...prev, type: opt.id }))
+                    }
+                    className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition ${
+                      quick.type === opt.id
+                        ? "bg-[#1bb0a6] text-white"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="Jumlah (Rp)"
+                value={quick.amount}
+                onChange={(e) =>
+                  setQuick((prev) => ({ ...prev, amount: e.target.value }))
+                }
+                className="h-[42px] w-full rounded-full border border-[#e5e7eb] bg-white px-4 text-[15px] text-slate-700 outline-none transition focus:border-[#1bb0a6] dark:border-border dark:bg-card dark:text-foreground"
+              />
+
+              <input
+                type="text"
+                placeholder="Keterangan, mis. Beli buku tulis"
+                value={quick.description}
+                onChange={(e) =>
+                  setQuick((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                className="sm:col-span-2 h-[42px] w-full rounded-full border border-[#e5e7eb] bg-white px-4 text-[15px] text-slate-700 outline-none transition focus:border-[#1bb0a6] dark:border-border dark:bg-card dark:text-foreground"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              <div className="relative">
+                <select
+                  value={quick.categoryId}
+                  onChange={(e) =>
+                    setQuick((prev) => ({
+                      ...prev,
+                      categoryId: e.target.value,
+                    }))
+                  }
+                  className="h-[42px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-white px-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-[#1bb0a6] dark:border-border dark:bg-card dark:text-foreground"
+                  aria-label="Kategori"
+                >
+                  <option value="">Kategori (opsional)</option>
+                  {categories
+                    .filter((c) => !quick.type || c.type === quick.type)
+                    .map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                </select>
+                <ChevronDown
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  size={16}
+                />
+              </div>
+
+              <div className="relative">
+                <select
+                  value={quick.unitId}
+                  onChange={(e) =>
+                    setQuick((prev) => ({ ...prev, unitId: e.target.value }))
+                  }
+                  disabled={
+                    session?.user?.role === "MANAGER" ||
+                    session?.user?.role === "STAFF"
+                  }
+                  className="h-[42px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-white px-4 pr-9 text-sm text-slate-700 outline-none transition focus:border-[#1bb0a6] disabled:bg-muted disabled:text-muted-foreground dark:border-border dark:bg-card dark:text-foreground"
+                  aria-label="Unit"
+                >
+                  <option value="">Pilih unit</option>
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  size={16}
+                />
+              </div>
+
+              <input
+                type="date"
+                value={quick.date}
+                onChange={(e) =>
+                  setQuick((prev) => ({ ...prev, date: e.target.value }))
+                }
+                className="h-[42px] w-full rounded-full border border-[#e5e7eb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#1bb0a6] dark:border-border dark:bg-card dark:text-foreground"
+              />
+
+              <button
+                type="button"
+                onClick={submitQuick}
+                disabled={quickSaving}
+                className="flex h-[42px] w-full items-center justify-center gap-1.5 rounded-full bg-[#1bb0a6] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#17a199] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {quickSaving ? "Menyimpan..." : "Simpan ke buku"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-[24px] border border-emerald-200/80 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-4 shadow-[0_10px_35px_rgba(16,185,129,0.08)] dark:border-emerald-500/20 dark:from-emerald-500/10 dark:via-card dark:to-cyan-500/10">
         <div className="flex flex-wrap gap-2">
@@ -574,137 +779,166 @@ export default function TransactionsPage() {
           Tidak ada transaksi ditemukan
         </div>
       ) : (
-        <div className="space-y-3">
-          {transactions.map((tx) => {
-            const meta = typeMeta(tx.type);
-            const isExpanded = expandedId === tx.id;
-            const title = tx.description || tx.reference || "(tanpa deskripsi)";
-            const subtitle = `${new Date(tx.date).toLocaleDateString("id-ID", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })} · ${tx.unitName || "-"}${tx.reference ? ` · Ref ${tx.reference}` : ""}`;
+        <div className="overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.03)] dark:border-border dark:bg-card">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[780px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-[#eef1f4] bg-[#f8fafc] text-[10px] uppercase tracking-[0.12em] text-muted-foreground dark:border-border dark:bg-muted/50">
+                  <th className="px-4 py-3 text-left font-semibold">No</th>
+                  <th className="px-3 py-3 text-left font-semibold">Tanggal</th>
+                  <th className="px-3 py-3 text-left font-semibold">Keterangan</th>
+                  <th className="px-3 py-3 text-right font-semibold">Debet (Rp)</th>
+                  <th className="px-3 py-3 text-right font-semibold">Kredit (Rp)</th>
+                  <th className="px-3 py-3 text-right font-semibold">Saldo (Rp)</th>
+                  <th className="w-12 px-3 py-3 text-right" />
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map((tx, idx) => {
+                  const isExpanded = expandedId === tx.id;
+                  const title =
+                    tx.description || tx.reference || "(tanpa deskripsi)";
+                  const detail = [
+                    tx.categoryName || "-",
+                    tx.reference ? `Ref ${tx.reference}` : null,
+                    tx.createdByName ? `oleh ${tx.createdByName}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ");
 
-            return (
-              <div
-                key={tx.id}
-                className="rounded-[22px] border border-[#e5e7eb] bg-white px-2.5 py-2.5 shadow-[0_10px_30px_rgba(15,23,42,0.03)] transition hover:border-emerald-200 hover:shadow-[0_14px_30px_rgba(16,185,129,0.08)] dark:border-border dark:bg-card dark:hover:border-emerald-500/30"
-              >
-                <div className="flex items-start gap-2.5 sm:gap-3">
-                  <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full sm:h-11 sm:w-11 ${
-                      meta.tone === "income"
-                        ? "bg-[#dffaf2] text-[#1bb0a6]"
-                        : meta.tone === "expense"
-                          ? "bg-[#ffe7e5] text-[#e35d52]"
-                          : "bg-[#e6f0ff] text-[#4a7ae6]"
-                    }`}
-                  >
-                    {meta.icon}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] font-semibold text-foreground sm:text-[15px]">
-                          {title}
-                        </p>
-                        <p className="mt-0.5 text-[10px] text-muted-foreground sm:text-[11px]">
-                          {subtitle}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1.5">
-                        <p
-                          className={`text-[14px] font-semibold sm:text-[15px] ${
-                            meta.tone === "income"
-                              ? "text-[#1bb0a6]"
-                              : meta.tone === "expense"
-                                ? "text-[#e35d52]"
-                                : "text-[#3b82f6]"
-                          }`}
-                        >
-                          {meta.sign}
-                          {formatCurrency(tx.amount)}
-                        </p>
-                        <StatusPill status={tx.status} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setExpandedId(isExpanded ? null : tx.id)}
-                    className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f3f4f6] text-[#64748b] transition hover:bg-[#e7ebef] dark:bg-muted dark:text-foreground dark:hover:bg-slate-700 sm:h-9 sm:w-9"
-                    aria-label="Lihat detail"
-                  >
-                    <ChevronDown
-                      size={16}
-                      className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                </div>
-
-                {isExpanded && (
-                  <div className="mt-3 border-t border-[#eef1f4] pt-3">
-                    <div className="grid gap-2 text-[12px] sm:grid-cols-2">
-                      <div className="rounded-xl bg-[#f8fafc] px-2.5 py-2">
-                        <div className="text-muted-foreground">Kategori</div>
-                        <div className="mt-1 font-medium text-foreground">
-                          {tx.categoryName || "-"}
-                        </div>
-                      </div>
-                      <div className="rounded-xl bg-[#f8fafc] px-2.5 py-2">
-                        <div className="text-muted-foreground">Referensi</div>
-                        <div className="mt-1 font-medium text-foreground">
-                          {tx.reference || "-"}
-                        </div>
-                      </div>
-                      <div className="rounded-xl bg-[#f8fafc] px-2.5 py-2 sm:col-span-2">
-                        <div className="text-muted-foreground">Keterangan</div>
-                        <div className="mt-1 font-medium text-foreground">
-                          {tx.description || "-"}
-                        </div>
-                      </div>
-                      <div className="rounded-xl bg-[#f8fafc] px-2.5 py-2">
-                        <div className="text-muted-foreground">Dibuat oleh</div>
-                        <div className="mt-1 font-medium text-foreground">
-                          {tx.createdByName || "-"}
-                        </div>
-                      </div>
-                      <div className="rounded-xl bg-[#f8fafc] px-2.5 py-2">
-                        <div className="text-muted-foreground">Unit</div>
-                        <div className="mt-1 font-medium text-foreground">
-                          {tx.unitName || "-"}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      <Link
-                        href={`/dashboard/transactions/${tx.id}/edit`}
-                        className="flex h-9 items-center justify-center gap-1 rounded-full bg-[#f3f4f6] text-[11px] font-medium text-slate-700 transition hover:bg-[#e7ebef] dark:bg-muted dark:text-foreground dark:hover:bg-slate-700 sm:text-sm"
+                  return (
+                    <Fragment key={tx.id}>
+                      <tr
+                        onClick={() =>
+                          setExpandedId(isExpanded ? null : tx.id)
+                        }
+                        className="cursor-pointer border-b border-[#f1f5f9] transition hover:bg-[#fafcfd] dark:border-border dark:hover:bg-muted/40"
                       >
-                        <Edit size={13} /> Edit
-                      </Link>
-                      <Link
-                        href={`/dashboard/transactions/${tx.id}`}
-                        className="flex h-9 items-center justify-center gap-1 rounded-full bg-[#f3f4f6] text-[11px] font-medium text-slate-700 transition hover:bg-[#e7ebef] dark:bg-muted dark:text-foreground dark:hover:bg-slate-700 sm:text-sm"
-                      >
-                        <Eye size={13} /> Detail
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(tx.id)}
-                        className="flex h-9 items-center justify-center gap-1 rounded-full bg-[#fdecec] px-2 text-[11px] font-medium text-[#d14d4d] transition hover:bg-[#fbdede] sm:text-sm"
-                      >
-                        <Trash2 size={13} /> Hapus
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {(currentPage - 1) * limit + idx + 1}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-[13px] text-foreground">
+                          {new Date(tx.date).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="min-w-[220px] px-3 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="max-w-[240px] truncate text-[13px] font-semibold text-foreground">
+                              {title}
+                            </span>
+                            <StatusPill status={tx.status} />
+                          </div>
+                          <div className="mt-0.5 max-w-[260px] truncate text-[11px] text-muted-foreground">
+                            {tx.unitName || "Tanpa Unit"}
+                            {detail ? ` · ${detail}` : ""}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-right">
+                          {tx.type === "INCOME" ? (
+                            <span className="font-semibold text-[#1bb0a6]">
+                              {formatCurrency(tx.amount)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-right">
+                          {tx.type === "EXPENSE" ? (
+                            <span className="font-semibold text-[#e35d52]">
+                              {formatCurrency(tx.amount)}
+                            </span>
+                          ) : tx.type === "TRANSFER" ? (
+                            <span className="font-semibold text-[#3b82f6]">
+                              {formatCurrency(tx.amount)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-right font-semibold text-foreground">
+                          {formatCurrency(tx.balanceAfter ?? 0)}
+                        </td>
+                        <td className="px-3 py-3 text-right">
+                          <ChevronDown
+                            size={16}
+                            className={`ml-auto text-muted-foreground transition-transform ${
+                              isExpanded ? "rotate-180" : ""
+                            }`}
+                          />
+                        </td>
+                      </tr>
+
+                      {isExpanded && (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="border-b border-[#eef1f4] bg-[#fafcfd] px-4 py-3 dark:border-border dark:bg-muted/20"
+                          >
+                            <div className="grid gap-2 text-[12px] sm:grid-cols-2">
+                              <div className="rounded-xl bg-white px-2.5 py-2 shadow-sm dark:bg-card">
+                                <div className="text-muted-foreground">Kategori</div>
+                                <div className="mt-1 font-medium text-foreground">
+                                  {tx.categoryName || "-"}
+                                </div>
+                              </div>
+                              <div className="rounded-xl bg-white px-2.5 py-2 shadow-sm dark:bg-card">
+                                <div className="text-muted-foreground">Referensi</div>
+                                <div className="mt-1 font-medium text-foreground">
+                                  {tx.reference || "-"}
+                                </div>
+                              </div>
+                              <div className="rounded-xl bg-white px-2.5 py-2 shadow-sm dark:bg-card sm:col-span-2">
+                                <div className="text-muted-foreground">Keterangan</div>
+                                <div className="mt-1 font-medium text-foreground">
+                                  {tx.description || "-"}
+                                </div>
+                              </div>
+                              <div className="rounded-xl bg-white px-2.5 py-2 shadow-sm dark:bg-card">
+                                <div className="text-muted-foreground">Dibuat oleh</div>
+                                <div className="mt-1 font-medium text-foreground">
+                                  {tx.createdByName || "-"}
+                                </div>
+                              </div>
+                              <div className="rounded-xl bg-white px-2.5 py-2 shadow-sm dark:bg-card">
+                                <div className="text-muted-foreground">Unit</div>
+                                <div className="mt-1 font-medium text-foreground">
+                                  {tx.unitName || "-"}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 grid grid-cols-3 gap-2">
+                              <Link
+                                href={`/dashboard/transactions/${tx.id}/edit`}
+                                className="flex h-9 items-center justify-center gap-1 rounded-full bg-white text-[11px] font-medium text-slate-700 shadow-sm transition hover:bg-[#f3f4f6] dark:bg-card dark:text-foreground dark:hover:bg-muted sm:text-sm"
+                              >
+                                <Edit size={13} /> Edit
+                              </Link>
+                              <Link
+                                href={`/dashboard/transactions/${tx.id}`}
+                                className="flex h-9 items-center justify-center gap-1 rounded-full bg-white text-[11px] font-medium text-slate-700 shadow-sm transition hover:bg-[#f3f4f6] dark:bg-card dark:text-foreground dark:hover:bg-muted sm:text-sm"
+                              >
+                                <Eye size={13} /> Detail
+                              </Link>
+                              <button
+                                onClick={() => handleDelete(tx.id)}
+                                className="flex h-9 items-center justify-center gap-1 rounded-full bg-[#fdecec] px-2 text-[11px] font-medium text-[#d14d4d] transition hover:bg-[#fbdede] sm:text-sm"
+                              >
+                                <Trash2 size={13} /> Hapus
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
