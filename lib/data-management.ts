@@ -109,6 +109,53 @@ const INVENTORY = [
   ["KOP-01", "Pensil 2B", "DEMO-P2B-KOP01", "Alat Tulis", 200, 30, 3000, 1500],
 ];
 
+const SAVINGS = [
+  {
+    studentNumber: "DEMO-S-1001",
+    name: "Muhammad Rizki (Demo)",
+    className: "X-A",
+    cardUid: "DEMO-CARD-001",
+    transactions: [
+      ["DEPOSIT", 100000, 12],
+      ["DEPOSIT", 150000, 7],
+      ["WITHDRAWAL", 50000, 3],
+      ["DEPOSIT", 100000, 1],
+    ],
+  },
+  {
+    studentNumber: "DEMO-S-1002",
+    name: "Ahmad Fauzi (Demo)",
+    className: "XI-B",
+    cardUid: "DEMO-CARD-002",
+    transactions: [
+      ["DEPOSIT", 250000, 12],
+      ["DEPOSIT", 100000, 5],
+      ["WITHDRAWAL", 75000, 2],
+    ],
+  },
+  {
+    studentNumber: "DEMO-S-1003",
+    name: "Siti Nurhaliza (Demo)",
+    className: "X-C",
+    cardUid: "DEMO-CARD-003",
+    transactions: [
+      ["DEPOSIT", 50000, 10],
+      ["DEPOSIT", 50000, 6],
+      ["DEPOSIT", 100000, 1],
+    ],
+  },
+  {
+    studentNumber: "DEMO-S-1004",
+    name: "Fatimah Azzahra (Demo)",
+    className: "XII-A",
+    cardUid: "DEMO-CARD-004",
+    transactions: [
+      ["DEPOSIT", 300000, 15],
+      ["WITHDRAWAL", 100000, 4],
+    ],
+  },
+] as const;
+
 const DATA_MODELS = [
   "notification",
   "broadcastRecipient",
@@ -118,6 +165,9 @@ const DATA_MODELS = [
   "financialNote",
   "broadcastMessage",
   "inventoryItem",
+  "savingsTransaction",
+  "savingsAccount",
+  "student",
   "bankAccount",
   "audit_logs",
   "push_subscriptions",
@@ -237,6 +287,9 @@ export async function createServerBackup(prisma: PrismaClient) {
 }
 
 async function clearAllData(tx: any, preserveSuperadmins: boolean) {
+  await tx.savingsTransaction.deleteMany({});
+  await tx.savingsAccount.deleteMany({});
+  await tx.student.deleteMany({});
   await tx.notification.deleteMany({});
   await tx.broadcastRecipient.deleteMany({});
   await tx.approval.deleteMany({});
@@ -551,12 +604,64 @@ export async function seedDemoData(prisma: PrismaClient) {
         });
       }
 
+      const kpakUnit = units.get("KPK-01");
+      const kpakCreator = users.get("manager.kpak.demo@alba.local");
+      for (const studentData of SAVINGS) {
+        const student = await tx.student.create({
+          data: {
+            studentNumber: studentData.studentNumber,
+            name: studentData.name,
+            className: studentData.className,
+            cardUid: studentData.cardUid,
+            lembagaId: lembaga.id,
+            unitId: kpakUnit.id,
+          },
+        });
+        let balance = 0;
+        const savingsAccount = await tx.savingsAccount.create({
+          data: {
+            studentId: student.id,
+            unitId: kpakUnit.id,
+            balance: 0,
+          },
+        });
+        for (const [type, amount, days] of studentData.transactions) {
+          const before = balance;
+          balance = type === "DEPOSIT" ? balance + amount : balance - amount;
+          await tx.savingsTransaction.create({
+            data: {
+              accountId: savingsAccount.id,
+              unitId: kpakUnit.id,
+              type,
+              amount,
+              balanceBefore: before,
+              balanceAfter: balance,
+              reference: `DEMO-${
+                type === "DEPOSIT" ? "SETORAN" : "PENARIKAN"
+              }`,
+              description: `[DEMO] ${
+                type === "DEPOSIT"
+                  ? `Setoran tabungan ${studentData.name}`
+                  : `Penarikan tabungan ${studentData.name}`
+              }`,
+              cardUid: studentData.cardUid,
+              createdById: kpakCreator.id,
+              createdAt: dateDaysAgo(days),
+            },
+          });
+        }
+        await tx.savingsAccount.update({
+          where: { id: savingsAccount.id },
+          data: { balance },
+        });
+      }
+
       await tx.notification.create({
         data: {
           userId: pimpinan.id,
           title: "Demo Modul Operasional Siap",
           message:
-            "Data demo sekarang mengikuti alur aplikasi saat ini: input transaksi, persetujuan khusus, rekonsiliasi unit, dan laporan setoran ke pimpinan.",
+            "Data demo lengkap mengikuti alur aplikasi saat ini: transaksi harian, persetujuan, rekonsiliasi unit, laporan, tabungan santri untuk anjungan, dan papan pantau.",
           type: "INFO",
         },
       });
@@ -565,7 +670,7 @@ export async function seedDemoData(prisma: PrismaClient) {
 
       return {
         message:
-          "Data demo berhasil disesuaikan dengan modul operasional saat ini: transaksi harian, persetujuan khusus, inventory retail, dan rekonsiliasi unit.",
+          "Data demo berhasil dibuat: transaksi harian, persetujuan khusus, inventory retail, rekonsiliasi unit, tabungan santri untuk kiosk, dan papan pantau.",
         units: UNITS.map((unit) => unit.name),
         demoPassword: DEMO_PASSWORD,
       };
@@ -603,6 +708,9 @@ export async function importDatabase(prisma: PrismaClient, payload: any) {
         "bankAccount",
         "inventoryItem",
         "systemSetting",
+        "student",
+        "savingsAccount",
+        "savingsTransaction",
         "transaction",
         "orderItem",
         "approval",

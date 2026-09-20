@@ -727,8 +727,9 @@ export default function SettingsPage() {
                         </div>
                         <p className="text-sm text-amber-800">
                           Isi ulang contoh operasional KPAK, Kantin Baru, Kantin
-                          Umi, dan Koperasi Buku untuk transaksi, approval, dan
-                          rekonsiliasi. Cocok untuk demo user testing.
+                          Umi, dan Koperasi Buku untuk transaksi, approval,
+                          rekonsiliasi, tabungan santri (anjungan/kiosk), dan
+                          papan pantau. Cocok untuk demo user testing.
                         </p>
                       </div>
                     </div>
