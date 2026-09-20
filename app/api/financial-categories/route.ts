@@ -11,6 +11,7 @@ const createCategorySchema = z.object({
   description: z.string().optional(),
   parentId: z.string().optional(),
   lembagaId: z.string().nullable().optional(),
+  unitId: z.string().nullable().optional(),
   isActive: z.boolean().default(true),
 });
 
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type");
+    const unitId = searchParams.get("unitId");
 
     const where: any = {};
 
@@ -41,6 +43,16 @@ export async function GET(request: NextRequest) {
         { lembagaId: lembagaId },
         { lembagaId: null }, // global categories
       ];
+    }
+
+    if (unitId) {
+      where.AND = [
+        where.OR ? { OR: where.OR } : {},
+        { OR: [{ unitId }, { unitId: null }] },
+      ];
+      delete where.OR;
+    } else {
+      where.unitId = null;
     }
 
     if (type) {
@@ -70,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     const role = session.user.role;
-    if (role !== "SUPERADMIN") {
+    if (role !== "SUPERADMIN" && role !== "PIMPINAN" && role !== "MANAGER") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -83,6 +95,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const requestedUnitId = parsed.data.unitId ?? null;
+    const sessionUnitId = (session.user as any)?.unitId ?? null;
+    const sessionLembagaId = (session.user as any)?.lembagaId ?? null;
+
+    if (role === "MANAGER" && requestedUnitId !== sessionUnitId) {
+      return NextResponse.json(
+        { error: "Kategori harus milik unit Anda" },
+        { status: 403 },
+      );
+    }
+    if (role === "PIMPINAN" && requestedUnitId) {
+      const targetUnit = await prisma.unit.findFirst({
+        where: { id: requestedUnitId, lembagaId: sessionLembagaId },
+        select: { id: true },
+      });
+      if (!targetUnit) {
+        return NextResponse.json(
+          { error: "Unit di luar lembaga Anda" },
+          { status: 403 },
+        );
+      }
+    }
+
     const category = await prisma.financialCategory.create({
       data: {
         name: parsed.data.name,
@@ -91,7 +126,11 @@ export async function POST(request: NextRequest) {
         description: parsed.data.description,
         parentId: parsed.data.parentId,
         isActive: parsed.data.isActive,
-        lembagaId: parsed.data.lembagaId ?? session.user.lembagaId ?? null,
+        lembagaId:
+          role === "SUPERADMIN"
+            ? (parsed.data.lembagaId ?? sessionLembagaId)
+            : sessionLembagaId,
+        unitId: requestedUnitId,
       },
     });
 

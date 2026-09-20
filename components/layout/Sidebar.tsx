@@ -43,6 +43,7 @@ type NavItem = {
   href: string;
   icon: React.ReactNode;
   roles?: string[];
+  nonRetailOnly?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -77,6 +78,12 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["SUPERADMIN"],
   },
   {
+    label: "Kategori Keuangan",
+    href: "/dashboard/settings/categories",
+    icon: <Settings size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
+  },
+  {
     label: "Inventori",
     href: "/dashboard/inventory",
     icon: <Package size={20} />,
@@ -87,6 +94,13 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/pos",
     icon: <ShoppingCart size={20} />,
     roles: ["SUPERADMIN", "MANAGER", "STAFF"],
+  },
+  {
+    label: "Kas Unit",
+    href: "/dashboard/cash-unit",
+    icon: <Receipt size={20} />,
+    roles: ["MANAGER", "STAFF"],
+    nonRetailOnly: true,
   },
   {
     label: "Laporan",
@@ -137,6 +151,7 @@ export function Sidebar({
   const items = NAV_ITEMS.filter(
     (item) =>
       (!item.roles || item.roles.includes(role)) &&
+      (!item.nonRetailOnly || !canUseRetailModules) &&
       (canUseRetailModules ||
         (item.href !== "/dashboard/inventory" &&
           item.href !== "/dashboard/pos")),

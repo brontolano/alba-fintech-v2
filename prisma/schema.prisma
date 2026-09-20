@@ -26,24 +26,25 @@ model Lembaga {
 }
 
 model Unit {
-  id              String          @id @default(cuid()) @db.VarChar(36)
-  name            String          @db.VarChar(255)
-  code            String          @unique(map: "code") @db.VarChar(255)
-  description     String?         @db.Text
-  isActive        Boolean?        @default(true)
-  createdAt       DateTime?       @default(now()) @db.DateTime(0)
-  updatedAt       DateTime?       @default(now()) @updatedAt @db.DateTime(0)
-  lembagaId       String?         @db.VarChar(36)
-  isRetail        Boolean?        @default(false)
-  type            UnitType?       @default(KPAK)
-  parentId        String?         @db.VarChar(36)
-  approvals       Approval[]
-  bankAccounts    BankAccount[]
-  financial_notes FinancialNote[]
-  inventory_items InventoryItem[]
-  transactions    Transaction[]
-  lembaga         Lembaga?        @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "units_ibfk_1")
-  users           User[]
+  id                  String              @id @default(cuid()) @db.VarChar(36)
+  name                String              @db.VarChar(255)
+  code                String              @unique(map: "code") @db.VarChar(255)
+  description         String?             @db.Text
+  isActive            Boolean?            @default(true)
+  createdAt           DateTime?           @default(now()) @db.DateTime(0)
+  updatedAt           DateTime?           @default(now()) @updatedAt @db.DateTime(0)
+  lembagaId           String?             @db.VarChar(36)
+  isRetail            Boolean?            @default(false)
+  type                UnitType?           @default(KPAK)
+  parentId            String?             @db.VarChar(36)
+  approvals           Approval[]
+  bankAccounts        BankAccount[]
+  financial_notes     FinancialNote[]
+  financialCategories FinancialCategory[]
+  inventory_items     InventoryItem[]
+  transactions        Transaction[]
+  lembaga             Lembaga?            @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "units_ibfk_1")
+  users               User[]
 
   @@index([lembagaId], map: "lembagaId")
   @@map("units")
@@ -92,13 +93,16 @@ model FinancialCategory {
   createdAt                  DateTime?           @default(now()) @db.DateTime(0)
   updatedAt                  DateTime?           @default(now()) @updatedAt @db.DateTime(0)
   lembagaId                  String?             @db.VarChar(36)
+  unitId                     String?             @db.VarChar(36)
   financial_categories       FinancialCategory?  @relation("financial_categoriesTofinancial_categories", fields: [parentId], references: [id], onUpdate: Restrict, map: "financial_categories_ibfk_1")
   other_financial_categories FinancialCategory[] @relation("financial_categoriesTofinancial_categories")
   lembaga                    Lembaga?            @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "financial_categories_ibfk_2")
+  unit                       Unit?               @relation(fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "financial_categories_ibfk_3")
   financial_notes            FinancialNote[]
   transactions               Transaction[]
 
   @@index([lembagaId], map: "lembagaId")
+  @@index([unitId], map: "unitId")
   @@index([parentId], map: "parentId")
   @@map("financial_categories")
 }

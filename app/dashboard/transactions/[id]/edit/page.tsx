@@ -51,8 +51,6 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [unitSearch, setUnitSearch] = useState("");
-  const [categorySearch, setCategorySearch] = useState("");
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [form, setForm] = useState<EditForm>({
     type: "INCOME",
@@ -67,25 +65,6 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const filteredUnits = units.filter((unit) => {
-    const query = unitSearch.trim().toLowerCase();
-    return (
-      !query ||
-      unit.name.toLowerCase().includes(query) ||
-      unit.code.toLowerCase().includes(query) ||
-      unit.id === form.unitId
-    );
-  });
-  const filteredCategories = categories.filter((category) => {
-    const query = categorySearch.trim().toLowerCase();
-    return (
-      !query ||
-      category.name.toLowerCase().includes(query) ||
-      category.code.toLowerCase().includes(query) ||
-      category.id === form.categoryId
-    );
-  });
-
   useEffect(() => {
     const extractId = async () => {
       const p = await params;
@@ -96,14 +75,9 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
 
   const fetchData = async () => {
     try {
-      const [uRes, cRes] = await Promise.all([
-        fetch("/api/units"),
-        fetch("/api/financial-categories"),
-      ]);
+      const uRes = await fetch("/api/units");
       const uData = await uRes.json();
-      const cData = await cRes.json();
       setUnits(uData.data ?? []);
-      setCategories(cData.data ?? []);
       if (role && (role === "MANAGER" || role === "STAFF") && userUnitId) {
         setForm((prev) => ({ ...prev, unitId: userUnitId }));
       }
@@ -143,6 +117,14 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!form.unitId) return;
+    fetch(`/api/financial-categories?unitId=${encodeURIComponent(form.unitId)}`)
+      .then((res) => res.json())
+      .then((data) => setCategories(data.data ?? []))
+      .catch(() => setCategories([]));
+  }, [form.unitId]);
 
   useEffect(() => {
     if (transactionId) fetchTransaction(transactionId);
@@ -246,14 +228,6 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
             <label className="mb-1.5 block text-sm font-medium text-foreground">
               Unit
             </label>
-            <input
-              type="search"
-              value={unitSearch}
-              onChange={(e) => setUnitSearch(e.target.value)}
-              className="mb-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-              placeholder="Cari unit atau kode..."
-              aria-label="Cari unit"
-            />
             <select
               value={form.unitId}
               onChange={(e) =>
@@ -262,7 +236,7 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             >
               <option value="">Pilih unit</option>
-              {filteredUnits.map((u) => (
+              {units.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name} ({u.code})
                 </option>
@@ -273,14 +247,6 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
             <label className="mb-1.5 block text-sm font-medium text-foreground">
               Kategori
             </label>
-            <input
-              type="search"
-              value={categorySearch}
-              onChange={(e) => setCategorySearch(e.target.value)}
-              className="mb-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-              placeholder="Cari kategori atau kode..."
-              aria-label="Cari kategori"
-            />
             <select
               value={form.categoryId}
               onChange={(e) =>
@@ -289,7 +255,7 @@ function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
             >
               <option value="">Pilih kategori</option>
-              {filteredCategories.map((c) => (
+              {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} ({c.code})
                 </option>

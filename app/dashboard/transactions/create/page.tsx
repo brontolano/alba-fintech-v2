@@ -44,8 +44,6 @@ export default function CreateTransactionPage() {
 
   const [units, setUnits] = useState<Unit[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [unitSearch, setUnitSearch] = useState("");
-  const [categorySearch, setCategorySearch] = useState("");
   const [form, setForm] = useState<CreateForm>({
     type: "INCOME",
     amount: "",
@@ -59,27 +57,6 @@ export default function CreateTransactionPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
-
-  const filteredUnits = units.filter((unit) => {
-    const query = unitSearch.trim().toLowerCase();
-    return (
-      !query ||
-      unit.name.toLowerCase().includes(query) ||
-      unit.code.toLowerCase().includes(query) ||
-      unit.id === form.unitId
-    );
-  });
-  const filteredCategories = categories
-    .filter((category) => category.type === form.type)
-    .filter((category) => {
-      const query = categorySearch.trim().toLowerCase();
-      return (
-        !query ||
-        category.name.toLowerCase().includes(query) ||
-        category.code.toLowerCase().includes(query) ||
-        category.id === form.categoryId
-      );
-    });
 
   const fetchUnits = async () => {
     try {
@@ -97,9 +74,13 @@ export default function CreateTransactionPage() {
     }
   };
 
-  const fetchCategories = async () => {
+  const fetchCategories = async (unitId = form.unitId) => {
     try {
-      const res = await fetch("/api/financial-categories", {
+      const query =
+        unitId && unitId !== LEMBAGA_SENTINEL
+          ? `?unitId=${encodeURIComponent(unitId)}`
+          : "";
+      const res = await fetch(`/api/financial-categories${query}`, {
         headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
@@ -111,8 +92,12 @@ export default function CreateTransactionPage() {
 
   useEffect(() => {
     fetchUnits();
-    fetchCategories();
   }, []);
+
+  useEffect(() => {
+    fetchCategories(form.unitId);
+    setForm((prev) => ({ ...prev, categoryId: "" }));
+  }, [form.unitId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,17 +288,11 @@ export default function CreateTransactionPage() {
               <label className="mb-1 block text-sm font-medium text-foreground">
                 Unit
               </label>
-              <input
-                type="search"
-                value={unitSearch}
-                onChange={(e) => setUnitSearch(e.target.value)}
-                className="mb-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-                placeholder="Cari unit atau kode..."
-                aria-label="Cari unit"
-              />
               <select
                 value={form.unitId}
-                onChange={(e) => setForm({ ...form, unitId: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, unitId: e.target.value, categoryId: "" })
+                }
                 disabled={role === "MANAGER" || role === "STAFF"}
                 className={`w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10 ${
                   role === "MANAGER" || role === "STAFF"
@@ -328,7 +307,7 @@ export default function CreateTransactionPage() {
                   </option>
                 )}
                 <option value="">Pilih Unit</option>
-                {filteredUnits.map((unit) => (
+                {units.map((unit) => (
                   <option key={unit.id} value={unit.id}>
                     {unit.name} ({unit.code})
                   </option>
@@ -339,14 +318,6 @@ export default function CreateTransactionPage() {
               <label className="mb-1 block text-sm font-medium text-foreground">
                 Kategori
               </label>
-              <input
-                type="search"
-                value={categorySearch}
-                onChange={(e) => setCategorySearch(e.target.value)}
-                className="mb-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-                placeholder="Cari kategori atau kode..."
-                aria-label="Cari kategori"
-              />
               <select
                 value={form.categoryId}
                 onChange={(e) =>
@@ -355,11 +326,13 @@ export default function CreateTransactionPage() {
                 className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
               >
                 <option value="">Pilih Kategori</option>
-                {filteredCategories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name} ({category.code})
-                  </option>
-                ))}
+                {categories
+                  .filter((cat) => cat.type === form.type)
+                  .map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name} ({category.code})
+                    </option>
+                  ))}
               </select>
             </div>
           </div>

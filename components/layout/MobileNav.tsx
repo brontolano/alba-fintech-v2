@@ -73,6 +73,15 @@ export function MobileNav({ user }: MobileNavProps) {
       case "MANAGER":
         return [
           { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
+          ...(!canUseRetailModules
+            ? [
+                {
+                  label: "Kas",
+                  href: "/dashboard/cash-unit",
+                  icon: <Wallet size={24} />,
+                },
+              ]
+            : []),
           ...(canUseRetailModules
             ? [
                 {
@@ -100,6 +109,15 @@ export function MobileNav({ user }: MobileNavProps) {
       case "STAFF":
         return [
           { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
+          ...(!canUseRetailModules
+            ? [
+                {
+                  label: "Kas",
+                  href: "/dashboard/cash-unit",
+                  icon: <Wallet size={24} />,
+                },
+              ]
+            : []),
           ...(canUseRetailModules
             ? [
                 {
