@@ -193,6 +193,8 @@ model Transaction {
   createdById                            String             @db.VarChar(36)
   approvedById                           String?            @db.VarChar(36)
   approvedAt                             DateTime?          @db.DateTime(0)
+  isReconciled                            Boolean?           @default(false)
+  reconciledAt                            DateTime?          @db.DateTime(0)
   photoUrl                               String?            @db.VarChar(500)
   paymentMethod                          String?            @db.VarChar(50)
   isPimpinanNote                         Boolean?           @default(false)

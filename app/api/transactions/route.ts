@@ -470,8 +470,10 @@ export async function POST(request: NextRequest) {
       select: { requiresApproval: true, autoApproval: true },
     });
 
+    // Business rule: transaksi rutin unit tidak perlu approval pimpinan.
+    // Approval hanya dipakai untuk pengajuan khusus / kasus exception.
     const requiresApproval =
-      !isLembagaScope && (unitSettings?.requiresApproval ?? true);
+      !isLembagaScope && (unitSettings?.requiresApproval ?? false);
     const isFinalAuthority = role === "PIMPINAN" || role === "SUPERADMIN";
     const initialStatus =
       isFinalAuthority || !requiresApproval ? "APPROVED" : "PENDING";

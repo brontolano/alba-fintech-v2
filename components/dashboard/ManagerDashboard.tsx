@@ -7,7 +7,6 @@ import {
   Receipt,
   ShoppingCart,
   Send,
-  FileText,
   Package,
   BarChart3,
   Clock,
@@ -96,12 +95,6 @@ export default function ManagerDashboard() {
             label: "Transaksi",
             color: "islamic",
           },
-          {
-            href: "/dashboard/financial-notes",
-            icon: FileText,
-            label: "Catatan Keuangan",
-            color: "blue",
-          },
           ...(canUseRetailModules
             ? ([
                 {
@@ -133,6 +126,12 @@ export default function ManagerDashboard() {
             icon: Clock,
             label: "Rekonsiliasi",
             color: "accent",
+          },
+          {
+            href: "/dashboard/savings",
+            icon: Wallet,
+            label: "Tabungan Santri",
+            color: "islamic",
           },
         ]}
       />

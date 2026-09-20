@@ -74,8 +74,8 @@ async function main() {
       update: {
         posEnabled: unitData.isRetail,
         inventoryEnabled: unitData.isRetail,
-        autoApproval: false,
-        requiresApproval: unitData.name !== "KPAK",
+        autoApproval: true,
+        requiresApproval: false,
       },
       create: {
         unitId: unit.id,

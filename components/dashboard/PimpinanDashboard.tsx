@@ -7,7 +7,6 @@ import {
   Target,
   CheckCircle,
   Download,
-  FileText,
   Receipt,
   ClipboardList,
   BarChart3,
@@ -88,12 +87,6 @@ export default function PimpinanDashboard() {
             color: "islamic",
           },
           {
-            href: "/dashboard/financial-notes",
-            icon: FileText,
-            label: "Catatan Keuangan",
-            color: "blue",
-          },
-          {
             href: "/dashboard/approvals",
             icon: ClipboardList,
             label: "Persetujuan",
@@ -110,6 +103,12 @@ export default function PimpinanDashboard() {
             icon: Clock,
             label: "Rekonsiliasi",
             color: "accent",
+          },
+          {
+            href: "/dashboard/savings",
+            icon: Wallet,
+            label: "Tabungan Santri",
+            color: "islamic",
           },
         ]}
       />

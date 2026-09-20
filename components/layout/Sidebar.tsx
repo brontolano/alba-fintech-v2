@@ -55,13 +55,13 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
   },
   {
-    label: "Transaksi",
+    label: "Transaksi Operasional",
     href: "/dashboard/transactions",
     icon: <Receipt size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
   },
   {
-    label: "Persetujuan",
+    label: "Pengajuan Khusus",
     href: "/dashboard/approvals",
     icon: <ClipboardList size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN"],
@@ -77,12 +77,6 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/users",
     icon: <Users size={20} />,
     roles: ["SUPERADMIN"],
-  },
-  {
-    label: "Kategori Keuangan",
-    href: "/dashboard/settings/categories",
-    icon: <Settings size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
   },
   {
     label: "Tabungan Santri",
@@ -110,13 +104,13 @@ const NAV_ITEMS: NavItem[] = [
     nonRetailOnly: true,
   },
   {
-    label: "Laporan",
+    label: "Laporan Unit",
     href: "/dashboard/reports",
     icon: <BarChart3 size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
   },
   {
-    label: "Rekonsiliasi",
+    label: "Draft Rekonsiliasi",
     href: "/dashboard/reconciliation",
     icon: <Clock size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],

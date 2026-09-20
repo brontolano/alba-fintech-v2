@@ -30,7 +30,7 @@ export function MobileNav({ user }: MobileNavProps) {
     const base = [
       { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
       {
-        label: "Analytics",
+            label: "Laporan",
         href: "/dashboard/reports",
         icon: <BarChart2 size={24} />,
       },
@@ -143,7 +143,7 @@ export function MobileNav({ user }: MobileNavProps) {
               ]
             : []),
           {
-            label: "Wallet",
+            label: "Transaksi",
             href: "/dashboard/transactions",
             icon: <Wallet size={24} />,
           },

@@ -301,7 +301,7 @@ export async function seedDemoData(prisma: PrismaClient) {
             unitId: unit.id,
             posEnabled: unit.isRetail,
             inventoryEnabled: unit.isRetail,
-            requiresApproval: true,
+            requiresApproval: false,
           },
         });
       }

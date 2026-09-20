@@ -11,7 +11,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Receipt,
-  FileText,
   ClipboardList,
   Package,
   ShoppingCart,
@@ -89,12 +88,6 @@ export default function SuperadminDashboard() {
             icon: Receipt,
             label: "Transaksi",
             color: "islamic",
-          },
-          {
-            href: "/dashboard/financial-notes",
-            icon: FileText,
-            label: "Catatan Keuangan",
-            color: "blue",
           },
           {
             href: "/dashboard/approvals",

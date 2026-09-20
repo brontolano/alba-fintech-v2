@@ -6,19 +6,6 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
 
-interface FinancialNote {
-  id: string;
-  title: string;
-  description: string;
-  amount: number;
-  type: "INCOME" | "EXPENSE" | "TRANSFER";
-  date: string;
-  unitId: string | null;
-  unit: { id: string; name: string } | null;
-  isReconciled: boolean;
-  reconciledAt: string | null;
-}
-
 interface Unit {
   id: string;
   name: string;
@@ -30,10 +17,11 @@ interface Transaction {
   type: "INCOME" | "EXPENSE" | "TRANSFER";
   status: string;
   unitId: string | null;
+  isReconciled: boolean;
+  reconciledAt: string | null;
 }
 
 export default function ReconciliationPage() {
-  const [financialNotes, setFinancialNotes] = useState<FinancialNote[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,20 +33,6 @@ export default function ReconciliationPage() {
   const [cashOnHandInputs, setCashOnHandInputs] = useState<
     Record<string, string>
   >({});
-
-  const fetchFinancialNotes = async () => {
-    try {
-      const params = new URLSearchParams();
-      params.set("status", "APPROVED");
-
-      const res = await fetch(`/api/financial-notes?${params.toString()}`);
-      if (!res.ok) throw new Error("Gagal memuat catatan keuangan");
-      const data = await res.json();
-      setFinancialNotes(data.data ?? []);
-    } catch (err: any) {
-      toast.error(err.message || "Gagal memuat data rekonsiliasi");
-    }
-  };
 
   const fetchUnits = async () => {
     try {
@@ -91,11 +65,7 @@ export default function ReconciliationPage() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchFinancialNotes(),
-        fetchUnits(),
-        fetchTransactions(),
-      ]);
+      await Promise.all([fetchUnits(), fetchTransactions()]);
       setLoading(false);
     };
     fetchData();
@@ -132,44 +102,30 @@ export default function ReconciliationPage() {
     }
   };
 
-  /**
-   * Alur rekonsiliasi: bandingkan kas fisik (Cash On Hand, diinput manual)
-   * dengan saldo sistem (transaksi APPROVED pada tanggal terpilih) per unit.
-   * Catatan keuangan (financial notes) pada tanggal sama turut dihitung sebagai
-   * buku pendamping; selisih = cash fisik − saldo sistem.
-   */
+  // Saldo sistem hanya berasal dari transaksi approved pada tanggal terpilih.
   const reconciliationTasks = Array.from(
     new Set(
-      [
-        ...financialNotes.map((n) => n.unitId),
-        ...transactions.map((t) => t.unitId),
-      ].filter((id): id is string => Boolean(id)),
+      transactions.map((t) => t.unitId).filter((id): id is string => Boolean(id)),
     ),
   ).map((unitId) => {
-    const notesForUnit = financialNotes.filter((n) => n.unitId === unitId);
     const unit = units.find((u) => u.id === unitId);
-
-    const income = notesForUnit
-      .filter((n) => n.type === "INCOME")
-      .reduce((sum, n) => sum + Number(n.amount), 0);
-
-    const expense = notesForUnit
-      .filter((n) => n.type === "EXPENSE")
-      .reduce((sum, n) => sum + Number(n.amount), 0);
-
-    // Saldo sistem = transaksi APPROVED pada tanggal terpilih (server truth)
-    const approvedTxs = transactions.filter(
-      (t) => t.unitId === unitId && t.status === "APPROVED",
+    const approvedTxs = transactions.filter((t) =>
+      t.unitId === unitId && t.status === "APPROVED",
     );
+    const income = approvedTxs
+      .filter((t) => t.type === "INCOME")
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+    const expense = approvedTxs
+      .filter((t) => t.type === "EXPENSE")
+      .reduce((sum, t) => sum + Number(t.amount), 0);
     const systemBalance = approvedTxs.reduce((sum, t) => {
       if (t.type === "INCOME") return sum + Number(t.amount);
       if (t.type === "EXPENSE") return sum - Number(t.amount);
       return sum;
     }, 0);
 
-    const reconciledCount = notesForUnit.filter((n) => n.isReconciled).length;
     const status =
-      notesForUnit.length > 0 && reconciledCount === notesForUnit.length
+      approvedTxs.length > 0 && approvedTxs.every((t) => t.isReconciled)
         ? "RECONCILED"
         : "PENDING";
 
@@ -180,7 +136,6 @@ export default function ReconciliationPage() {
       id: unitId,
       date: filters.date,
       unit: unit?.name || "Unit Tidak Dikenal",
-      noteCount: notesForUnit.length,
       txCount: approvedTxs.length,
       income,
       expense,
@@ -188,7 +143,6 @@ export default function ReconciliationPage() {
       systemBalance,
       variance,
       status,
-      notes: notesForUnit,
     };
   });
 
@@ -229,39 +183,18 @@ export default function ReconciliationPage() {
     }
 
     try {
-      // Tandai semua catatan keuangan unit pada tanggal ini sebagai terekonsiliasi
-      const notesToReconcile = financialNotes.filter(
-        (n) => n.unitId === taskId && !n.isReconciled,
-      );
-
-      if (notesToReconcile.length === 0) {
-        toast.info(
-          "Tidak ada catatan keuangan yang perlu direkonsiliasi untuk unit ini",
-        );
-        return;
+      const response = await fetch("/api/reconciliation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unitId: taskId, date: filters.date }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Gagal menyimpan rekonsiliasi");
       }
 
-      const promises = notesToReconcile.map((note) =>
-        fetch(`/api/financial-notes/${note.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            isReconciled: true,
-            reconciledAt: new Date().toISOString(),
-          }),
-        }),
-      );
-
-      const results = await Promise.all(promises);
-      const failed = results.filter((res) => !res.ok);
-      if (failed.length > 0) {
-        throw new Error(`${failed.length} catatan gagal direkonsiliasi`);
-      }
-
-      toast.success("Rekonsiliasi unit berhasil diselesaikan");
-
-      // Refresh data
-      fetchFinancialNotes();
+      await fetchTransactions();
+      toast.success("Rekonsiliasi unit berhasil disimpan");
     } catch (err: any) {
       toast.error(err.message || "Gagal menyelesaikan rekonsiliasi");
     }
@@ -277,7 +210,6 @@ export default function ReconciliationPage() {
       [
         "Tanggal",
         "Unit",
-        "Catatan",
         "Transaksi",
         "Pemasukan",
         "Pengeluaran",
@@ -292,7 +224,6 @@ export default function ReconciliationPage() {
       rows.push([
         task.date,
         task.unit,
-        String(task.noteCount),
         String(task.txCount),
         String(task.income),
         String(task.expense),
