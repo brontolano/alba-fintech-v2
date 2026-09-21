@@ -62,7 +62,15 @@ interface UnitsResponse {
   data: Unit[];
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function InventoryPage() {
+  usePageGuard([], {
+    allow: (u) =>
+      u?.role === "SUPERADMIN" ||
+      (u?.unitIsRetail === true &&
+        (u.role === "MANAGER" || u.role === "STAFF")),
+  });
   const { data: session } = useSession();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -511,14 +519,17 @@ export default function InventoryPage() {
                       >
                         <Edit size={15} />
                       </Link>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-rose-50 hover:text-rose-600"
-                        title="Hapus"
-                        aria-label={`Hapus ${item.name}`}
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      {session?.user?.role === "SUPERADMIN" ||
+                      session?.user?.role === "MANAGER" ? (
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-rose-50 hover:text-rose-600"
+                          title="Hapus"
+                          aria-label={`Hapus ${item.name}`}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -627,14 +638,17 @@ export default function InventoryPage() {
                           >
                             <Edit size={15} />
                           </Link>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-rose-50 hover:text-rose-600"
-                            title="Hapus"
-                            aria-label={`Hapus ${item.name}`}
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                          {session?.user?.role === "SUPERADMIN" ||
+                          session?.user?.role === "MANAGER" ? (
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-rose-50 hover:text-rose-600"
+                              title="Hapus"
+                              aria-label={`Hapus ${item.name}`}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          ) : null}
                         </div>
                       </td>
                     </tr>

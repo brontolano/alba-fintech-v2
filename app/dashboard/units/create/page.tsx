@@ -36,7 +36,10 @@ interface CreateForm {
   parentId: string;
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function CreateUnitPage() {
+  usePageGuard(["SUPERADMIN"]);
   const router = useRouter();
   const { data: session } = useSession();
   const role = session?.user?.role as string | undefined;

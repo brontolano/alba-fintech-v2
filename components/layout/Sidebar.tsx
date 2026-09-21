@@ -91,7 +91,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "POS",
     href: "/dashboard/pos",
     icon: <ShoppingCart size={20} />,
-    roles: ["SUPERADMIN", "MANAGER", "STAFF"],
+    roles: ["MANAGER", "STAFF"],
   },
   {
     label: "Kas Unit",

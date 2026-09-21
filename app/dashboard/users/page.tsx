@@ -37,7 +37,10 @@ interface Unit {
   code: string;
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function UsersPage() {
+  usePageGuard(["SUPERADMIN"]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

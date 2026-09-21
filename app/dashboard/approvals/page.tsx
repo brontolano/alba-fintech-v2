@@ -52,7 +52,10 @@ interface ApprovalRequest {
   };
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function ApprovalsPage() {
+  usePageGuard(["SUPERADMIN", "PIMPINAN", "MANAGER"]);
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

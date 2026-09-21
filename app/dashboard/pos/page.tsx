@@ -45,7 +45,15 @@ interface InventoryResponse {
   };
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function POSPage() {
+  usePageGuard([], {
+    allow: (u) =>
+      u?.unitIsRetail === true &&
+      (u.role === "MANAGER" || u.role === "STAFF"),
+    redirectTo: "/dashboard/transactions",
+  });
   const router = useRouter();
   const { data: session } = useSession();
   const [cart, setCart] = useState<CartItem[]>([]);

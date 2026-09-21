@@ -19,7 +19,10 @@ interface Lembaga {
   };
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function LembagaPage() {
+  usePageGuard(["SUPERADMIN"]);
   const [lembagas, setLembagas] = useState<Lembaga[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

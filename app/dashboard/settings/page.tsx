@@ -46,7 +46,10 @@ const HEX_TO_COLOR = Object.fromEntries(
   Object.entries(COLOR_MAP).map(([name, { hex }]) => [hex, name]),
 );
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function SettingsPage() {
+  usePageGuard(["SUPERADMIN"]);
   const [activeTab, setActiveTab] = useState("system");
   const [isExporting, setIsExporting] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);

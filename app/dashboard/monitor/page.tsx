@@ -37,7 +37,10 @@ function formatRupiah(n: number): string {
   }).format(n);
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function MonitorDashboardPage() {
+  usePageGuard(["SUPERADMIN", "PIMPINAN"]);
   const [payload, setPayload] = useState<MonitorPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

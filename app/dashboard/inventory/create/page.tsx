@@ -11,7 +11,15 @@ interface Unit {
   name: string;
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function CreateInventoryPage() {
+  usePageGuard([], {
+    allow: (u) =>
+      u?.role === "SUPERADMIN" ||
+      (u?.unitIsRetail === true &&
+        (u.role === "MANAGER" || u.role === "STAFF")),
+  });
   const { data: session, status } = useSession();
   const router = useRouter();
   const [units, setUnits] = useState<Unit[]>([]);

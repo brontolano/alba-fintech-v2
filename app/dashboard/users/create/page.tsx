@@ -11,7 +11,10 @@ interface Unit {
   code: string;
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function CreateUserPage() {
+  usePageGuard(["SUPERADMIN"]);
   const router = useRouter();
   const [units, setUnits] = useState<Unit[]>([]);
   const [submitting, setSubmitting] = useState(false);

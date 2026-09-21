@@ -44,7 +44,10 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function EditUnitPage({ params }: Props) {
+  usePageGuard(["SUPERADMIN"]);
   const router = useRouter();
   const unitId = use(params).id;
   const { data: session } = useSession();

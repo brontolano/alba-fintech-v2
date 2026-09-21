@@ -22,7 +22,10 @@ interface Transaction {
   reconciledAt: string | null;
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function ReconciliationPage() {
+  usePageGuard(["SUPERADMIN", "PIMPINAN", "MANAGER"]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);

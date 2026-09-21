@@ -32,7 +32,11 @@ export default function UnitCashPage() {
     date: new Date().toISOString().split("T")[0],
   });
 
-  const kpakSuggestions = getDefaultCategorySuggestions("KPAK", false, form.type);
+  const kpakSuggestions = getDefaultCategorySuggestions(
+    "KPAK",
+    false,
+    form.type,
+  );
   const flowValidation = validateBusinessFlow({
     unitType: "KPAK",
     isRetail: false,
@@ -41,11 +45,14 @@ export default function UnitCashPage() {
   });
 
   useEffect(() => {
-    if (session?.user?.unitIsRetail === true) {
+    const role = session?.user?.role;
+    const isCasher =
+      (role === "MANAGER" || role === "STAFF") &&
+      session?.user?.unitIsRetail !== true;
+    if (!unitId || !isCasher) {
       router.replace("/dashboard/transactions");
       return;
     }
-    if (!unitId) return;
     fetch(`/api/financial-categories?unitId=${encodeURIComponent(unitId)}`)
       .then((response) => response.json())
       .then((result) => setCategories(result.data ?? []))
@@ -115,7 +122,9 @@ export default function UnitCashPage() {
             <button
               key={suggestion}
               type="button"
-              onClick={() => setForm((prev) => ({ ...prev, description: suggestion }))}
+              onClick={() =>
+                setForm((prev) => ({ ...prev, description: suggestion }))
+              }
               className="rounded-full border border-amber-300 bg-white/70 px-2.5 py-1 text-[11px] font-medium transition hover:bg-white"
             >
               {suggestion}

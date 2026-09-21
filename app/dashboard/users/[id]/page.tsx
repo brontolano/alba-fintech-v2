@@ -29,7 +29,10 @@ interface Unit {
   code: string;
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function EditUserPage({ params }: Props) {
+  usePageGuard(["SUPERADMIN"]);
   const router = useRouter();
   const userId = use(params).id;
   const { data: session } = useSession();

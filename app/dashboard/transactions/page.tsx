@@ -923,12 +923,16 @@ export default function TransactionsPage() {
                               >
                                 <Eye size={13} /> Detail
                               </Link>
-                              <button
-                                onClick={() => handleDelete(tx.id)}
-                                className="flex h-9 items-center justify-center gap-1 rounded-full bg-[#fdecec] px-2 text-[11px] font-medium text-[#d14d4d] transition hover:bg-[#fbdede] sm:text-sm"
-                              >
-                                <Trash2 size={13} /> Hapus
-                              </button>
+                              {session?.user?.role === "SUPERADMIN" ||
+                              session?.user?.role === "MANAGER" ||
+                              session?.user?.role === "PIMPINAN" ? (
+                                <button
+                                  onClick={() => handleDelete(tx.id)}
+                                  className="flex h-9 items-center justify-center gap-1 rounded-full bg-[#fdecec] px-2 text-[11px] font-medium text-[#d14d4d] transition hover:bg-[#fbdede] sm:text-sm"
+                                >
+                                  <Trash2 size={13} /> Hapus
+                                </button>
+                              ) : null}
                             </div>
                           </td>
                         </tr>
