@@ -11,9 +11,8 @@
       getEntriesByName:function(){return []},
       getEntriesByType:function(){return []},
       clearResourceTimings:function(){},
-      setResourceTimingBufferSize:function(){}
-    },
-    timing: {navigationStart: Date.now()}
+      setResourceTimingsBufferSize:function(){},
+      timing:{navigationStart:Date.now()}
     });
   }
 }catch(e){}})();
