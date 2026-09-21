@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Wallet,
   Loader2,
@@ -144,6 +144,22 @@ export default function KpakInternalPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Auto-seed sekali: kalau kategori masih kosong dan user boleh mengelola,
+  // langsung buatkan kategori bawaan KPAK tanpa klik manual
+  const seedTried = useRef(false);
+  useEffect(() => {
+    if (
+      !loading &&
+      categories.length === 0 &&
+      canManageCategories &&
+      !seedTried.current
+    ) {
+      seedTried.current = true;
+      seedDefaultCategories();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, categories, canManageCategories]);
 
   // Reset pilihan kategori saat ganti tipe
   useEffect(() => {
