@@ -11,7 +11,7 @@ import {
   Receipt,
   Clock,
   ClipboardList,
-  Bell,
+  Monitor,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -38,17 +38,10 @@ export function MobileNav({ user }: MobileNavProps) {
     const role = user?.role;
     const isRetail = user?.unitIsRetail === true;
 
-    // Pengumuman: tombol pusat untuk SEMUA role
-    const pengumuman: NavItem = {
-      label: "Pengumuman",
-      href: "/dashboard/announcements",
-      icon: <Bell size={24} />,
-      isPrimary: true,
-    };
-
     switch (role) {
       // ── SUPERADMIN ──────────────────────────────
-      // Kegiatan inti: overview global, input transaksi, laporan, pengaturan sistem
+      // Pusat: Papan Pantau — overview global, ini yang paling penting
+      // Sisa: Beranda, Transaksi, Laporan, Pengaturan
       case "SUPERADMIN":
         return [
           { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
@@ -57,7 +50,12 @@ export function MobileNav({ user }: MobileNavProps) {
             href: "/dashboard/transactions",
             icon: <Receipt size={24} />,
           },
-          pengumuman,
+          {
+            label: "Pantau",
+            href: "/dashboard/monitor",
+            icon: <Monitor size={24} />,
+            isPrimary: true,
+          },
           {
             label: "Laporan",
             href: "/dashboard/reports",
@@ -71,30 +69,37 @@ export function MobileNav({ user }: MobileNavProps) {
         ];
 
       // ── PIMPINAN ────────────────────────────────
-      // Kegiatan inti: approve pengajuan, rekonsiliasi, laporan
+      // Pusat: Pengajuan — approve/reject, keputusan inti pimpinan
+      // Sisa: Beranda, Rekonsiliasi, Laporan, Profil
       case "PIMPINAN":
         return [
           { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
-          {
-            label: "Pengajuan",
-            href: "/dashboard/approvals",
-            icon: <ClipboardList size={24} />,
-          },
-          pengumuman,
           {
             label: "Rekonsiliasi",
             href: "/dashboard/reconciliation",
             icon: <Clock size={24} />,
           },
           {
+            label: "Pengajuan",
+            href: "/dashboard/approvals",
+            icon: <ClipboardList size={24} />,
+            isPrimary: true,
+          },
+          {
             label: "Laporan",
             href: "/dashboard/reports",
             icon: <BarChart2 size={24} />,
           },
+          {
+            label: "Profil",
+            href: "/dashboard/profile",
+            icon: <User size={24} />,
+          },
         ];
 
       // ── MANAGER RETAIL ──────────────────────────
-      // Kegiatan inti: input transaksi, operasional POS, cek laporan
+      // Pusat: POS — operasional harian utama retail
+      // Sisa: Beranda, Transaksi, Laporan, Inventori
       case "MANAGER":
         if (isRetail) {
           return [
@@ -108,21 +113,27 @@ export function MobileNav({ user }: MobileNavProps) {
               href: "/dashboard/transactions",
               icon: <Receipt size={24} />,
             },
-            pengumuman,
             {
               label: "POS",
               href: "/dashboard/pos",
               icon: <ShoppingCart size={24} />,
+              isPrimary: true,
             },
             {
               label: "Laporan",
               href: "/dashboard/reports",
               icon: <BarChart2 size={24} />,
             },
+            {
+              label: "Inventori",
+              href: "/dashboard/inventory",
+              icon: <Package size={24} />,
+            },
           ];
         }
         // ── MANAGER NON-RETAIL ────────────────────
-        // Kegiatan inti: input transaksi, tabungan santri, rekonsiliasi
+        // Pusat: Tabungan — aktivitas keuangan inti non-retail
+        // Sisa: Beranda, Transaksi, Rekonsiliasi, Laporan
         return [
           { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
           {
@@ -130,21 +141,27 @@ export function MobileNav({ user }: MobileNavProps) {
             href: "/dashboard/transactions",
             icon: <Receipt size={24} />,
           },
-          pengumuman,
           {
             label: "Tabungan",
             href: "/dashboard/savings",
             icon: <Wallet size={24} />,
+            isPrimary: true,
           },
           {
             label: "Rekonsiliasi",
             href: "/dashboard/reconciliation",
             icon: <Clock size={24} />,
           },
+          {
+            label: "Laporan",
+            href: "/dashboard/reports",
+            icon: <BarChart2 size={24} />,
+          },
         ];
 
       // ── STAFF RETAIL ────────────────────────────
-      // Kegiatan inti: input transaksi, operasional POS, kelola inventori
+      // Pusat: POS — operasional harian utama
+      // Sisa: Beranda, Transaksi, Inventori, Laporan
       case "STAFF":
         if (isRetail) {
           return [
@@ -158,21 +175,27 @@ export function MobileNav({ user }: MobileNavProps) {
               href: "/dashboard/transactions",
               icon: <Receipt size={24} />,
             },
-            pengumuman,
             {
               label: "POS",
               href: "/dashboard/pos",
               icon: <ShoppingCart size={24} />,
+              isPrimary: true,
             },
             {
               label: "Inventori",
               href: "/dashboard/inventory",
               icon: <Package size={24} />,
             },
+            {
+              label: "Laporan",
+              href: "/dashboard/reports",
+              icon: <BarChart2 size={24} />,
+            },
           ];
         }
         // ── STAFF NON-RETAIL ──────────────────────
-        // Kegiatan inti: input transaksi, tabungan santri, kas unit
+        // Pusat: Tabungan — aktivitas harian utama
+        // Sisa: Beranda, Transaksi, Kas, Profil
         return [
           { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
           {
@@ -180,11 +203,16 @@ export function MobileNav({ user }: MobileNavProps) {
             href: "/dashboard/transactions",
             icon: <Receipt size={24} />,
           },
-          pengumuman,
           {
             label: "Tabungan",
             href: "/dashboard/savings",
             icon: <Wallet size={24} />,
+            isPrimary: true,
+          },
+          {
+            label: "Kas",
+            href: "/dashboard/cash-unit",
+            icon: <Receipt size={24} />,
           },
           {
             label: "Profil",
@@ -193,7 +221,7 @@ export function MobileNav({ user }: MobileNavProps) {
           },
         ];
 
-      // ── DEFAULT (belum login / role tidak dikenal)
+      // ── DEFAULT ─────────────────────────────────
       default:
         return [
           { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
@@ -202,7 +230,12 @@ export function MobileNav({ user }: MobileNavProps) {
             href: "/dashboard/reports",
             icon: <BarChart2 size={24} />,
           },
-          pengumuman,
+          {
+            label: "Beranda",
+            href: "/dashboard",
+            icon: <Home size={24} />,
+            isPrimary: true,
+          },
           {
             label: "Profil",
             href: "/dashboard/profile",
