@@ -12,8 +12,8 @@ Dokumen ini menjadi acuan utama untuk menjalankan aplikasi, memahami batas akses
 - **Runtime:** Node.js 20 LTS
 - **Framework:** Next.js 16 App Router
 - **Database:** MySQL 8
-- **ORM:** Prisma 5
-- **Authentication:** NextAuth.js
+- **ORM:** Prisma 7 (rust-free `prisma-client` + driver adapter)
+- **Authentication:** NextAuth.js v4.24 (keputusan: tetap v4 — v5 masih beta; migrasi ditunda sampai v5 stable)
 - **UI:** React, Tailwind CSS, shadcn/ui, lucide-react
 - **Deployment:** Hostinger Node.js application
 
@@ -194,22 +194,26 @@ Checklist PR:
 
 ## Deployment Hostinger
 
-Deployment menggunakan Node.js application dengan `server.js` sebagai startup file. Build production:
+Deployment otomatis dari Git: cukup push ke `main`, Hostinger build & deploy sendiri. Tidak perlu build manual / upload folder.
 
 ```bash
-npm install
-npm run build
-npm start
+git add .
+git commit -m "<pesan perubahan>"
+git push origin main
 ```
 
-Pastikan environment production di Hostinger berisi `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, dan `NODE_ENV=production`. Setelah deploy, verifikasi:
+Proses build tampil di hPanel; app kemudian live di `https://alba.brontolano.com`.
+
+- **Environment** di-set di hPanel (Node.js → Environment Variables): `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `NODE_ENV=production`, dll. — lihat `.env.production.example` dan `docs/DEPLOY.md`.
+- **Verifikasi** setelah deploy:
 
 ```bash
-curl https://your-domain.example/health
-curl https://your-domain.example/api/health
+curl https://alba.brontolano.com/health
 ```
 
-Respons `/api/health` harus menunjukkan `ok: true` dan `db: "up"`.
+Respons harus menunjukkan `ok`.
+
+Panduan lengkap: [docs/DEPLOY.md](docs/DEPLOY.md)
 
 ## Pull Request Documentation
 

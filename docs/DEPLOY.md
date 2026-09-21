@@ -1,173 +1,106 @@
-# ALBA Finance v7.0.0 — Panduan Deploy ke Hostinger
+# ALBA Finance v7 — Panduan Deploy (Lokal → GitHub → Hostinger)
 
-> **Status**: Stable dan siap deploy ✅
-> **Release**: `v7.0.0` — 19 September 2026
-> **Build**: 0 TypeScript errors  
-> **Standalone Test**: `/health` → `200 OK`
+> **Pipeline resmi**: Anda cukup **commit & push ke GitHub** — Hostinger otomatis build dan deploy dari repo.
+> Live: https://alba.brontolano.com
 
 ---
 
-## 1. Persiapan — Buat `.env.production`
+## Alur Deploy (Otomatis)
 
-Buat file `.env.production` di root proyek (salin dari `.env.production.example`):
-
-```env
-# Database MySQL Hostinger
-DATABASE_URL="mysql://USERNAME:PASSWORD@localhost:3306/DBNAME"
-
-# URL publik (tanpa trailing slash)
-NEXTAUTH_URL="https://alba.brontolano.com"
-
-# Generate: openssl rand -base64 32
-NEXTAUTH_SECRET="PASTE_OUTPUT_DISINI"
-
-NODE_ENV="production"
+```
+local ──git commit──▶ git push origin main ──▶ GitHub ──▶ Hostinger hPanel (Node.js "build from Git") ──▶ Live
 ```
 
+1. Komit perubahan: `git add .` → `git commit -m "<pesan>"`
+2. Push: `git push origin main`
+3. Hostinger (hPanel → Website → alba.brontolano.com → build) menjalankan `npm ci` + `npm run build` (output `.next`), lalu menayangkan hasilnya.
+4. Progress build bisa dilihat di hPanel; bila gagal, cek bagian Troubleshooting di bawah.
+
+**Tidak perlu**: build manual, upload zip, SSH, Docker, atau workflow deploy GitHub Actions. Semua sudah otomatis via integrasi Git Hostinger.
+
 ---
 
-## 2. Build dan Siapkan Paket
+## Env Variables (di-set di hPanel, bukan di repo)
+
+Environment produksi dikelola di **hPanel → Node.js → Environment Variables**. Jangan commit file `.env.production` ke Git (sudah di `.gitignore`).
+
+| Variable | Contoh / Keterangan |
+| --- | --- |
+| `DATABASE_URL` | `mysql://USER:PASS@localhost:3306/u826712707_alba` |
+| `NEXTAUTH_URL` | `https://alba.brontolano.com` |
+| `NEXTAUTH_SECRET` | string acak — generate: `openssl rand -base64 32` |
+| `NEXTAUTH_EMAIL` | akun login produksi |
+| `NEXTAUTH_PASSWORD` | password akun login produksi |
+| `NODE_ENV` | `production` |
+| `BACKUP_DIRECTORY` | (opsional) folder backup, di luar `public/` |
+| `BACKUP_RETENTION_DAYS` | (opsional) default `14` |
+| `GOOGLE_APPS_SCRIPT_URL` | (opsional) URL web app backup Drive/Sheets |
+| `GOOGLE_APPS_SCRIPT_SECRET` | (opsional) secret bersama backup Drive |
+
+Template & contoh: `.env.production.example`.
+
+---
+
+## Verifikasi Setelah Deploy
 
 ```bash
-npm install
-npm run build
-node scripts/deploy-prepare.mjs
-```
-
-Folder `deploy-package/` akan berisi:
-
-```
-deploy-package/
-  server.js          <- Entry point kustom
-  next-server.js     <- Next.js standalone server
-  package.json       <- start: node server.js
-  .env.production    <- Env vars
-  .next/static/      <- CSS, JS chunks (WAJIB ada)
-  node_modules/      <- Deps minimal + Prisma engine
-  prisma/schema.prisma
-  public/            <- favicon, logo
-```
-
----
-
-## 3. Upload ke Hostinger
-
-1. Buka hPanel → File Manager
-2. Navigasi ke folder Node.js app
-3. **Upload seluruh ISI** `deploy-package/` (bukan folder-nya)
-
----
-
-## 4. Konfigurasi hPanel
-
-| Setting                  | Value       |
-| ------------------------ | ----------- |
-| Node.js version          | 20.x LTS    |
-| Application startup file | `server.js` |
-| Application mode         | Production  |
-
-**Environment Variables di hPanel:**
-
-| Variable          | Value                                   |
-| ----------------- | --------------------------------------- |
-| `DATABASE_URL`    | mysql://user:pass@localhost:3306/dbname |
-| `NEXTAUTH_URL`    | https://alba.brontolano.com             |
-| `NEXTAUTH_SECRET` | (output openssl rand -base64 32)        |
-| `NODE_ENV`        | production                              |
-
----
-
-## 5. Database Setup
-
-```bash
-# Push schema ke database Hostinger
-DATABASE_URL="mysql://user:pass@host:3306/db" npx prisma db push
-
-# Seed data awal
-DATABASE_URL="mysql://user:pass@host:3306/db" npm run db:seed
-```
-
----
-
-## 6. Verifikasi
-
-```bash
-# Test health endpoint
 curl https://alba.brontolano.com/health
 # Expected: {"status":"ok","timestamp":"..."}
 ```
 
-Log yang benar di hPanel:
-
-```
-Running ALBA Finance v7.0.0...
-  DB URL   : set
-  NEXTAUTH : set
-Next.js 16.3.4
-Ready in Xms
-```
+Respons harus `ok`. Jika `db` terlibat, pastikan variabel `DATABASE_URL` di hPanel valid.
 
 ---
 
-## 7. Troubleshooting
-
-| Gejala                      | Solusi                                           |
-| --------------------------- | ------------------------------------------------ |
-| DB URL NOT SET di log       | Isi DATABASE_URL di hPanel & .env.production     |
-| P1000 Authentication failed | Periksa user/password MySQL                      |
-| P1001 Cannot reach database | Gunakan localhost (bukan 127.0.0.1) di Hostinger |
-| Redirect loop di /login     | Pastikan NEXTAUTH_URL = domain publik Anda       |
-| CSS/JS tidak muncul         | Pastikan .next/static/ sudah terupload           |
-| Cannot find next-server.js  | Jalankan ulang node scripts/deploy-prepare.mjs   |
-
----
-
-## 8. Backup Otomatis Harian
-
-Backup seluruh data dapat dijalankan melalui:
+## Database & Seed (satu kali, via CLI lokal)
 
 ```bash
-npm run db:backup
+# Push / sinkronkan schema ke database produksi
+DATABASE_URL="mysql://user:pass@host:3306/db" npx prisma db push
+
+# Seed data awal (sesuai kebutuhan)
+DATABASE_URL="mysql://user:pass@host:3306/db" npm run db:seed
 ```
 
-Atur cron job Hostinger pada pukul 02:00 setiap hari dengan command:
-
-```bash
-cd /path/to/alba && npm run db:backup
-```
-
-Default retensi adalah 14 hari. Override melalui environment `BACKUP_DIRECTORY` dan `BACKUP_RETENTION_DAYS`. Folder backup berada di luar `public/` dan masuk `.gitignore`. Backup production tetap perlu disalin ke lokasi off-site dan diuji restore-nya secara berkala.
-
-### Upload Background ke Google Drive
-
-Template Google Apps Script ada di `docs/google-apps-script/Code.gs`. Setelah membuat folder Drive dan spreadsheet log, deploy script sebagai Web app dengan akses `Anyone`, lalu set environment Hostinger berikut:
-
-```env
-GOOGLE_APPS_SCRIPT_URL="https://script.google.com/macros/s/DEPLOYMENT_ID/exec"
-GOOGLE_APPS_SCRIPT_SECRET="shared-secret-yang-sama"
-```
-
-Jika kedua variable tersedia, `npm run db:backup` mengirim backup ke Drive melalui HTTPS dan Apps Script menulis hasilnya ke sheet `Backup Log`. Jika salah satu variable kosong, backup lokal tetap berjalan tanpa upload. Jika upload dikonfigurasi tetapi gagal, command keluar dengan error agar kegagalan terlihat di cron log.
+> Perubahan schema di `prisma/schema.prisma` harus di-push ulang; aplikasi kedua (Next.js) dan DB adalah dua hal yang terpisah.
 
 ---
 
-## 9. Akun Default (setelah seed)
+## Backup Otomatis
 
-| Role       | Email            | Password    |
-| ---------- | ---------------- | ----------- |
-| SUPERADMIN | admin@alba.id    | admin123    |
-| PIMPINAN   | pimpinan@alba.id | pimpinan123 |
-| MANAGER    | manager@alba.id  | manager123  |
-| STAFF      | staff@alba.id    | staff123    |
+Backup DB harian: `npm run db:backup`. Atur cron di Hostinger (mis. 02:00) dengan command `cd /path/to/alba && npm run db:backup`. Lihat `.env.production.example` untuk variabel backup & upload Google Drive/Sheets.
 
-> Segera ganti password setelah login pertama!
+### Restore
+
+Backup berbentuk file `.sql` (hasil `db:backup`, lokasi sesuai `BACKUP_DIRECTORY` atau Drive/Sheets). Cara restore:
+
+**Cara 1 — phpMyAdmin:**
+1. Buka phpMyAdmin untuk database remote (srv594.hstgr.io).
+2. Pilih database tujuan (mis. `u826712707_alba`).
+3. Buka tab "Import" (atau "SQL"), pilih file `.sql`, klik "Go".
+
+**Cara 2 — MySQL CLI:**
+```sql
+mysql -h srv594.hstgr.io -u USER -p DATABASE < backup_20260101_020000.sql
+```
+
+> Restore **menimpa** seluruh isi database tujuan. Pastikan file backup diambil dari sumber terpercaya, dan lakukan backup ulang dulu sebelum restore jika data saat ini masih dibutuhkan.
 
 ---
 
-## Dukungan dan Dokumentasi
+## Troubleshooting
+
+| Gejala | Solusi |
+| --- | --- |
+| Build gagal di hPanel | Buka log build di hPanel; pastikan `npm run build` lolos lokal (`npm run type-check` + `npm run build`) |
+| `P1000/P1001` (DB) | Periksa `DATABASE_URL` di hPanel; di Hostinger gunakan `localhost`, bukan `127.0.0.1` |
+| Redirect loop di `/login` | Pastikan `NEXTAUTH_URL` = domain publik (`https://alba.brontolano.com`) |
+| Tidak ada log | Restart Node.js app dari hPanel |
+
+---
+
+## Dukungan
 
 - Repository: https://github.com/brontolano/alba-fintech-v2
-- Tag stable: https://github.com/brontolano/alba-fintech-v2/tree/v7.0.0
-- Issue tracker: https://github.com/brontolano/alba-fintech-v2/issues
-- README dan quick start: [README.md](../README.md)
-- Dokumentasi teknis: [docs/DOKUMENTASI-TEKNIS.md](DOKUMENTASI-TEKNIS.md)
+- README & quick start: [README.md](../README.md)
+- Dokumentasi teknis: [DOKUMENTASI-TEKNIS.md](DOKUMENTASI-TEKNIS.md)

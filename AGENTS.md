@@ -1,4 +1,4 @@
-# AGENTS.md — ALBA Finance v3
+# AGENTS.md — ALBA Finance v7
 
 <!-- BEGIN:nextjs-agent-rules -->
 
@@ -57,13 +57,13 @@ Pondok Pesantren Al-Basyariyah
 | **STAFF** | Unit | CRUD transaksi harian, POS, inventory |
 
 ## Tech Stack
-- **Frontend**: Next.js 14 (App Router)
+- **Frontend**: Next.js 16 (App Router)
 - **Language**: TypeScript 5.x
 - **Styling**: Tailwind CSS 3.4 + shadcn/ui
 - **Backend**: Next.js API Routes
 - **Database**: MySQL 8.0
-- **ORM**: Prisma 5.x
-- **Auth**: NextAuth.js 4.24
+- **ORM**: Prisma 7.x (generator `prisma-client` rust-free; adapter `@prisma/adapter-mariadb`; URL DB via `prisma.config.ts`)
+- **Auth**: NextAuth.js 4.24 (keputusan: tetap v4, v5 masih beta)
 - **Password Hash**: bcryptjs
 - **Validation**: Zod
 - **Icons**: lucide-react
@@ -94,41 +94,32 @@ https://localhost:3000
 - Key Models: Lembaga, Unit, User, Transaction, FinancialNote, Approval, InventoryItem, OrderItem, BankAccount, FinancialCategory
 
 ## Project Structure
+Root layout (App Router — tanpa folder `src/`):
 ```
-src/
-├─ app/
-│  ├─ api/                 # API Routes (Route Handlers)
-│  │  ├─ auth/[...nextauth]/   # NextAuth.js
-│  │  ├─ transactions/
-│  │  ├─ financial-notes/
-│  │  ├─ units/
-│  │  ├─ users/
-│  │  ├─ inventory/
-│  │  ├─ approvals/
-│  │  ├─ lembaga/
-│  │  └─ ...
-│  ├─ dashboard/
-│  │  ├─ page.tsx          # Main dashboard
-│  │  ├─ transactions/
-│  │  ├─ financial-notes/
-│  │  ├─ units/
-│  │  ├─ users/
-│  │  ├─ inventory/
-│  │  ├─ pos/
-│  │  ├─ reports/
-│  │  ├─ reconciliation/
-│  │  └─ settings/
-│  └─ login/
-├─ components/
-│  ├─ auth/               # Auth components
-│  ├─ layout/             # Header, Sidebar, MobileNav
-│  ├─ shared/             # Reusable components
-│  └─ ui/                 # UI components
-├─ lib/
-│  ├─ prisma.ts           # Prisma client
+app/
+├─ api/                 # API Routes (Route Handlers)
+│  ├─ auth/[...nextauth]/
+│  ├─ transactions/
+│  ├─ financial-notes/
+│  ├─ units/
+│  ├─ users/
+│  ├─ inventory/
+│  ├─ approvals/
+│  ├─ lembaga/
 │  └─ ...
-└─ prisma/
-   └─ schema.prisma
+├─ dashboard/           # Halaman dashboard (folder per modul)
+├─ login/
+└─ ...
+components/
+├─ auth/               # Auth components
+├─ layout/             # Header, Sidebar, MobileNav
+├─ shared/             # Reusable components
+└─ ui/                 # UI components
+lib/                    # prisma.ts (singleton client), helper utilities
+prisma/schema.prisma    # Database schema
+scripts/                # seed, backup, reset (TANPA script deploy — auto-deploy via Hostinger git)
+public/                 # Static assets
+proxy.ts                # Next.js request proxy / auth middleware (RBAC route guard)
 ```
 
 ## API Endpoints
