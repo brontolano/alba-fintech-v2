@@ -380,7 +380,7 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal membuat data demo");
-      toast.success("Data demo operasional empat unit berhasil dibuat");
+      toast.success("Data demo 4 unit berhasil dibuat — akun, transaksi, inventori, dan tabungan siap");
       await fetchSettings();
     } catch (err: any) {
       toast.error(err.message || "Gagal membuat data demo");
@@ -729,10 +729,10 @@ export default function SettingsPage() {
                           </span>
                         </div>
                         <p className="text-sm text-amber-800">
-                          Isi ulang contoh operasional KPAK, Kantin Baru, Kantin
-                          Umi, dan Koperasi Buku untuk transaksi, approval,
-                          rekonsiliasi, tabungan santri (anjungan/kiosk), dan
-                          papan pantau. Cocok untuk demo user testing.
+                          Buat ulang data demo 4 unit: KPAK, Kantin Baru, Kantin
+                          Umi, dan Koperasi Buku. Termasuk akun pengguna per unit,
+                          transaksi harian dengan alur approval, inventori retail,
+                          serta tabungan santri. Cocok untuk demo dan user testing.
                         </p>
                       </div>
                     </div>

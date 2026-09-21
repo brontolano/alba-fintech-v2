@@ -661,7 +661,7 @@ export async function seedDemoData(prisma: PrismaClient) {
           userId: pimpinan.id,
           title: "Demo Modul Operasional Siap",
           message:
-            "Data demo lengkap mengikuti alur aplikasi saat ini: transaksi harian, persetujuan, rekonsiliasi unit, laporan, tabungan santri untuk anjungan, dan papan pantau.",
+            "Data demo lengkap: 4 unit (KPAK, Kantin Baru, Kantin Umi, Koperasi Buku) beserta transaksi harian, persetujuan, inventori, tabungan santri, dan akun pengguna untuk setiap unit.",
           type: "INFO",
         },
       });
@@ -670,7 +670,7 @@ export async function seedDemoData(prisma: PrismaClient) {
 
       return {
         message:
-          "Data demo berhasil dibuat: transaksi harian, persetujuan khusus, inventory retail, rekonsiliasi unit, tabungan santri untuk kiosk, dan papan pantau.",
+          "Data demo berhasil dibuat: 4 unit operasional, akun pengguna per unit, transaksi harian dengan alur approval, inventori retail, tabungan santri untuk kiosk, dan pengaturan default.",
         units: UNITS.map((unit) => unit.name),
         demoPassword: DEMO_PASSWORD,
       };
