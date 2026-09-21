@@ -12,6 +12,7 @@ import {
   Clock,
   ClipboardList,
   Monitor,
+  BookOpen,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -19,6 +20,7 @@ interface MobileNavProps {
   user: {
     role?: string;
     unitIsRetail?: boolean;
+    unitType?: string;
   } | null;
   className?: string;
 }
@@ -37,6 +39,7 @@ export function MobileNav({ user }: MobileNavProps) {
   const getNavItems = (): NavItem[] => {
     const role = user?.role;
     const isRetail = user?.unitIsRetail === true;
+    const isKpak = user?.unitType === "KPAK";
 
     switch (role) {
       // ── SUPERADMIN ──────────────────────────────
@@ -131,6 +134,35 @@ export function MobileNav({ user }: MobileNavProps) {
             },
           ];
         }
+        // ── MANAGER KPAK ──────────────────────────
+        // Pusat: Tabungan — setor/tarik harian
+        // Sisa: Beranda, Layanan (HER/SPP/daful), Rekap KPAK, Profil
+        if (isKpak) {
+          return [
+            { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
+            {
+              label: "Layanan",
+              href: "/dashboard/kpak/finance",
+              icon: <Receipt size={24} />,
+            },
+            {
+              label: "Tabungan",
+              href: "/dashboard/savings",
+              icon: <Wallet size={24} />,
+              isPrimary: true,
+            },
+            {
+              label: "Rekap",
+              href: "/dashboard/kpak/reports",
+              icon: <BarChart2 size={24} />,
+            },
+            {
+              label: "Profil",
+              href: "/dashboard/profile",
+              icon: <User size={24} />,
+            },
+          ];
+        }
         // ── MANAGER NON-RETAIL ────────────────────
         // Pusat: Tabungan — aktivitas keuangan inti non-retail
         // Sisa: Beranda, Transaksi, Rekonsiliasi, Laporan
@@ -190,6 +222,35 @@ export function MobileNav({ user }: MobileNavProps) {
               label: "Laporan",
               href: "/dashboard/reports",
               icon: <BarChart2 size={24} />,
+            },
+          ];
+        }
+        // ── STAFF KPAK ────────────────────────────
+        // Pusat: Tabungan — cek saldo, setor, tarik
+        // Sisa: Beranda, Layanan (catat bayar), Santri (cek data), Profil
+        if (isKpak) {
+          return [
+            { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
+            {
+              label: "Layanan",
+              href: "/dashboard/kpak/finance",
+              icon: <Receipt size={24} />,
+            },
+            {
+              label: "Tabungan",
+              href: "/dashboard/savings",
+              icon: <Wallet size={24} />,
+              isPrimary: true,
+            },
+            {
+              label: "Santri",
+              href: "/dashboard/kpak/students",
+              icon: <BookOpen size={24} />,
+            },
+            {
+              label: "Profil",
+              href: "/dashboard/profile",
+              icon: <User size={24} />,
             },
           ];
         }

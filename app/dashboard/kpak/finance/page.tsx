@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 import { usePageGuard } from "@/lib/use-page-guard";
 
 const formatCurrency = (amount: number) =>
@@ -72,6 +73,12 @@ export default function KpakFinancePage() {
   const [note, setNote] = useState("");
   const [method, setMethod] = useState<"TUNAI" | "TABUNGAN">("TUNAI");
   const [saving, setSaving] = useState(false);
+
+  const { data: session } = useSession();
+  const canManageCategories =
+    session?.user?.role === "SUPERADMIN" ||
+    session?.user?.role === "PIMPINAN" ||
+    session?.user?.role === "MANAGER";
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -229,12 +236,14 @@ export default function KpakFinancePage() {
             Pembayaran HER/SPP, daftar ulang, dan layanan santri lainnya
           </p>
         </div>
-        <Link
-          href="/dashboard/settings/categories"
-          className="inline-flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm font-medium hover:bg-muted"
-        >
-          <Settings2 size={16} /> Kelola Kategori Layanan
-        </Link>
+        {canManageCategories && (
+          <Link
+            href="/dashboard/settings/categories"
+            className="inline-flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm font-medium hover:bg-muted"
+          >
+            <Settings2 size={16} /> Kelola Kategori Layanan
+          </Link>
+        )}
       </div>
 
       <div className="rounded-xl border bg-card p-5">
@@ -263,12 +272,16 @@ export default function KpakFinancePage() {
           ) : categories.length === 0 ? (
             <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
               Belum ada kategori pemasukan.
-              <Link
-                href="/dashboard/settings/categories"
-                className="mt-2 block font-medium text-primary hover:underline"
-              >
-                Buat kategori layanan (HER, Daftar Ulang, dll)
-              </Link>
+              {canManageCategories ? (
+                <Link
+                  href="/dashboard/settings/categories"
+                  className="mt-2 block font-medium text-primary hover:underline"
+                >
+                  Buat kategori layanan (HER, Daftar Ulang, dll)
+                </Link>
+              ) : (
+                <p className="mt-2">Hubungi Manager untuk menambah kategori</p>
+              )}
             </div>
           ) : (
             <div className="grid gap-2">

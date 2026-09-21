@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Send, Loader2, ClipboardList, CircleDashed, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 import { usePageGuard } from "@/lib/use-page-guard";
 
 const formatCurrency = (amount: number) =>
@@ -67,6 +68,12 @@ export default function KpakBudgetPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const { data: session } = useSession();
+  const canSubmit =
+    session?.user?.role === "SUPERADMIN" ||
+    session?.user?.role === "PIMPINAN" ||
+    session?.user?.role === "MANAGER";
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -160,6 +167,16 @@ export default function KpakBudgetPage() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+        {!canSubmit && (
+          <div className="rounded-xl border border-dashed bg-card p-6 text-sm">
+            <p className="font-semibold">Pengajuan dibuat oleh Manager unit</p>
+            <p className="mt-1 text-muted-foreground">
+              Sampaikan kebutuhan dana ke Manager — pengajuan diteruskan ke
+              pimpinan dan statusnya bisa dipantau di daftar sebelah.
+            </p>
+          </div>
+        )}
+        {canSubmit && (
         <form
           onSubmit={handleSubmit}
           className="space-y-4 rounded-xl border bg-card p-5"
@@ -229,9 +246,10 @@ export default function KpakBudgetPage() {
             {saving ? "Mengirim..." : "Kirim ke Pimpinan"}
           </button>
         </form>
+        )}
 
         <div className="rounded-xl border bg-card p-5">
-          <h2 className="mb-3 text-sm font-semibold">Status Pengajuan Saya</h2>
+          <h2 className="mb-3 text-sm font-semibold">Status Pengajuan Unit</h2>
           {loading ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
               <Loader2 size={16} className="mx-auto mb-1 animate-spin" />
