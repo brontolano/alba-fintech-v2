@@ -27,4 +27,4 @@ jobs:
       - name: Run tests
         run: npm test
       - name: Production build
-        run: npm run build -- --no-lint
+        run: npm run build
