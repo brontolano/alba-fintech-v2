@@ -22,7 +22,7 @@ export default async function DashboardLayout({
     // JWT/DB error — fall through to redirect
   }
 
-  if (!session?.user) {
+  if (!session?.user || !session.user.isActive) {
     redirect("/login");
   }
 

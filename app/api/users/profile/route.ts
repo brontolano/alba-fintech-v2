@@ -39,8 +39,8 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "User tidak ditemukan" },
-        { status: 404 },
+        { error: "Sesi tidak valid atau akun sudah tidak ada. Silakan login ulang." },
+        { status: 401 },
       );
     }
 

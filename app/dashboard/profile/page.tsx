@@ -82,6 +82,10 @@ export default function ProfilePage() {
       const profileData = await profileRes.json();
 
       if (!profileRes.ok) {
+        if (profileRes.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
         throw new Error(profileData.error || "Gagal memuat data profil");
       }
 
