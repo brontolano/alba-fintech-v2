@@ -120,6 +120,7 @@ const NAV_GROUPS: NavGroup[] = [
         icon: <Wallet size={20} />,
         roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
         nonRetailOnly: true,
+        hideForKpak: true,
       },
       {
         label: "Kas Unit",
@@ -158,12 +159,24 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "KPAK",
+    title: "Data KPAK",
     items: [
       {
         label: "Data Santri",
         href: "/dashboard/kpak/students",
         icon: <BookOpen size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+        kpakOnly: true,
+      },
+    ],
+  },
+  {
+    title: "Layanan KPAK",
+    items: [
+      {
+        label: "Tabungan Santri",
+        href: "/dashboard/savings",
+        icon: <Wallet size={20} />,
         roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
         kpakOnly: true,
       },
