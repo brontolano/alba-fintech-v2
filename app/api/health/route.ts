@@ -41,10 +41,12 @@ export async function GET() {
       latencyMs: Date.now() - started,
       env: envCheck(),
     });
-  } catch {
-    // Jangan bocorkan detail error internal; cukup status down.
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const code = (err as { code?: string })?.code;
+    console.error('[Health] DB check failed:', code, message);
     return NextResponse.json(
-      { ok: false, db: 'down', latencyMs: Date.now() - started, env: envCheck() },
+      { ok: false, db: 'down', error: code, latencyMs: Date.now() - started, env: envCheck() },
       { status: 503 }
     );
   }
