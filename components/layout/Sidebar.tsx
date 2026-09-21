@@ -120,6 +120,12 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
   },
   {
+    label: "Serah Terima Kas",
+    href: "/dashboard/handovers",
+    icon: <ClipboardList size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN"],
+  },
+  {
     label: "Unit",
     href: "/dashboard/units",
     icon: <LayoutGrid size={20} />,

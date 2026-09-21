@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, CheckCircle, Clock, Download } from "lucide-react";
+import { Search, CheckCircle, Clock, Download, Send } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
@@ -202,6 +202,42 @@ export default function ReconciliationPage() {
       toast.success("Rekonsiliasi unit berhasil disimpan");
     } catch (err: any) {
       toast.error(err.message || "Gagal menyelesaikan rekonsiliasi");
+    }
+  };
+
+  const handleHandover = async (taskId: string) => {
+    const task = filteredTasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const cashOnHand = Number(cashOnHandInputs[taskId]) || 0;
+    if (cashOnHand === 0) {
+      toast.error("Masukkan jumlah Cash On Hand terlebih dahulu");
+      return;
+    }
+
+    const ok = confirm(
+      `Serahkan kas ${task.unit} sebesar ${formatCurrency(cashOnHand)} ke pimpinan?`,
+    );
+    if (!ok) return;
+
+    try {
+      const response = await fetch("/api/handovers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          unitId: taskId,
+          date: filters.date,
+          cashHanded: cashOnHand,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Gagal mengajukan serah terima");
+      }
+
+      toast.success("Serah terima kas berhasil diajukan ke pimpinan");
+    } catch (err: any) {
+      toast.error(err.message || "Gagal mengajukan serah terima");
     }
   };
 
@@ -462,6 +498,15 @@ export default function ReconciliationPage() {
                           Selesaikan
                         </button>
                       )}
+                      {task.status === "RECONCILED" && (
+                        <button
+                          onClick={() => handleHandover(task.id)}
+                          className="flex h-9 w-full items-center justify-center gap-2 rounded-full bg-primary px-3 text-sm font-semibold text-white transition hover:bg-primary/90"
+                        >
+                          <Send size={16} />
+                          Serahkan ke Pimpinan
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -597,6 +642,15 @@ export default function ReconciliationPage() {
                               title="Selesaikan Rekonsiliasi"
                             >
                               <CheckCircle size={16} />
+                            </button>
+                          )}
+                          {task.status === "RECONCILED" && (
+                            <button
+                              onClick={() => handleHandover(task.id)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition hover:bg-primary/10"
+                              title="Serahkan ke Pimpinan"
+                            >
+                              <Send size={16} />
                             </button>
                           )}
                         </td>

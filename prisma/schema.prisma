@@ -41,6 +41,7 @@ model Unit {
   bankAccounts        BankAccount[]
   financial_notes     FinancialNote[]
   financialCategories FinancialCategory[]
+  cash_handovers      CashHandover[]
   inventory_items     InventoryItem[]
   transactions        Transaction[]
   lembaga             Lembaga?             @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "units_ibfk_1")
@@ -74,6 +75,8 @@ model User {
   push_subscriptions                                    push_subscriptions[]
   transactions_transactions_createdByIdTousers          Transaction[]        @relation("transactions_createdByIdTousers")
   transactions_transactions_approvedByIdTousers         Transaction[]        @relation("transactions_approvedByIdTousers")
+  handoverSubmitted                                      CashHandover[]       @relation("handoverSubmitted")
+  handoverAccepted                                       CashHandover[]       @relation("handoverAccepted")
   units                                                 Unit?                @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "users_ibfk_1")
   lembagas                                              Lembaga?             @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "users_ibfk_2")
 
@@ -264,6 +267,32 @@ model FinancialNote {
   @@index([createdById], map: "createdById")
   @@index([unitId], map: "unitId")
   @@map("financial_notes")
+}
+
+model CashHandover {
+  id            String         @id @default(cuid()) @db.VarChar(36)
+  unitId        String         @db.VarChar(36)
+  date          DateTime       @db.DateTime(0)
+  totalIncome   Decimal        @db.Decimal(15, 2)
+  totalExpense  Decimal        @db.Decimal(15, 2)
+  systemBalance Decimal        @db.Decimal(15, 2)
+  cashHanded    Decimal        @db.Decimal(15, 2)
+  variance      Decimal        @db.Decimal(15, 2)
+  status        HandoverStatus @default(PENDING)
+  submittedById String         @db.VarChar(36)
+  submittedAt   DateTime       @default(now()) @db.DateTime(0)
+  acceptedById  String?        @db.VarChar(36)
+  acceptedAt    DateTime?      @db.DateTime(0)
+  note          String?        @db.Text
+  units         Unit           @relation(fields: [unitId], references: [id], onUpdate: Restrict)
+  submittedBy   User           @relation("handoverSubmitted", fields: [submittedById], references: [id], onUpdate: Restrict)
+  acceptedBy    User?          @relation("handoverAccepted", fields: [acceptedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([unitId, date], map: "cash_handovers_unit_date_key")
+  @@index([unitId], map: "cash_handovers_unitId")
+  @@index([submittedById], map: "cash_handovers_submittedById")
+  @@index([status], map: "cash_handovers_status")
+  @@map("cash_handovers")
 }
 
 model InventoryItem {
@@ -466,6 +495,14 @@ enum ApprovalStatus {
   REJECTED
 
   @@map("approval_status")
+}
+
+enum HandoverStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+
+  @@map("handover_status")
 }
 
 enum SavingsAccountStatus {
