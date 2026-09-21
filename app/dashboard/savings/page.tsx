@@ -144,7 +144,7 @@ export default function SavingsPage() {
             target="_blank"
             className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
           >
-            <ExternalLink size={16} /> Buka Anjungan Santri
+            <ExternalLink size={16} /> Buka Anjungan
           </Link>
           {session?.user?.role !== "STAFF" && (
             <button

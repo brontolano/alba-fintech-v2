@@ -1,184 +1,102 @@
-"use client";
+import Link from "next/link";
+import {
+  ArrowRight,
+  ClipboardCheck,
+  Crown,
+  Landmark,
+  MonitorSmartphone,
+  PiggyBank,
+  ShoppingCart,
+} from "lucide-react";
 
-import { useState } from "react";
-import { ArrowDownRight, ArrowUpRight, PiggyBank, RefreshCw, Search } from "lucide-react";
+const kiosks = [
+  {
+    href: "/kiosk/savings",
+    icon: PiggyBank,
+    title: "Anjungan Tabungan",
+    desc: "Cek saldo & mutasi tabungan santri",
+    color: "bg-emerald-100 text-emerald-700",
+  },
+  {
+    href: "/kiosk/kpak",
+    icon: Landmark,
+    title: "Anjungan KPAK",
+    desc: "Administrasi keuangan: pendaftaran & transaksi internal pondok",
+    color: "bg-violet-100 text-violet-700",
+  },
+  {
+    href: "/kiosk/pos",
+    icon: ShoppingCart,
+    title: "Anjungan POS",
+    desc: "Kasir kantin & koperasi, lengkap dengan stok barang",
+    color: "bg-amber-100 text-amber-700",
+  },
+  {
+    href: "/kiosk/close",
+    icon: ClipboardCheck,
+    title: "Pengajuan & Tutup Buku",
+    desc: "Persetujuan transaksi dan rekonsiliasi tutup buku unit",
+    color: "bg-sky-100 text-sky-700",
+  },
+  {
+    href: "/kiosk/pimpinan",
+    icon: Crown,
+    title: "Anjungan Pimpinan",
+    desc: "Papan pantau, laporan & persetujuan untuk pimpinan",
+    color: "bg-rose-100 text-rose-700",
+  },
+];
 
-interface KioskMutation {
-  type: "DEPOSIT" | "WITHDRAWAL";
-  amount: number;
-  balanceAfter: number;
-  description?: string | null;
-  createdAt?: string | null;
-}
-
-interface KioskData {
-  name: string;
-  studentNumber: string;
-  className?: string | null;
-  balance: number;
-  status: string;
-  transactions: KioskMutation[];
-}
-
-function formatRupiah(n: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(n);
-}
-
-export default function KioskPage() {
-  const [query, setQuery] = useState("");
-  const [data, setData] = useState<KioskData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const lookup = async (value?: string) => {
-    const q = (value ?? query).trim();
-    if (!q) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/kiosk/savings?q=${encodeURIComponent(q)}`);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Santri tidak ditemukan");
-      setData(json.data);
-    } catch (e) {
-      setData(null);
-      setError(e instanceof Error ? e.message : "Gagal memuat data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export default function KioskHubPage() {
   return (
     <main className="flex min-h-screen flex-col bg-gradient-to-b from-primary/10 to-background px-4 py-8 sm:px-8">
-      <div className="mx-auto w-full max-w-3xl space-y-6">
+      <div className="mx-auto w-full max-w-4xl space-y-8">
         <header className="flex flex-col items-center gap-2 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary text-primary-foreground shadow-lg">
-            <PiggyBank size={32} />
+          <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-primary text-primary-foreground shadow-lg">
+            <MonitorSmartphone size={40} />
           </div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Anjungan Santri
+            Anjungan Layanan Al-Basyariyah
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Cek saldo dan mutasi tabungan — masukkan nomor santri (NIS)
+          <p className="max-w-md text-sm text-muted-foreground">
+            Pilih anjungan sesuai kebutuhan untuk memudahkan operasional dan
+            pelayanan santri.
           </p>
         </header>
 
-        <div className="flex gap-2 rounded-2xl border bg-card p-3 shadow-sm">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && lookup()}
-              placeholder="Contoh: 2024.001"
-              inputMode="numeric"
-              autoFocus
-              className="w-full rounded-xl border border-input bg-background py-3.5 pl-11 pr-3 text-lg"
-            />
-          </div>
-          <button
-            onClick={() => lookup()}
-            disabled={loading}
-            className="rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-          >
-            {loading ? "Mencari..." : "Lihat"}
-          </button>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {kiosks.map((k) => (
+            <Link
+              key={k.href}
+              href={k.href}
+              className="group flex flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:shadow-md"
+            >
+              <span
+                className={`flex h-16 w-16 items-center justify-center rounded-2xl ${k.color}`}
+              >
+                <k.icon size={32} />
+              </span>
+              <span className="flex-1">
+                <span className="block text-lg font-semibold">{k.title}</span>
+                <span className="mt-1 block text-sm text-muted-foreground">
+                  {k.desc}
+                </span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
+                Buka Anjungan
+                <ArrowRight
+                  size={16}
+                  className="transition group-hover:translate-x-0.5"
+                />
+              </span>
+            </Link>
+          ))}
         </div>
 
-        {error && (
-          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-            {error}
-          </div>
-        )}
-
-        {data && (
-          <>
-            <section className="rounded-3xl border bg-card p-6 text-center shadow-sm">
-              <p className="text-sm uppercase tracking-wider text-muted-foreground">
-                Saldo Tabungan
-              </p>
-              <p className="mt-2 text-4xl font-extrabold tracking-tight sm:text-5xl">
-                {formatRupiah(data.balance)}
-              </p>
-              <p className="mt-4 text-lg font-semibold">{data.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {data.studentNumber}
-                {data.className ? ` · ${data.className}` : ""}
-              </p>
-            </section>
-
-            <section className="rounded-2xl border bg-card shadow-sm">
-              <div className="flex items-center justify-between border-b px-5 py-3">
-                <h2 className="text-sm font-semibold">Mutasi Terakhir</h2>
-                <button
-                  onClick={() => lookup()}
-                  disabled={loading}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80"
-                >
-                  <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-                  Segarkan
-                </button>
-              </div>
-              {data.transactions.length === 0 ? (
-                <p className="px-5 py-8 text-center text-sm text-muted-foreground">
-                  Belum ada mutasi.
-                </p>
-              ) : (
-                <ul className="divide-y">
-                  {data.transactions.map((t, i) => (
-                    <li key={i} className="flex items-center justify-between gap-3 px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                            t.type === "DEPOSIT"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-rose-100 text-rose-700"
-                          }`}
-                        >
-                          {t.type === "DEPOSIT" ? (
-                            <ArrowUpRight size={18} />
-                          ) : (
-                            <ArrowDownRight size={18} />
-                          )}
-                        </span>
-                        <div>
-                          <p className="text-sm font-medium">
-                            {t.type === "DEPOSIT" ? "Setoran" : "Pengambilan"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {t.description ||
-                              (t.createdAt
-                                ? new Date(t.createdAt).toLocaleString("id-ID")
-                                : "-")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p
-                          className={`text-sm font-semibold ${
-                            t.type === "DEPOSIT"
-                              ? "text-emerald-600"
-                              : "text-rose-600"
-                          }`}
-                        >
-                          {t.type === "DEPOSIT" ? "+" : "-"}
-                          {formatRupiah(t.amount)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatRupiah(t.balanceAfter)}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          </>
-        )}
+        <p className="text-center text-xs text-muted-foreground">
+          Anjungan layanan Pondok Pesantren Al-Basyariyah · cek saldo dapat
+          dilakukan tanpa login
+        </p>
       </div>
     </main>
   );
