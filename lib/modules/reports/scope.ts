@@ -7,11 +7,21 @@ export type ReportScopeInput = {
 };
 
 export function buildReportScope(input: ReportScopeInput) {
-  const { role, userUnitId, lembagaId, requestedUnitId, lembagaUnitIds = [] } = input;
+  const {
+    role,
+    userUnitId,
+    lembagaId,
+    requestedUnitId,
+    lembagaUnitIds = [],
+  } = input;
 
   if (role === "STAFF" || role === "MANAGER") {
     if (!userUnitId) {
-      return { allowed: false, reason: "User tidak memiliki unit", unitFilter: null };
+      return {
+        allowed: false,
+        reason: "User tidak memiliki unit",
+        unitFilter: null,
+      };
     }
 
     const targetUnitId = requestedUnitId ?? userUnitId;
@@ -24,16 +34,21 @@ export function buildReportScope(input: ReportScopeInput) {
 
   if (role === "PIMPINAN") {
     if (!lembagaId) {
-      return { allowed: false, reason: "Pimpinan tidak memiliki lembaga", unitFilter: null };
+      return {
+        allowed: false,
+        reason: "Pimpinan tidak memiliki lembaga",
+        unitFilter: null,
+      };
     }
 
-    const targetUnitIds = requestedUnitId ? [requestedUnitId] : lembagaUnitIds;
     if (requestedUnitId) {
-      const isInsideLembaga = targetUnitIds.includes(requestedUnitId);
+      const isInsideLembaga = lembagaUnitIds.includes(requestedUnitId);
       if (!isInsideLembaga) {
         return { allowed: false, reason: "Forbidden", unitFilter: null };
       }
     }
+
+    const targetUnitIds = requestedUnitId ? [requestedUnitId] : lembagaUnitIds;
 
     return {
       allowed: true,
@@ -43,7 +58,11 @@ export function buildReportScope(input: ReportScopeInput) {
   }
 
   if (role === "SUPERADMIN") {
-    return { allowed: true, reason: null, unitFilter: requestedUnitId ?? undefined };
+    return {
+      allowed: true,
+      reason: null,
+      unitFilter: requestedUnitId ?? undefined,
+    };
   }
 
   return { allowed: false, reason: "Forbidden", unitFilter: null };

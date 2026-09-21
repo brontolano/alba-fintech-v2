@@ -47,6 +47,49 @@ declare module "next-auth/jwt" {
 const loginAttempts = new Map<string, { count: number; last: number }>();
 const MAX_ATTEMPTS = 5;
 const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_KEYS = 2000; // upper bound before pruning expired keys
+
+type AuthHeaderValue = string | string[] | undefined;
+
+function getClientIp(
+  req?: { headers?: Record<string, AuthHeaderValue> },
+): string {
+  const fwd = req?.headers?.["x-forwarded-for"];
+  const realIp = req?.headers?.["x-real-ip"];
+  const first = Array.isArray(fwd) ? fwd[0] : fwd?.split(",")[0]?.trim();
+  const fallback = Array.isArray(realIp) ? realIp[0] : realIp;
+  return first || fallback || "unknown";
+}
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const attempt = loginAttempts.get(key);
+  if (!attempt) return false;
+  if (now - attempt.last > WINDOW_MS) {
+    loginAttempts.delete(key);
+    return false;
+  }
+  return attempt.count >= MAX_ATTEMPTS;
+}
+
+function recordFailure(key: string): void {
+  const now = Date.now();
+  const attempt = loginAttempts.get(key);
+  const next =
+    attempt && now - attempt.last <= WINDOW_MS ? attempt : { count: 0, last: now };
+  next.count += 1;
+  next.last = now;
+  loginAttempts.set(key, next);
+  if (loginAttempts.size > MAX_KEYS) {
+    for (const [k, v] of loginAttempts) {
+      if (now - v.last > WINDOW_MS) loginAttempts.delete(k);
+    }
+  }
+}
+
+function clearAttempts(key: string): void {
+  loginAttempts.delete(key);
+}
 
 // Fixed dummy bcrypt hash — always runs bcrypt.compare to keep uniform timing
 // regardless of whether the user exists (prevents email enumeration via timing)
@@ -64,22 +107,19 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials): Promise<AuthUser | null> {
+      async authorize(
+        credentials,
+        req?: { headers?: Record<string, AuthHeaderValue> },
+      ): Promise<AuthUser | null> {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const now = Date.now();
-        const attempt = loginAttempts.get(credentials.email) || {
-          count: 0,
-          last: now,
-        };
-        if (now - attempt.last > WINDOW_MS) {
-          attempt.count = 0;
-          attempt.last = now;
-        }
-        attempt.count++;
-        loginAttempts.set(credentials.email, attempt);
-        if (attempt.count > MAX_ATTEMPTS) {
-          throw new Error("Too many login attempts. Please try again later.");
+        // Key gabungan email+IP: serangan brute-force karena satu akun dari
+        // satu IP sekaligus melindungi dari penyebaran percobaan lintas email.
+        const key = `${credentials.email.toLowerCase()}|${getClientIp(req)}`;
+        if (isRateLimited(key)) {
+          throw new Error(
+            "Terlalu banyak percobaan login. Silakan coba lagi dalam 15 menit.",
+          );
         }
 
         const user = await prisma.user.findUnique({
@@ -108,7 +148,13 @@ export const authOptions: NextAuthOptions = {
         );
 
         // Check all conditions AFTER bcrypt call to preserve constant-time
-        if (!user || !user.isActive || !isPasswordValid) return null;
+        if (!user || !user.isActive || !isPasswordValid) {
+          recordFailure(key);
+          return null;
+        }
+
+        // Login sukses — reset penghitung percobaan untuk key ini.
+        clearAttempts(key);
 
         return {
           id: user.id,
