@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 const isProduction = process.env.NODE_ENV === "production";
-const COOKIE_NAMES = isProduction
-  ? ["__Secure-alba-session-token"]
-  : ["alba-session-token"];
+const SESSION_COOKIE = isProduction
+  ? "__Secure-alba-session-token"
+  : "alba-session-token";
 
 export async function middleware(req: NextRequest) {
   const url = req.nextUrl;
@@ -26,29 +26,23 @@ export async function middleware(req: NextRequest) {
     token = await getToken({
       req,
       secret: process.env.NEXTAUTH_SECRET,
+      cookieName: SESSION_COOKIE,
     });
   } catch {
-    // JWT decryption failed (secret changed / corrupted cookie) — clear it
     const response = NextResponse.redirect(new URL("/login", req.url));
-    for (const name of COOKIE_NAMES) {
-      response.cookies.delete(name);
-    }
+    response.cookies.delete(SESSION_COOKIE);
     return response;
   }
 
   if (!token) {
-    // No valid session — redirect to login
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
   if (token.isActive === false) {
-    // User deactivated — clear cookie and redirect with error
     const response = NextResponse.redirect(
       new URL("/login?error=deactivated", req.url),
     );
-    for (const name of COOKIE_NAMES) {
-      response.cookies.delete(name);
-    }
+    response.cookies.delete(SESSION_COOKIE);
     return response;
   }
 
