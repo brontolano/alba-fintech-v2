@@ -18,7 +18,15 @@ interface InventoryForm {
   imageUrl: string;
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function EditInventoryPage() {
+  usePageGuard([], {
+    allow: (u) =>
+      u?.role === "SUPERADMIN" ||
+      (u?.unitIsRetail === true &&
+        (u.role === "MANAGER" || u.role === "STAFF")),
+  });
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);

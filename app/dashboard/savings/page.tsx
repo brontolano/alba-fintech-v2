@@ -22,7 +22,16 @@ interface StudentData {
   account?: { id: string; balance: number | string; status: string } | null;
 }
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function SavingsPage() {
+  usePageGuard([], {
+    allow: (u) =>
+      u?.role === "SUPERADMIN" ||
+      u?.role === "PIMPINAN" ||
+      ((u?.role === "MANAGER" || u?.role === "STAFF") &&
+        u?.unitIsRetail !== true),
+  });
   const { data: session } = useSession();
   const [lookupValue, setLookupValue] = useState("");
   const [student, setStudent] = useState<StudentData | null>(null);

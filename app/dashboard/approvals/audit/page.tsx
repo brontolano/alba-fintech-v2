@@ -33,7 +33,10 @@ interface AuditItem {
 
 type TabKey = "ALL" | "PENDING" | "APPROVED" | "REJECTED";
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function ApprovalAuditPage() {
+  usePageGuard(["SUPERADMIN", "PIMPINAN", "MANAGER"]);
   const [items, setItems] = useState<AuditItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabKey>("ALL");
