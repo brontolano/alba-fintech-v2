@@ -104,7 +104,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Laporan & Setoran",
     href: "/dashboard/reports",
     icon: <BarChart3 size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
+    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
   },
   {
     label: "Rekonsiliasi",

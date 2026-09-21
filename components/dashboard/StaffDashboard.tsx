@@ -6,7 +6,6 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  Clock,
   ArrowUpRight,
   ArrowDownRight,
   Package,
@@ -116,12 +115,6 @@ export default function StaffDashboard() {
       color: "green",
     },
     ...(canUseRetailModules ? retailActions : nonRetailActions),
-    {
-      href: "/dashboard/reconciliation",
-      icon: Clock,
-      label: "Rekonsiliasi",
-      color: "accent",
-    },
     {
       href: "/dashboard/reports",
       icon: BarChart3,
