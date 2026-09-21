@@ -39,6 +39,11 @@ Environment produksi dikelola di **hPanel → Node.js → Environment Variables*
 
 Template & contoh: `.env.production.example`.
 
+**Lupa variabel apa saja yang harus diisi?** Ada dua cara cek:
+
+- **Lokal** (sebelum push): `npm run env:check` — mencetak checklist `SET`/`MISSING` dari `.env`/`.env.local` dan keluar dengan error bila ada yang wajib kurang.
+- **Server** (setelah deploy): `curl https://alba.brontolano.com/api/health` — respons berisi `env.missingRequired` (daftar variabel wajib yang belum terisi di hPanel). Nama variabel saja yang ditampilkan, nilai tidak pernah bocor.
+
 ---
 
 ## Verifikasi Setelah Deploy
@@ -95,6 +100,7 @@ mysql -h srv594.hstgr.io -u USER -p DATABASE < backup_20260101_020000.sql
 | Build gagal di hPanel | Buka log build di hPanel; pastikan `npm run build` lolos lokal (`npm run type-check` + `npm run build`) |
 | `P1000/P1001` (DB) | Periksa `DATABASE_URL` di hPanel; di Hostinger gunakan `localhost`, bukan `127.0.0.1` |
 | Redirect loop di `/login` | Pastikan `NEXTAUTH_URL` = domain publik (`https://alba.brontolano.com`) |
+| Lupa env var / salah isi | `curl /api/health` → lihat `env.missingRequired`; set lupa itu di hPanel → push ulang |
 | Tidak ada log | Restart Node.js app dari hPanel |
 
 ---

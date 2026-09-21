@@ -28,7 +28,8 @@
     "db:seed-dummy-reconciliation": "tsx scripts/seed-dummy-reconciliation.ts",
     "db:backup": "tsx scripts/backup-database.ts",
     "db:reset": "prisma migrate reset --force && npm run db:seed",
-    "reset:users": "tsx scripts/reset-users.ts"
+    "reset:users": "tsx scripts/reset-users.ts",
+    "env:check": "node scripts/env-check.mjs"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",
