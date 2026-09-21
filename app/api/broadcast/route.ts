@@ -109,6 +109,28 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    if (parsed.data.isSent) {
+      const where: any = {};
+      if (parsed.data.lembagaId) {
+        where.lembagaId = parsed.data.lembagaId;
+      }
+      const users = await prisma.user.findMany({
+        where,
+        select: { id: true },
+      });
+      if (users.length > 0) {
+        await prisma.notification.createMany({
+          data: users.map((u) => ({
+            userId: u.id,
+            title: broadcast.title,
+            message: broadcast.message,
+            type: 'INFO',
+            isRead: false,
+          })),
+        });
+      }
+    }
+
     return NextResponse.json({ data: broadcast }, { status: 201 });
   } catch (error: any) {
     console.error('[Broadcast API] Error:', error);

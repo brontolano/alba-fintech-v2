@@ -21,6 +21,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Bell,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -105,6 +106,12 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/reports",
     icon: <BarChart3 size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+  },
+  {
+    label: "Pengumuman",
+    href: "/dashboard/announcements",
+    icon: <Bell size={20} />,
+    roles: ["SUPERADMIN", "PIMPINAN"],
   },
   {
     label: "Rekonsiliasi",

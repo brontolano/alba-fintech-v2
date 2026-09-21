@@ -9,7 +9,7 @@ import {
   ShoppingCart,
   Package,
   PiggyBank,
-  ReceiptText,
+  Bell,
   Plus,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
@@ -39,9 +39,9 @@ export function MobileNav({ user }: MobileNavProps) {
       role === "SUPERADMIN" || user?.unitIsRetail === true;
 
     const primaryAction: NavItem = {
-      label: "Operasional",
-      href: "/dashboard/transactions",
-      icon: <ReceiptText size={24} />,
+      label: "Pengumuman",
+      href: "/dashboard/announcements",
+      icon: <Bell size={24} />,
       isPrimary: true,
     };
 

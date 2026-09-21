@@ -679,6 +679,119 @@ export async function seedDemoData(prisma: PrismaClient) {
   );
 }
 
+const INSTALL_PASSWORD = "bismillah";
+
+const INSTALL_USERS = [
+  ["pimpinan@alba.app", "Pimpinan Alba", "PIMPINAN", null],
+  ["manager.kpak@alba.app", "Manager KPAK", "MANAGER", "KPK-01"],
+  ["manager.kantinbaru@alba.app", "Manager Kantin Baru", "MANAGER", "KNT-02"],
+  ["manager.kantinumi@alba.app", "Manager Kantin Umi", "MANAGER", "KNT-01"],
+  ["manager.koperasi@alba.app", "Manager Koperasi Buku", "MANAGER", "KOP-01"],
+  ["staff.kpak@alba.app", "Staff KPAK", "STAFF", "KPK-01"],
+  ["staff.kantinbaru@alba.app", "Staff Kantin Baru", "STAFF", "KNT-02"],
+  ["staff.kantinumi@alba.app", "Staff Kantin Umi", "STAFF", "KNT-01"],
+  ["staff.koperasi@alba.app", "Staff Koperasi Buku", "STAFF", "KOP-01"],
+] as const;
+
+export async function installFreshDatabase(prisma: PrismaClient) {
+  return prisma.$transaction(
+    async (tx) => {
+      await clearAllData(tx, false);
+
+      const lembaga = await tx.lembaga.create({
+        data: {
+          name: "Pondok Pesantren Al-Basyariyah",
+          code: "AL-BASYARIYAH",
+          description:
+            "Sistem manajemen keuangan Pondok Pesantren Al-Basyariyah",
+          address: "Jl. Mahmud, Rahayu, Margaasih, Bandung",
+        },
+      });
+
+      const units = new Map<string, any>();
+      for (const unitData of UNITS) {
+        const unit = await tx.unit.create({
+          data: { ...unitData, lembagaId: lembaga.id },
+        });
+        units.set(unit.code, unit);
+        await tx.unitSetting.create({
+          data: {
+            unitId: unit.id,
+            posEnabled: unit.isRetail,
+            inventoryEnabled: unit.isRetail,
+            requiresApproval: false,
+          },
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(INSTALL_PASSWORD, 12);
+
+      await tx.user.create({
+        data: {
+          email: "admin@brontolano.com",
+          name: "Super Admin",
+          role: "SUPERADMIN",
+          passwordHash: hashedPassword,
+          lembagaId: lembaga.id,
+        },
+      });
+
+      for (const [email, name, role, unitCode] of INSTALL_USERS) {
+        await tx.user.create({
+          data: {
+            email,
+            name,
+            role: role as any,
+            passwordHash: hashedPassword,
+            lembagaId: lembaga.id,
+            unitId: unitCode ? units.get(unitCode).id : null,
+          },
+        });
+      }
+
+      const categories = new Map<string, any>();
+      for (const [name, code, type] of CATEGORIES) {
+        const category = await tx.financialCategory.create({
+          data: { name, code, type: type as any, lembagaId: lembaga.id },
+        });
+        categories.set(code, category);
+      }
+
+      for (const [code, unitCode, name, type, balance] of [
+        ["KPK-KAS", "KPK-01", "Kas KPAK", "CASH", 0],
+        ["KNT02-KAS", "KNT-02", "Kas Kantin Baru", "CASH", 0],
+        ["KNT01-KAS", "KNT-01", "Kas Kantin Umi", "CASH", 0],
+        ["KOP-KAS", "KOP-01", "Kas Koperasi Buku", "CASH", 0],
+      ] as const) {
+        await tx.bankAccount.create({
+          data: {
+            code,
+            name,
+            type: type as any,
+            balance,
+            unitId: units.get(unitCode).id,
+          },
+        });
+      }
+
+      for (const [key, value, description] of DEFAULT_SETTINGS)
+        await tx.systemSetting.create({ data: { key, value, description } });
+
+      return {
+        message:
+          "Instal ulang berhasil. 4 unit dan 10 akun pengguna dibuat. Silakan login kembali.",
+        units: UNITS.map((u) => u.name),
+        users: [
+          "admin@brontolano.com",
+          ...INSTALL_USERS.map((u) => u[0]),
+        ],
+        password: INSTALL_PASSWORD,
+      };
+    },
+    { timeout: 30000 },
+  );
+}
+
 export async function importDatabase(prisma: PrismaClient, payload: any) {
   if (
     !payload ||

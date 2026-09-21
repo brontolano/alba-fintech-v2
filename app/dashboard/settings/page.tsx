@@ -389,6 +389,33 @@ export default function SettingsPage() {
     }
   };
 
+  const handleInstall = async () => {
+    if (
+      !confirm(
+        "Instal ulang akan menghapus SEMUA data dan membuat pengaturan awal dengan unit, user, serta kategori default. Lanjutkan?",
+      )
+    )
+      return;
+    setIsResetting(true);
+    try {
+      const res = await fetch("/api/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "install" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal instal ulang");
+      toast.success(
+        `Instal ulang berhasil — silakan login kembali dengan credential baru.`,
+      );
+      await fetchSettings();
+    } catch (err: any) {
+      toast.error(err.message || "Gagal instal ulang");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const tabs = [
     { id: "system", label: "Pengaturan Sistem", icon: Settings },
     { id: "data", label: "Data", icon: Database },
@@ -710,6 +737,47 @@ export default function SettingsPage() {
                       )}
                       <span>
                         {isResetting ? "Mereset..." : "Reset Semua Data"}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Install Fresh Section */}
+                  <div className="rounded-[18px] border border-red-200 bg-red-50 p-4">
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100">
+                        <RefreshCw size={20} className="text-red-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-red-800">
+                          Instal Ulang
+                        </h3>
+                        <p className="text-sm text-red-700">
+                          Hapus semua data, buat 4 unit, 10 user, serta
+                          kategori dan akun default. Cocok untuk fresh start.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-2 rounded-lg bg-red-100/60 p-3 text-xs text-red-700">
+                      <p className="font-semibold">Unit yang dibuat:</p>
+                      <ul className="mt-1 list-inside list-disc">
+                        <li>KPAK</li>
+                        <li>Koperasi Buku</li>
+                        <li>Kantin Umi</li>
+                        <li>Kantin Baru</li>
+                      </ul>
+                    </div>
+                    <button
+                      onClick={handleInstall}
+                      disabled={isResetting}
+                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {isResetting ? (
+                        <RefreshCw size={18} className="animate-spin" />
+                      ) : (
+                        <RefreshCw size={18} />
+                      )}
+                      <span>
+                        {isResetting ? "Memproses..." : "Instal Ulang"}
                       </span>
                     </button>
                   </div>
