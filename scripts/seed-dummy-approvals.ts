@@ -10,9 +10,9 @@
  */
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '../lib/prisma';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 async function getOrCreateDummyContext() {
   // Ensure a lembaga exists

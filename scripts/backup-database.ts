@@ -7,7 +7,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/prisma";
 import { exportDatabase } from "../lib/data-management";
 
 const RETENTION_DAYS = Number(process.env.BACKUP_RETENTION_DAYS || 14);
@@ -74,7 +74,7 @@ async function main() {
   }
 
   await mkdir(backupDirectory, { recursive: true, mode: 0o700 });
-  const prisma = new PrismaClient();
+  const prisma = createPrismaClient();
   try {
     const backup = await exportDatabase(prisma);
     const target = path.join(backupDirectory, backupFileName());

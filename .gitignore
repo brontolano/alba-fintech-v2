@@ -84,7 +84,6 @@ prisma/*.ml
 prisma/schema-v3.prisma
 
 # Local scripts / scratch files
-scripts/debug/
 commit-helper.cjs
 fix-git.cjs
 gen-target-files.js
@@ -112,7 +111,6 @@ android-app/
 design-system/
 docs/MOCKUP/
 docs/GUIDE/
-todolist.md
 
 # Duplicate / canonical asset exclusions
 public/background-01.png
@@ -128,3 +126,6 @@ database-update-v2.sql
 
 # AI-generated image junk
 docs/GUIDE/Gemini_Generated_Image_*.jfif
+
+# Generated Prisma Client (v7 rust-free, output source tree)
+/generated/prisma/

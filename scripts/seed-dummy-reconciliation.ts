@@ -10,9 +10,9 @@
  *   npx tsx scripts/seed-dummy-reconciliation.ts
  */
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/prisma";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 async function main() {
   const lembaga = await prisma.lembaga.findFirst({

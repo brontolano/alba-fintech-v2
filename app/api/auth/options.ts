@@ -98,7 +98,7 @@ const DUMMY_HASH = "$2a$10$N9qo8uLOickgx2ZMRZoMy.MrqQ7K9ExnLxKwbdJ5mg0rV5xZ5Z5";
 const isProduction = process.env.NODE_ENV === "production";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma as unknown as Parameters<typeof PrismaAdapter>[0]),
   useSecureCookies: isProduction,
   providers: [
     CredentialsProvider({
