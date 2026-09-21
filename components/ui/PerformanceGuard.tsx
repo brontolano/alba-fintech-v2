@@ -9,7 +9,7 @@ export default function PerformanceGuard() {
   return (
     <Script
       src="/perf-guard.js"
-      strategy="beforeInteractive"
+      strategy="afterInteractive"
       onError={(e) => { console.warn('[PerformanceGuard] failed', e); }}
     />
   );

@@ -11,8 +11,8 @@ const fontSans = { variable: "--font-sans" };
 export const metadata: Metadata = {
   title: {
     default:
-      "ALBA Finance v3 - Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
-    template: `%s | ALBA Finance v3`,
+      "ALBA Finance v7 - Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
+    template: `%s | ALBA Finance v7`,
   },
   description: "Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
   keywords: [
@@ -67,6 +67,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-// Force dynamic rendering for layout and pages
-export const dynamic = "force-dynamic";

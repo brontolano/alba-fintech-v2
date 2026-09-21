@@ -42,13 +42,20 @@ export default function KpakStudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [summary, setSummary] = useState({ total: 0, totalBalance: 0 });
+
+  // Debounce ketikan: 1 request per 350ms, bukan per huruf
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const fetchStudents = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
       const res = await fetch(`/api/savings/students?${params}`);
       if (!res.ok) throw new Error("Gagal memuat data");
       const json = await res.json();
@@ -67,7 +74,7 @@ export default function KpakStudentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [debouncedSearch]);
 
   useEffect(() => {
     fetchStudents();
