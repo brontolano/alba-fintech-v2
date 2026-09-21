@@ -62,7 +62,7 @@ Pondok Pesantren Al-Basyariyah
 - **Styling**: Tailwind CSS 3.4 + shadcn/ui
 - **Backend**: Next.js API Routes
 - **Database**: MySQL 8.0
-- **ORM**: Prisma 7.x (generator `prisma-client` rust-free; adapter `@prisma/adapter-mariadb`; URL DB via `prisma.config.ts`)
+- **ORM**: Prisma 7.x (generator `prisma-client` rust-free; built-in MySQL connector; URL DB via `prisma.config.ts`)
 - **Auth**: NextAuth.js 4.24 (keputusan: tetap v4, v5 masih beta)
 - **Password Hash**: bcryptjs
 - **Validation**: Zod
