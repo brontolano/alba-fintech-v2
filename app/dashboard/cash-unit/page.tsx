@@ -46,6 +46,11 @@ export default function UnitCashPage() {
 
   useEffect(() => {
     const role = session?.user?.role;
+    // Unit KPAK pakai modul KPAK (Layanan Keuangan + Administrasi Internal)
+    if (session?.user?.unitType === "KPAK") {
+      router.replace("/dashboard/kpak/finance");
+      return;
+    }
     const isCasher =
       (role === "MANAGER" || role === "STAFF") &&
       session?.user?.unitIsRetail !== true;
@@ -57,7 +62,7 @@ export default function UnitCashPage() {
       .then((response) => response.json())
       .then((result) => setCategories(result.data ?? []))
       .catch(() => setCategories([]));
-  }, [unitId]);
+  }, [unitId, router, session?.user?.unitType]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();

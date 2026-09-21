@@ -58,11 +58,10 @@ export async function POST(request: NextRequest) {
   const scope = await getScope();
   if ("error" in scope)
     return NextResponse.json({ error: scope.error }, { status: scope.status });
-  if (!["SUPERADMIN", "PIMPINAN", "MANAGER"].includes(scope.role || ""))
-    return NextResponse.json(
-      { error: "Staff tidak dapat mendaftarkan santri" },
-      { status: 403 },
-    );
+  if (
+    !["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"].includes(scope.role || "")
+  )
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = studentSchema.safeParse(await request.json());
   if (!parsed.success)
@@ -74,7 +73,10 @@ export async function POST(request: NextRequest) {
   const requestedUnitId = parsed.data.unitId || scope.session.user.unitId;
   if (!requestedUnitId)
     return NextResponse.json({ error: "Unit wajib dipilih" }, { status: 400 });
-  if (scope.role === "MANAGER" && requestedUnitId !== scope.session.user.unitId)
+  if (
+    (scope.role === "MANAGER" || scope.role === "STAFF") &&
+    requestedUnitId !== scope.session.user.unitId
+  )
     return NextResponse.json(
       { error: "Santri harus terdaftar di unit Anda" },
       { status: 403 },

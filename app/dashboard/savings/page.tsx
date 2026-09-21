@@ -10,7 +10,6 @@ import {
   UserPlus,
 } from "lucide-react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 
 interface StudentData {
@@ -32,7 +31,6 @@ export default function SavingsPage() {
       ((u?.role === "MANAGER" || u?.role === "STAFF") &&
         u?.unitIsRetail !== true),
   });
-  const { data: session } = useSession();
   const [lookupValue, setLookupValue] = useState("");
   const [student, setStudent] = useState<StudentData | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
@@ -165,14 +163,12 @@ export default function SavingsPage() {
           >
             <ExternalLink size={16} /> Buka Anjungan
           </Link>
-          {session?.user?.role !== "STAFF" && (
-            <button
-              onClick={() => setShowRegister((value) => !value)}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
-            >
-              <UserPlus size={16} /> Santri Baru
-            </button>
-          )}
+          <button
+            onClick={() => setShowRegister((value) => !value)}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+          >
+            <UserPlus size={16} /> Santri Baru
+          </button>
         </div>
       </div>
 
@@ -258,26 +254,24 @@ export default function SavingsPage() {
             >
               <UserPlus size={16} /> Ke Data Santri — Tambah Baru
             </Link>
-            {session?.user?.role !== "STAFF" && (
-              <button
-                onClick={() => {
-                  setRegister((r) => ({
-                    ...r,
-                    studentNumber: /^[0-9]+$/.test(notFoundKey)
-                      ? notFoundKey
-                      : r.studentNumber,
-                    cardUid: /^[0-9]+$/.test(notFoundKey)
-                      ? r.cardUid
-                      : notFoundKey,
-                  }));
-                  setShowRegister(true);
-                  setNotFoundKey(null);
-                }}
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
-              >
-                Daftarkan di sini
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setRegister((r) => ({
+                  ...r,
+                  studentNumber: /^[0-9]+$/.test(notFoundKey)
+                    ? notFoundKey
+                    : r.studentNumber,
+                  cardUid: /^[0-9]+$/.test(notFoundKey)
+                    ? r.cardUid
+                    : notFoundKey,
+                }));
+                setShowRegister(true);
+                setNotFoundKey(null);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
+            >
+              Daftarkan di sini
+            </button>
           </div>
         </div>
       )}

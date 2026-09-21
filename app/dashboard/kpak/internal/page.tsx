@@ -6,6 +6,9 @@ import {
   Loader2,
   Settings2,
   TrendingDown,
+  TrendingUp,
+  ArrowDownRight,
+  ArrowUpRight,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -29,6 +32,7 @@ interface Category {
 
 interface RecentTx {
   id: string;
+  type: string;
   amount: number | string;
   description: string;
   date: string;
@@ -46,8 +50,10 @@ export default function KpakInternalPage() {
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [txType, setTxType] = useState<"INCOME" | "EXPENSE">("EXPENSE");
   const [selectedCat, setSelectedCat] = useState<Category | null>(null);
-  const [todayTotal, setTodayTotal] = useState(0);
+  const [todayIn, setTodayIn] = useState(0);
+  const [todayOut, setTodayOut] = useState(0);
   const [recent, setRecent] = useState<RecentTx[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -61,12 +67,14 @@ export default function KpakInternalPage() {
     session?.user?.role === "PIMPINAN" ||
     session?.user?.role === "MANAGER";
 
+  const visibleCats = categories.filter((c) => c.type === txType);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [catRes, txRes] = await Promise.all([
-        fetch("/api/financial-categories?type=EXPENSE"),
-        fetch("/api/transactions?type=EXPENSE&limit=10"),
+        fetch("/api/financial-categories"),
+        fetch("/api/transactions?limit=15"),
       ]);
       if (catRes.ok) {
         const c = await catRes.json();
@@ -74,16 +82,21 @@ export default function KpakInternalPage() {
           (x: any) => x.isActive !== false,
         );
         setCategories(list);
-        if (!selectedCat && list.length > 0) setSelectedCat(list[0]);
       }
       if (txRes.ok) {
         const t = await txRes.json();
         const list: RecentTx[] = t.data || t.transactions || [];
         setRecent(list);
         const today = new Date().toISOString().slice(0, 10);
-        setTodayTotal(
-          list
-            .filter((x) => (x.date || "").slice(0, 10) === today)
+        const day = list.filter((x) => (x.date || "").slice(0, 10) === today);
+        setTodayIn(
+          day
+            .filter((x) => x.type === "INCOME")
+            .reduce((s, x) => s + Number(x.amount || 0), 0),
+        );
+        setTodayOut(
+          day
+            .filter((x) => x.type === "EXPENSE")
             .reduce((s, x) => s + Number(x.amount || 0), 0),
         );
       }
@@ -92,17 +105,22 @@ export default function KpakInternalPage() {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // Reset pilihan kategori saat ganti tipe
+  useEffect(() => {
+    const first = categories.find((c) => c.type === txType) || null;
+    setSelectedCat(first);
+  }, [txType, categories]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCat) {
-      toast.error("Pilih jenis pengeluaran dulu");
+      toast.error("Pilih kategori dulu");
       return;
     }
     const nominal = Number(amount);
@@ -111,7 +129,7 @@ export default function KpakInternalPage() {
       return;
     }
     if (!note.trim()) {
-      toast.error("Keterangan wajib diisi (untuk apa pengeluaran ini)");
+      toast.error("Keterangan wajib diisi (uang apa / untuk apa)");
       return;
     }
     setSaving(true);
@@ -120,18 +138,18 @@ export default function KpakInternalPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "EXPENSE",
+          type: txType,
           amount: nominal,
           description: `${selectedCat.name} — ${note.trim()}`,
           categoryId: selectedCat.id,
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Gagal mencatat pengeluaran");
+      if (!res.ok) throw new Error(json.error || "Gagal mencatat transaksi");
       toast.success(
         json.data?.status === "PENDING"
-          ? "Pengeluaran tercatat — menunggu persetujuan"
-          : "Pengeluaran berhasil dicatat",
+          ? "Tercatat — menunggu persetujuan"
+          : "Berhasil dicatat",
       );
       setAmount("");
       setNote("");
@@ -149,7 +167,8 @@ export default function KpakInternalPage() {
         <div>
           <h1 className="text-2xl font-bold">Administrasi Internal</h1>
           <p className="text-sm text-muted-foreground">
-            Pengeluaran operasional, belanja, gaji, dan kebutuhan internal KPAK
+            Uang masuk (kembalian, pengembalian, dll) & pengeluaran internal
+            KPAK
           </p>
         </div>
         {canManageCategories && (
@@ -162,37 +181,85 @@ export default function KpakInternalPage() {
         )}
       </div>
 
-      <div className="rounded-xl border bg-card p-5">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-rose-500/10 p-2.5">
-            <TrendingDown size={20} className="text-rose-600 dark:text-rose-400" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-emerald-500/10 p-2.5">
+              <TrendingUp
+                size={20}
+                className="text-emerald-600 dark:text-emerald-400"
+              />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">
+                Uang masuk internal hari ini
+              </p>
+              <p className="text-2xl font-bold">{formatCurrency(todayIn)}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground">
-              Pengeluaran internal hari ini
-            </p>
-            <p className="text-2xl font-bold">{formatCurrency(todayTotal)}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-rose-500/10 p-2.5">
+              <TrendingDown
+                size={20}
+                className="text-rose-600 dark:text-rose-400"
+              />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">
+                Pengeluaran internal hari ini
+              </p>
+              <p className="text-2xl font-bold">{formatCurrency(todayOut)}</p>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
         <div className="rounded-xl border bg-card p-5">
-          <h2 className="mb-3 text-sm font-semibold">1. Pilih Jenis Pengeluaran</h2>
+          <h2 className="mb-3 text-sm font-semibold">1. Masuk / Keluar?</h2>
+          <div className="mb-4 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setTxType("INCOME")}
+              className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold ${
+                txType === "INCOME"
+                  ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border-border text-muted-foreground"
+              }`}
+            >
+              <ArrowDownRight size={16} /> Uang Masuk
+            </button>
+            <button
+              type="button"
+              onClick={() => setTxType("EXPENSE")}
+              className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold ${
+                txType === "EXPENSE"
+                  ? "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                  : "border-border text-muted-foreground"
+              }`}
+            >
+              <ArrowUpRight size={16} /> Pengeluaran
+            </button>
+          </div>
+
+          <h2 className="mb-3 text-sm font-semibold">2. Pilih Kategori</h2>
           {loading ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
               <Loader2 size={16} className="mx-auto mb-1 animate-spin" />
               Memuat kategori...
             </p>
-          ) : categories.length === 0 ? (
+          ) : visibleCats.length === 0 ? (
             <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-              Belum ada kategori pengeluaran.
+              Belum ada kategori{" "}
+              {txType === "INCOME" ? "pemasukan" : "pengeluaran"}.
               {canManageCategories ? (
                 <Link
                   href="/dashboard/settings/categories"
                   className="mt-2 block font-medium text-primary hover:underline"
                 >
-                  Buat kategori (Operasional, Belanja, Gaji, dll)
+                  Buat kategori baru
                 </Link>
               ) : (
                 <p className="mt-2">Hubungi Manager untuk menambah kategori</p>
@@ -200,7 +267,7 @@ export default function KpakInternalPage() {
             </div>
           ) : (
             <div className="grid gap-2">
-              {categories.map((c) => (
+              {visibleCats.map((c) => (
                 <button
                   key={c.id}
                   type="button"
@@ -227,9 +294,9 @@ export default function KpakInternalPage() {
           onSubmit={handleSubmit}
           className="space-y-4 rounded-xl border bg-card p-5"
         >
-          <h2 className="text-sm font-semibold">2. Nominal & Keterangan</h2>
+          <h2 className="text-sm font-semibold">3. Nominal & Keterangan</h2>
           <div className="rounded-lg bg-primary/5 p-3 text-sm">
-            Kategori:{" "}
+            {txType === "INCOME" ? "Uang masuk" : "Pengeluaran"}:{" "}
             <span className="font-semibold">
               {selectedCat?.name || "— pilih di kiri —"}
             </span>
@@ -240,14 +307,18 @@ export default function KpakInternalPage() {
             min="1"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder="Nominal pengeluaran (Rp)"
+            placeholder="Nominal (Rp)"
             className="w-full rounded-lg border bg-background px-3 py-3 text-sm"
           />
           <textarea
             required
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Untuk apa? (contoh: beli ATK 10 rim, gaji cleaning Mei, service printer)"
+            placeholder={
+              txType === "INCOME"
+                ? "Uang apa? (contoh: kembalian belanja ATK 25rb, pengembalian kasbon)"
+                : "Untuk apa? (contoh: beli ATK 10 rim, gaji cleaning, service printer)"
+            }
             rows={3}
             className="w-full resize-none rounded-lg border bg-background px-3 py-3 text-sm"
           />
@@ -260,16 +331,20 @@ export default function KpakInternalPage() {
             ) : (
               <Wallet size={16} />
             )}
-            {saving ? "Memproses..." : "Catat Pengeluaran"}
+            {saving
+              ? "Memproses..."
+              : txType === "INCOME"
+                ? "Catat Uang Masuk"
+                : "Catat Pengeluaran"}
           </button>
         </form>
       </div>
 
       <div className="rounded-xl border bg-card p-5">
-        <h2 className="mb-3 text-sm font-semibold">Pengeluaran Terakhir</h2>
+        <h2 className="mb-3 text-sm font-semibold">Transaksi Internal Terakhir</h2>
         {recent.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
-            Belum ada pengeluaran tercatat
+            Belum ada transaksi tercatat
           </p>
         ) : (
           <div className="divide-y">
@@ -281,7 +356,7 @@ export default function KpakInternalPage() {
                 <div>
                   <p className="font-medium">{t.description}</p>
                   <p className="text-xs text-muted-foreground">
-                    {t.category?.name || "Tanpa kategori"} ·{" "}
+                    {t.category?.name || (t.type === "INCOME" ? "Pemasukan" : "Pengeluaran")} ·{" "}
                     {new Date(t.date).toLocaleDateString("id-ID", {
                       day: "2-digit",
                       month: "short",
@@ -290,8 +365,15 @@ export default function KpakInternalPage() {
                     · {t.status}
                   </p>
                 </div>
-                <p className="font-semibold text-rose-600 dark:text-rose-400">
-                  -{formatCurrency(Number(t.amount))}
+                <p
+                  className={`font-semibold ${
+                    t.type === "INCOME"
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-rose-600 dark:text-rose-400"
+                  }`}
+                >
+                  {t.type === "INCOME" ? "+" : "-"}
+                  {formatCurrency(Number(t.amount))}
                 </p>
               </div>
             ))}

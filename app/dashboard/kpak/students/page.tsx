@@ -210,7 +210,7 @@ export default function KpakStudentsPage() {
   };
 
   const role = session?.user?.role;
-  const canManage =
+  const canEdit =
     role === "SUPERADMIN" || role === "PIMPINAN" || role === "MANAGER";
 
   return (
@@ -220,20 +220,18 @@ export default function KpakStudentsPage() {
         <div>
           <h1 className="text-2xl font-bold">Data Santri</h1>
           <p className="text-sm text-muted-foreground">
-            {canManage
+            {canEdit
               ? "Kelola data santri dan rekening tabungan"
-              : "Lihat data santri — tambah/ubah data oleh Manager unit"}
+              : "Daftarkan santri baru — ubah data oleh Manager unit"}
           </p>
         </div>
-        {canManage && (
-          <button
-            onClick={() => setShowAdd(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <UserPlus size={16} />
-            Santri Baru
-          </button>
-        )}
+        <button
+          onClick={() => setShowAdd(true)}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          <UserPlus size={16} />
+          Santri Baru
+        </button>
       </div>
 
       {/* Summary Widgets */}
@@ -448,13 +446,17 @@ export default function KpakStudentsPage() {
             <div className="rounded-lg border p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Identitas Santri</h3>
-                {canManage && (
+                {canEdit ? (
                   <button
                     onClick={() => setEditMode(!editMode)}
                     className="text-xs text-primary hover:underline"
                   >
                     {editMode ? "Batal" : "Edit"}
                   </button>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">
+                    Ubah data oleh Manager
+                  </span>
                 )}
               </div>
 
