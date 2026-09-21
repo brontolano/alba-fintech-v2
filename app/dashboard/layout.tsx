@@ -15,15 +15,16 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  let session = null;
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      redirect("/login");
-    }
-
-    return <DashboardClient user={session.user} children={children} />;
+    session = await getServerSession(authOptions);
   } catch {
+    // JWT/DB error — fall through to redirect
+  }
+
+  if (!session?.user) {
     redirect("/login");
   }
+
+  return <DashboardClient user={session.user!} children={children} />;
 }

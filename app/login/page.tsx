@@ -14,9 +14,14 @@ export default async function LoginPage({
 }: {
   searchParams?: { reason?: string };
 }) {
-  const session = await getServerSession(authOptions);
+  let session = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    // Invalid JWT / DB error — show login form, don't throw
+  }
 
-  if (session) {
+  if (session?.user) {
     redirect("/dashboard");
   }
 
