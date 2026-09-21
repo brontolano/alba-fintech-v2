@@ -7,7 +7,6 @@ import {
   UserPlus,
   Search,
   ChevronDown,
-  ChevronUp,
   X,
   Save,
   CreditCard,
@@ -196,7 +195,7 @@ export default function KpakStudentsPage() {
     setMutationsLoading(true);
     try {
       const res = await fetch(
-        `/api/savings/lookup?studentNumber=${student.studentNumber}`,
+        `/api/savings/lookup?studentNumber=${encodeURIComponent(student.studentNumber)}`,
       );
       if (res.ok) {
         const json = await res.json();

@@ -22,6 +22,13 @@ const formatCurrency = (amount: number) =>
     minimumFractionDigits: 0,
   }).format(amount);
 
+// Tanggal lokal (WIB) — jangan pakai toISOString (UTC) agar widget
+// "hari ini" tidak meleset pada 00:00–07:00 WIB
+const todayLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 interface Category {
   id: string;
   name: string;
@@ -83,9 +90,13 @@ export default function KpakFinancePage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [catRes, txRes] = await Promise.all([
+      const today = todayLocal();
+      const [catRes, txRes, todayRes] = await Promise.all([
         fetch("/api/financial-categories?type=INCOME"),
         fetch("/api/transactions?type=INCOME&limit=10"),
+        fetch(
+          `/api/transactions?type=INCOME&startDate=${today}&endDate=${today}&limit=100`,
+        ),
       ]);
       if (catRes.ok) {
         const c = await catRes.json();
@@ -97,13 +108,13 @@ export default function KpakFinancePage() {
       }
       if (txRes.ok) {
         const t = await txRes.json();
+        setRecent(t.data || t.transactions || []);
+      }
+      if (todayRes.ok) {
+        const t = await todayRes.json();
         const list: RecentTx[] = t.data || t.transactions || [];
-        setRecent(list);
-        const today = new Date().toISOString().slice(0, 10);
         setTodayTotal(
-          list
-            .filter((x) => (x.date || "").slice(0, 10) === today)
-            .reduce((s, x) => s + Number(x.amount || 0), 0),
+          list.reduce((s, x) => s + Number(x.amount || 0), 0),
         );
       }
     } catch {

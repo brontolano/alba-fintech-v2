@@ -21,6 +21,13 @@ const formatCurrency = (amount: number) =>
 
 type Tab = "semua" | "kas" | "tabungan";
 
+// Tanggal lokal (WIB) — jangan pakai toISOString (UTC) agar widget
+// "hari ini" tidak meleset pada 00:00–07:00 WIB
+const todayLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 interface LedgerEntry {
   key: string;
   dateISO: string;
@@ -79,7 +86,7 @@ export function KpakCashOverview() {
               amount: Number(x.amount || 0),
             });
           }
-          const today = new Date().toISOString().slice(0, 10);
+          const today = todayLocal();
           setTodayIn(
             list
               .filter(

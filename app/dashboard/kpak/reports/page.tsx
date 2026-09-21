@@ -21,7 +21,11 @@ const formatCurrency = (amount: number) =>
     minimumFractionDigits: 0,
   }).format(amount);
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+// Tanggal lokal (WIB) — jangan pakai toISOString (UTC) agar default
+// harian tidak meleset pada 00:00–07:00 WIB
+const todayStr = (d: Date = new Date()) => {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 interface Tx {
   id: string;
@@ -109,8 +113,8 @@ export default function KpakReportsPage() {
     const start = new Date();
     if (preset === "week") start.setDate(start.getDate() - 6);
     if (preset === "month") start.setDate(start.getDate() - 29);
-    setStartDate(start.toISOString().slice(0, 10));
-    setEndDate(end.toISOString().slice(0, 10));
+    setStartDate(todayStr(start));
+    setEndDate(todayStr(end));
   };
 
   return (
