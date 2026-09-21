@@ -8,6 +8,7 @@ import {
   Settings,
   ShoppingCart,
   Package,
+  PiggyBank,
   ReceiptText,
   Plus,
 } from "lucide-react";
@@ -103,11 +104,15 @@ export function MobileNav({ user }: MobileNavProps) {
       case "MANAGER":
         return [
           { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
-          {
-            label: "Kas",
-            href: "/dashboard/cash-unit",
-            icon: <Wallet size={24} />,
-          },
+          ...(canUseRetailModules
+            ? []
+            : [
+                {
+                  label: "Kas",
+                  href: "/dashboard/cash-unit",
+                  icon: <Wallet size={24} />,
+                },
+              ]),
           primaryAction,
           ...(canUseRetailModules
             ? [
@@ -138,11 +143,15 @@ export function MobileNav({ user }: MobileNavProps) {
       case "STAFF":
         return [
           { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
-          {
-            label: "Kas",
-            href: "/dashboard/cash-unit",
-            icon: <Wallet size={24} />,
-          },
+          ...(canUseRetailModules
+            ? []
+            : [
+                {
+                  label: "Kas",
+                  href: "/dashboard/cash-unit",
+                  icon: <Wallet size={24} />,
+                },
+              ]),
           primaryAction,
           ...(canUseRetailModules
             ? [
@@ -151,12 +160,17 @@ export function MobileNav({ user }: MobileNavProps) {
                   href: "/dashboard/pos",
                   icon: <ShoppingCart size={24} />,
                 },
+                {
+                  label: "Inventori",
+                  href: "/dashboard/inventory",
+                  icon: <Package size={24} />,
+                },
               ]
             : [
                 {
-                  label: "Transaksi",
-                  href: "/dashboard/transactions",
-                  icon: <ReceiptText size={24} />,
+                  label: "Tabungan",
+                  href: "/dashboard/savings",
+                  icon: <PiggyBank size={24} />,
                 },
               ]),
           {

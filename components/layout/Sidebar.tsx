@@ -9,6 +9,7 @@ import {
   Receipt,
   ClipboardList,
   LayoutGrid,
+  Landmark,
   Users,
   Package,
   ShoppingCart,
@@ -78,6 +79,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/savings",
     icon: <Wallet size={20} />,
     roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+    nonRetailOnly: true,
   },
   {
     label: "Inventori",
@@ -123,6 +125,12 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["SUPERADMIN"],
   },
   {
+    label: "Lembaga",
+    href: "/dashboard/lembaga",
+    icon: <Landmark size={20} />,
+    roles: ["SUPERADMIN"],
+  },
+  {
     label: "Pengaturan",
     href: "/dashboard/settings",
     icon: <Settings size={20} />,
@@ -159,7 +167,10 @@ export function Sidebar({
   const items = NAV_ITEMS.filter(
     (item) =>
       (!item.roles || item.roles.includes(role)) &&
-      (!item.nonRetailOnly || !canUseRetailModules) &&
+      (!item.nonRetailOnly ||
+        role === "SUPERADMIN" ||
+        role === "PIMPINAN" ||
+        !canUseRetailModules) &&
       (canUseRetailModules ||
         (item.href !== "/dashboard/inventory" &&
           item.href !== "/dashboard/pos")),

@@ -85,6 +85,12 @@ export default function StaffDashboard() {
       label: "POS",
       color: "orange",
     },
+    {
+      href: "/dashboard/inventory",
+      icon: Package,
+      label: "Inventori",
+      color: "amber",
+    },
   ];
 
   const nonRetailActions: QuickAccessAction[] = [
@@ -305,38 +311,6 @@ export default function StaffDashboard() {
           )}
         </div>
       </div>
-
-      {/* Quick Access — Modul Staff */}
-      <QuickAccessGrid
-        actions={[
-          {
-            href: "/dashboard/transactions",
-            icon: Receipt,
-            label: "Transaksi",
-            color: "islamic",
-          },
-          ...(canUseRetailModules
-            ? ([
-                {
-                  href: "/dashboard/inventory",
-                  icon: Package,
-                  label: "Inventori",
-                  color: "amber",
-                },
-              ] as const)
-            : []),
-          ...(canUseRetailModules
-            ? ([
-                {
-                  href: "/dashboard/pos",
-                  icon: ShoppingCart,
-                  label: "POS",
-                  color: "orange",
-                },
-              ] as const)
-            : []),
-        ]}
-      />
 
       {/* Transaksi Shift Saya */}
       <div className="overflow-hidden rounded-[22px] border border-border bg-card/90 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">

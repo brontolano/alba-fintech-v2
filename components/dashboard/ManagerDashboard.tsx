@@ -93,6 +93,16 @@ export default function ManagerDashboard() {
             color: "green",
           },
           ...(canUseRetailModules
+            ? []
+            : ([
+                {
+                  href: "/dashboard/savings",
+                  icon: Wallet,
+                  label: "Tabungan",
+                  color: "blue",
+                },
+              ] as const)),
+          ...(canUseRetailModules
             ? ([
                 {
                   href: "/dashboard/inventory",
