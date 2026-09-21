@@ -11,6 +11,53 @@ const updateStudentSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const role = session.user.role;
+  if (!["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"].includes(role || ""))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { id } = await params;
+  const student = await prisma.student.findUnique({
+    where: { id },
+    include: {
+      account: {
+        include: { transactions: { orderBy: { createdAt: "desc" }, take: 20 } },
+      },
+    },
+  });
+  if (!student)
+    return NextResponse.json(
+      { error: "Santri tidak ditemukan" },
+      { status: 404 },
+    );
+
+  if (
+    (role === "MANAGER" || role === "STAFF") &&
+    student.unitId !== session.user.unitId
+  )
+    return NextResponse.json(
+      { error: "Santri bukan milik unit Anda" },
+      { status: 403 },
+    );
+  if (
+    role === "PIMPINAN" &&
+    student.lembagaId !== session.user.lembagaId
+  )
+    return NextResponse.json(
+      { error: "Santri bukan milik lembaga Anda" },
+      { status: 403 },
+    );
+
+  return NextResponse.json({ data: student });
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

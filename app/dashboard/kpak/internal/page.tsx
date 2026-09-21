@@ -73,6 +73,28 @@ export default function KpakInternalPage() {
     session?.user?.role === "SUPERADMIN" ||
     session?.user?.role === "PIMPINAN" ||
     session?.user?.role === "MANAGER";
+  const [seeding, setSeeding] = useState(false);
+
+  const seedDefaultCategories = async () => {
+    setSeeding(true);
+    try {
+      const res = await fetch("/api/financial-categories/seed-kpak", {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal membuat kategori");
+      toast.success(
+        json.data?.created > 0
+          ? `${json.data.created} kategori bawaan dibuat`
+          : "Kategori bawaan sudah ada",
+      );
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const visibleCats = categories.filter((c) => c.type === txType);
 
@@ -267,12 +289,26 @@ export default function KpakInternalPage() {
               Belum ada kategori{" "}
               {txType === "INCOME" ? "pemasukan" : "pengeluaran"}.
               {canManageCategories ? (
-                <Link
-                  href="/dashboard/settings/categories"
-                  className="mt-2 block font-medium text-primary hover:underline"
-                >
-                  Buat kategori baru
-                </Link>
+                <>
+                  <button
+                    onClick={seedDefaultCategories}
+                    disabled={seeding}
+                    className="mx-auto mt-3 flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                  >
+                    {seeding ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : null}
+                    {seeding
+                      ? "Membuat..."
+                      : "Buat Kategori Bawaan KPAK"}
+                  </button>
+                  <Link
+                    href="/dashboard/settings/categories"
+                    className="mt-2 block text-xs hover:underline"
+                  >
+                    atau atur manual di Kelola Kategori
+                  </Link>
+                </>
               ) : (
                 <p className="mt-2">Hubungi Manager untuk menambah kategori</p>
               )}

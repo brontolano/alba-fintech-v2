@@ -86,6 +86,28 @@ export default function KpakFinancePage() {
     session?.user?.role === "SUPERADMIN" ||
     session?.user?.role === "PIMPINAN" ||
     session?.user?.role === "MANAGER";
+  const [seeding, setSeeding] = useState(false);
+
+  const seedDefaultCategories = async () => {
+    setSeeding(true);
+    try {
+      const res = await fetch("/api/financial-categories/seed-kpak", {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal membuat kategori");
+      toast.success(
+        json.data?.created > 0
+          ? `${json.data.created} kategori bawaan dibuat`
+          : "Kategori bawaan sudah ada",
+      );
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -160,71 +182,36 @@ export default function KpakFinancePage() {
       toast.error("Nominal harus lebih dari 0");
       return;
     }
-    const santriLabel = santri
-      ? ` — ${santri.name} (${santri.studentNumber})`
-      : "";
-    const description = `${selectedCat.name}${santriLabel}${note ? ` — ${note}` : ""}`;
+    if (method === "TABUNGAN" && !santri) {
+      toast.error("Cari santri dulu untuk pembayaran via tabungan");
+      return;
+    }
 
+    // Satu panggilan atomik: potong tabungan + catat pemasukan + approval
     setSaving(true);
     try {
-      // 1) Jika bayar pakai tabungan: tarik saldo dulu
-      let savingsRef = "";
-      if (method === "TABUNGAN") {
-        if (!santri?.account?.id) {
-          toast.error("Cari santri dulu untuk pembayaran via tabungan");
-          setSaving(false);
-          return;
-        }
-        if (Number(santri.account.balance) < nominal) {
-          toast.error("Saldo tabungan santri tidak mencukupi");
-          setSaving(false);
-          return;
-        }
-        const wRes = await fetch("/api/savings/transactions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            accountId: santri.account.id,
-            type: "WITHDRAWAL",
-            amount: nominal,
-            description: `Bayar ${selectedCat.name}${note ? ` — ${note}` : ""}`,
-          }),
-        });
-        const wJson = await wRes.json();
-        if (!wRes.ok)
-          throw new Error(wJson.error || "Gagal memotong saldo tabungan");
-        savingsRef = wJson.data?.id || "";
-        setSantri((s) =>
-          s?.account
-            ? {
-                ...s,
-                account: {
-                  ...s.account,
-                  balance: Number(s.account.balance) - nominal,
-                },
-              }
-            : s,
-        );
-      }
-
-      // 2) Catat pemasukan layanan
-      const tRes = await fetch("/api/transactions", {
+      const res = await fetch("/api/kpak/pay-service", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "INCOME",
-          amount: nominal,
-          description: method === "TABUNGAN" ? `[Tabungan] ${description}` : description,
           categoryId: selectedCat.id,
-          reference: savingsRef ? `TABUNGAN:${savingsRef}` : undefined,
+          amount: nominal,
+          note: note.trim() || undefined,
+          method,
+          studentNumber: method === "TABUNGAN" ? santri?.studentNumber : undefined,
         }),
       });
-      const tJson = await tRes.json();
-      if (!tRes.ok)
-        throw new Error(tJson.error || "Gagal mencatat pembayaran");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal mencatat pembayaran");
 
+      if (method === "TABUNGAN" && json.data?.balanceAfter != null) {
+        const after = Number(json.data.balanceAfter);
+        setSantri((s) =>
+          s?.account ? { ...s, account: { ...s.account, balance: after } } : s,
+        );
+      }
       toast.success(
-        tJson.data?.status === "PENDING"
+        json.data?.status === "PENDING"
           ? "Pembayaran tercatat — menunggu persetujuan"
           : "Pembayaran berhasil dicatat",
       );
@@ -284,12 +271,26 @@ export default function KpakFinancePage() {
             <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
               Belum ada kategori pemasukan.
               {canManageCategories ? (
-                <Link
-                  href="/dashboard/settings/categories"
-                  className="mt-2 block font-medium text-primary hover:underline"
-                >
-                  Buat kategori layanan (HER, Daftar Ulang, dll)
-                </Link>
+                <>
+                  <button
+                    onClick={seedDefaultCategories}
+                    disabled={seeding}
+                    className="mx-auto mt-3 flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                  >
+                    {seeding ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : null}
+                    {seeding
+                      ? "Membuat..."
+                      : "Buat Kategori Bawaan (HER, Daftar Ulang, dll)"}
+                  </button>
+                  <Link
+                    href="/dashboard/settings/categories"
+                    className="mt-2 block text-xs hover:underline"
+                  >
+                    atau atur manual di Kelola Kategori
+                  </Link>
+                </>
               ) : (
                 <p className="mt-2">Hubungi Manager untuk menambah kategori</p>
               )}

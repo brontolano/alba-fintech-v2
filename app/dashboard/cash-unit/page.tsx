@@ -9,7 +9,7 @@ import {
   getDefaultCategorySuggestions,
   validateBusinessFlow,
 } from "@/lib/modules/units/business-rules";
-import { KpakCashOverview } from "@/components/kpak/KpakCashOverview";
+
 
 interface Category {
   id: string;
@@ -48,7 +48,11 @@ export default function UnitCashPage() {
   const isKpakUnit = session?.user?.unitType === "KPAK";
 
   useEffect(() => {
-    if (isKpakUnit) return;
+    // Unit KPAK: ringkasan ada di dashboard, rincian di halaman khusus
+    if (isKpakUnit) {
+      router.replace("/dashboard");
+      return;
+    }
     const role = session?.user?.role;
     const isCasher =
       (role === "MANAGER" || role === "STAFF") &&
@@ -96,8 +100,6 @@ export default function UnitCashPage() {
       setSaving(false);
     }
   };
-
-  if (isKpakUnit) return <KpakCashOverview />;
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">

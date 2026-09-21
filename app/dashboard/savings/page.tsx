@@ -249,7 +249,7 @@ export default function SavingsPage() {
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <Link
-              href="/dashboard/kpak/students"
+              href="/dashboard/kpak/students/new"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
             >
               <UserPlus size={16} /> Ke Data Santri — Tambah Baru
