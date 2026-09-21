@@ -23,7 +23,6 @@
     "prisma:studio": "prisma studio",
     "postinstall": "prisma generate",
     "prepare": "prisma generate",
-    
     "db:seed": "tsx scripts/seed.ts",
     "db:seed-dummy-approvals": "tsx scripts/seed-dummy-approvals.ts",
     "db:seed-dummy-reconciliation": "tsx scripts/seed-dummy-reconciliation.ts",
@@ -44,7 +43,7 @@
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.47.0",
     "mysql2": "^3.24.3",
-    "next": "16.3.4",
+    "next": "^16.3.5",
     "next-auth": "^4.24.15",
     "postcss": "8.5.28",
     "react": "^18.3.1",
