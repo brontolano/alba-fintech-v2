@@ -9,6 +9,7 @@ import {
   getDefaultCategorySuggestions,
   validateBusinessFlow,
 } from "@/lib/modules/units/business-rules";
+import { KpakCashOverview } from "@/components/kpak/KpakCashOverview";
 
 interface Category {
   id: string;
@@ -44,13 +45,11 @@ export default function UnitCashPage() {
     description: form.description,
   });
 
+  const isKpakUnit = session?.user?.unitType === "KPAK";
+
   useEffect(() => {
+    if (isKpakUnit) return;
     const role = session?.user?.role;
-    // Unit KPAK pakai modul KPAK (Layanan Keuangan + Administrasi Internal)
-    if (session?.user?.unitType === "KPAK") {
-      router.replace("/dashboard/kpak/finance");
-      return;
-    }
     const isCasher =
       (role === "MANAGER" || role === "STAFF") &&
       session?.user?.unitIsRetail !== true;
@@ -62,7 +61,7 @@ export default function UnitCashPage() {
       .then((response) => response.json())
       .then((result) => setCategories(result.data ?? []))
       .catch(() => setCategories([]));
-  }, [unitId, router, session?.user?.unitType]);
+  }, [unitId, router, isKpakUnit, session?.user?.role]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -97,6 +96,8 @@ export default function UnitCashPage() {
       setSaving(false);
     }
   };
+
+  if (isKpakUnit) return <KpakCashOverview />;
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">

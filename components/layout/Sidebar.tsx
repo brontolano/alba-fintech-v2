@@ -55,7 +55,6 @@ type NavItem = {
   nonRetailOnly?: boolean;
   retailOnly?: boolean;
   kpakOnly?: boolean;
-  hideForKpak?: boolean;
 };
 
 type NavGroup = {
@@ -126,7 +125,6 @@ const NAV_GROUPS: NavGroup[] = [
         icon: <Receipt size={20} />,
         roles: ["MANAGER", "STAFF"],
         nonRetailOnly: true,
-        hideForKpak: true,
       },
       {
         label: "Laporan",
@@ -262,7 +260,6 @@ export function Sidebar({
     if (item.retailOnly && !canUseRetailModules) return false;
     if (item.kpakOnly && user?.unitType !== "KPAK" && role !== "SUPERADMIN")
       return false;
-    if (item.hideForKpak && user?.unitType === "KPAK") return false;
     return true;
   };
 
