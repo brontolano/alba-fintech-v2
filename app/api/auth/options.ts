@@ -13,6 +13,7 @@ interface AuthUser {
   role: string;
   unitId: string | null;
   unitIsRetail: boolean;
+  unitType: string;
   lembagaId: string | null;
   isActive: boolean;
 }
@@ -27,6 +28,7 @@ declare module "next-auth" {
       role?: string;
       unitId?: string | null;
       unitIsRetail?: boolean;
+      unitType?: string;
       lembagaId?: string | null;
       isActive?: boolean;
     };
@@ -39,6 +41,7 @@ declare module "next-auth/jwt" {
     role?: string;
     unitId?: string | null;
     unitIsRetail?: boolean;
+    unitType?: string;
     lembagaId?: string | null;
     isActive?: boolean;
   }
@@ -131,7 +134,7 @@ export const authOptions: NextAuthOptions = {
             passwordHash: true,
             role: true,
             unitId: true,
-            units: { select: { isRetail: true } },
+            units: { select: { isRetail: true, type: true } },
             lembagaId: true,
             isActive: true,
             image: true,
@@ -164,6 +167,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role ?? "STAFF",
           unitId: user.unitId,
           unitIsRetail: user.units?.isRetail ?? false,
+          unitType: user.units?.type ?? "UMUM",
           lembagaId: user.lembagaId,
           isActive: user.isActive ?? false,
         };
@@ -216,6 +220,7 @@ export const authOptions: NextAuthOptions = {
         token.role = authUser.role;
         token.unitId = authUser.unitId;
         token.unitIsRetail = authUser.unitIsRetail;
+        token.unitType = authUser.unitType;
         token.lembagaId = authUser.lembagaId;
         token.isActive = authUser.isActive;
       }
@@ -230,13 +235,14 @@ export const authOptions: NextAuthOptions = {
             select: {
               role: true,
               isActive: true,
-              units: { select: { isRetail: true } },
+              units: { select: { isRetail: true, type: true } },
             },
           });
           if (dbUser) {
             token.role = dbUser.role ?? "STAFF";
             token.isActive = dbUser.isActive ?? false;
             token.unitIsRetail = dbUser.units?.isRetail ?? false;
+            token.unitType = dbUser.units?.type ?? "UMUM";
           } else {
             // User no longer exists — invalidate token
             token.isActive = false;
@@ -260,6 +266,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
         session.user.unitId = token.unitId;
         session.user.unitIsRetail = token.unitIsRetail;
+        session.user.unitType = token.unitType;
         session.user.lembagaId = token.lembagaId;
         session.user.isActive = token.isActive;
       }

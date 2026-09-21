@@ -22,6 +22,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Bell,
+  BookOpen,
+  FileText,
+  Send,
+  CreditCard,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -33,6 +37,7 @@ interface SidebarProps {
     role?: string;
     unitId?: string | null;
     unitIsRetail?: boolean;
+    unitType?: string;
     lembagaId?: string | null;
   } | null;
   expanded: boolean;
@@ -49,6 +54,7 @@ type NavItem = {
   roles?: string[];
   nonRetailOnly?: boolean;
   retailOnly?: boolean;
+  kpakOnly?: boolean;
 };
 
 type NavGroup = {
@@ -148,6 +154,39 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    title: "KPAK",
+    items: [
+      {
+        label: "Data Santri",
+        href: "/dashboard/kpak/students",
+        icon: <BookOpen size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+        kpakOnly: true,
+      },
+      {
+        label: "Layanan Keuangan",
+        href: "/dashboard/kpak/finance",
+        icon: <CreditCard size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+        kpakOnly: true,
+      },
+      {
+        label: "Pengajuan Anggaran",
+        href: "/dashboard/kpak/budget",
+        icon: <Send size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+        kpakOnly: true,
+      },
+      {
+        label: "Rekap & Laporan",
+        href: "/dashboard/kpak/reports",
+        icon: <BarChart3 size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+        kpakOnly: true,
+      },
+    ],
+  },
+  {
     title: "Sistem",
     items: [
       {
@@ -212,6 +251,8 @@ export function Sidebar({
     if (item.roles && !item.roles.includes(role)) return false;
     if (item.nonRetailOnly && canUseRetailModules) return false;
     if (item.retailOnly && !canUseRetailModules) return false;
+    if (item.kpakOnly && user?.unitType !== "KPAK" && role !== "SUPERADMIN")
+      return false;
     return true;
   };
 
