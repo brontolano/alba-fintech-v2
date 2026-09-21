@@ -171,6 +171,13 @@ const NAV_GROUPS: NavGroup[] = [
         kpakOnly: true,
       },
       {
+        label: "Administrasi Internal",
+        href: "/dashboard/kpak/internal",
+        icon: <FileText size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+        kpakOnly: true,
+      },
+      {
         label: "Pengajuan Anggaran",
         href: "/dashboard/kpak/budget",
         icon: <Send size={20} />,

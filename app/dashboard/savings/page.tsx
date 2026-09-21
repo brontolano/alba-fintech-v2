@@ -36,6 +36,7 @@ export default function SavingsPage() {
   const [lookupValue, setLookupValue] = useState("");
   const [student, setStudent] = useState<StudentData | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
+  const [notFoundKey, setNotFoundKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [mutation, setMutation] = useState({
     type: "DEPOSIT" as "DEPOSIT" | "WITHDRAWAL",
@@ -60,9 +61,12 @@ export default function SavingsPage() {
         `/api/savings/lookup?${param}=${encodeURIComponent(key)}`,
       );
       const result = await response.json();
-      if (!response.ok)
+      if (!response.ok) {
+        if (response.status === 404) setNotFoundKey(key);
         throw new Error(result.error || "Santri tidak ditemukan");
+      }
       setStudent(result.data);
+      setNotFoundKey(null);
     } catch (error) {
       setStudent(null);
       toast.error(
@@ -149,6 +153,12 @@ export default function SavingsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link
+            href="/dashboard/kpak/students"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
+          >
+            Data Santri
+          </Link>
+          <Link
             href="/kiosk"
             target="_blank"
             className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
@@ -231,6 +241,46 @@ export default function SavingsPage() {
           {lookupLoading ? "Mencari..." : "Cari"}
         </button>
       </div>
+
+      {!student && notFoundKey && !lookupLoading && (
+        <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center">
+          <p className="font-semibold text-foreground">
+            Santri &quot;{notFoundKey}&quot; tidak ditemukan
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Data belum terdaftar. Daftarkan dulu di halaman Data Santri agar
+            bisa setor/tarik tabungan.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <Link
+              href="/dashboard/kpak/students"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+            >
+              <UserPlus size={16} /> Ke Data Santri — Tambah Baru
+            </Link>
+            {session?.user?.role !== "STAFF" && (
+              <button
+                onClick={() => {
+                  setRegister((r) => ({
+                    ...r,
+                    studentNumber: /^[0-9]+$/.test(notFoundKey)
+                      ? notFoundKey
+                      : r.studentNumber,
+                    cardUid: /^[0-9]+$/.test(notFoundKey)
+                      ? r.cardUid
+                      : notFoundKey,
+                  }));
+                  setShowRegister(true);
+                  setNotFoundKey(null);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
+              >
+                Daftarkan di sini
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {student && (
         <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
