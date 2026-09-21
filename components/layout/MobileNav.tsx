@@ -8,9 +8,10 @@ import {
   Settings,
   ShoppingCart,
   Package,
-  PiggyBank,
+  Receipt,
+  Clock,
+  ClipboardList,
   Bell,
-  Plus,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -35,152 +36,179 @@ export function MobileNav({ user }: MobileNavProps) {
 
   const getNavItems = (): NavItem[] => {
     const role = user?.role;
-    const canUseRetailModules =
-      role === "SUPERADMIN" || user?.unitIsRetail === true;
+    const isRetail = user?.unitIsRetail === true;
 
-    const primaryAction: NavItem = {
+    // Pengumuman: tombol pusat untuk SEMUA role
+    const pengumuman: NavItem = {
       label: "Pengumuman",
       href: "/dashboard/announcements",
       icon: <Bell size={24} />,
       isPrimary: true,
     };
 
-    const base = [
-      { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
-      {
-        label: "Laporan",
-        href: "/dashboard/reports",
-        icon: <BarChart2 size={24} />,
-      },
-      primaryAction,
-      {
-        label: "Profil",
-        href: "/dashboard/profile",
-        icon: <User size={24} />,
-      },
-    ];
-
     switch (role) {
+      // ── SUPERADMIN ──────────────────────────────
+      // Kegiatan inti: overview global, input transaksi, laporan, pengaturan sistem
       case "SUPERADMIN":
         return [
-          { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
+          { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
+          {
+            label: "Transaksi",
+            href: "/dashboard/transactions",
+            icon: <Receipt size={24} />,
+          },
+          pengumuman,
           {
             label: "Laporan",
             href: "/dashboard/reports",
             icon: <BarChart2 size={24} />,
           },
-          primaryAction,
           {
             label: "Pengaturan",
             href: "/dashboard/settings",
             icon: <Settings size={24} />,
           },
-          {
-            label: "Profil",
-            href: "/dashboard/profile",
-            icon: <User size={24} />,
-          },
         ];
+
+      // ── PIMPINAN ────────────────────────────────
+      // Kegiatan inti: approve pengajuan, rekonsiliasi, laporan
       case "PIMPINAN":
         return [
-          { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
+          { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
           {
-            label: "Tabungan",
-            href: "/dashboard/savings",
-            icon: <Wallet size={24} />,
+            label: "Pengajuan",
+            href: "/dashboard/approvals",
+            icon: <ClipboardList size={24} />,
           },
-          primaryAction,
+          pengumuman,
+          {
+            label: "Rekonsiliasi",
+            href: "/dashboard/reconciliation",
+            icon: <Clock size={24} />,
+          },
           {
             label: "Laporan",
             href: "/dashboard/reports",
             icon: <BarChart2 size={24} />,
           },
-          {
-            label: "Profil",
-            href: "/dashboard/profile",
-            icon: <User size={24} />,
-          },
         ];
+
+      // ── MANAGER RETAIL ──────────────────────────
+      // Kegiatan inti: input transaksi, operasional POS, cek laporan
       case "MANAGER":
+        if (isRetail) {
+          return [
+            {
+              label: "Beranda",
+              href: "/dashboard",
+              icon: <Home size={24} />,
+            },
+            {
+              label: "Transaksi",
+              href: "/dashboard/transactions",
+              icon: <Receipt size={24} />,
+            },
+            pengumuman,
+            {
+              label: "POS",
+              href: "/dashboard/pos",
+              icon: <ShoppingCart size={24} />,
+            },
+            {
+              label: "Laporan",
+              href: "/dashboard/reports",
+              icon: <BarChart2 size={24} />,
+            },
+          ];
+        }
+        // ── MANAGER NON-RETAIL ────────────────────
+        // Kegiatan inti: input transaksi, tabungan santri, rekonsiliasi
         return [
-          { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
-          ...(canUseRetailModules
-            ? []
-            : [
-                {
-                  label: "Kas",
-                  href: "/dashboard/cash-unit",
-                  icon: <Wallet size={24} />,
-                },
-              ]),
-          primaryAction,
-          ...(canUseRetailModules
-            ? [
-                {
-                  label: "POS",
-                  href: "/dashboard/pos",
-                  icon: <ShoppingCart size={24} />,
-                },
-                {
-                  label: "Inventori",
-                  href: "/dashboard/inventory",
-                  icon: <Package size={24} />,
-                },
-              ]
-            : [
-                {
-                  label: "Laporan",
-                  href: "/dashboard/reports",
-                  icon: <BarChart2 size={24} />,
-                },
-              ]),
+          { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
           {
-            label: "Profil",
-            href: "/dashboard/profile",
-            icon: <User size={24} />,
+            label: "Transaksi",
+            href: "/dashboard/transactions",
+            icon: <Receipt size={24} />,
+          },
+          pengumuman,
+          {
+            label: "Tabungan",
+            href: "/dashboard/savings",
+            icon: <Wallet size={24} />,
+          },
+          {
+            label: "Rekonsiliasi",
+            href: "/dashboard/reconciliation",
+            icon: <Clock size={24} />,
           },
         ];
+
+      // ── STAFF RETAIL ────────────────────────────
+      // Kegiatan inti: input transaksi, operasional POS, kelola inventori
       case "STAFF":
+        if (isRetail) {
+          return [
+            {
+              label: "Beranda",
+              href: "/dashboard",
+              icon: <Home size={24} />,
+            },
+            {
+              label: "Transaksi",
+              href: "/dashboard/transactions",
+              icon: <Receipt size={24} />,
+            },
+            pengumuman,
+            {
+              label: "POS",
+              href: "/dashboard/pos",
+              icon: <ShoppingCart size={24} />,
+            },
+            {
+              label: "Inventori",
+              href: "/dashboard/inventory",
+              icon: <Package size={24} />,
+            },
+          ];
+        }
+        // ── STAFF NON-RETAIL ──────────────────────
+        // Kegiatan inti: input transaksi, tabungan santri, kas unit
         return [
-          { label: "Home", href: "/dashboard", icon: <Home size={24} /> },
-          ...(canUseRetailModules
-            ? []
-            : [
-                {
-                  label: "Kas",
-                  href: "/dashboard/cash-unit",
-                  icon: <Wallet size={24} />,
-                },
-              ]),
-          primaryAction,
-          ...(canUseRetailModules
-            ? [
-                {
-                  label: "POS",
-                  href: "/dashboard/pos",
-                  icon: <ShoppingCart size={24} />,
-                },
-                {
-                  label: "Inventori",
-                  href: "/dashboard/inventory",
-                  icon: <Package size={24} />,
-                },
-              ]
-            : [
-                {
-                  label: "Tabungan",
-                  href: "/dashboard/savings",
-                  icon: <PiggyBank size={24} />,
-                },
-              ]),
+          { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
+          {
+            label: "Transaksi",
+            href: "/dashboard/transactions",
+            icon: <Receipt size={24} />,
+          },
+          pengumuman,
+          {
+            label: "Tabungan",
+            href: "/dashboard/savings",
+            icon: <Wallet size={24} />,
+          },
           {
             label: "Profil",
             href: "/dashboard/profile",
             icon: <User size={24} />,
           },
         ];
+
+      // ── DEFAULT (belum login / role tidak dikenal)
       default:
-        return base;
+        return [
+          { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
+          {
+            label: "Laporan",
+            href: "/dashboard/reports",
+            icon: <BarChart2 size={24} />,
+          },
+          pengumuman,
+          {
+            label: "Profil",
+            href: "/dashboard/profile",
+            icon: <User size={24} />,
+          },
+        ];
     }
   };
 
@@ -201,7 +229,7 @@ export function MobileNav({ user }: MobileNavProps) {
               >
                 <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-background bg-gradient-to-br from-primary to-primary/80 text-white shadow-[0_12px_30px_rgba(15,118,110,0.35)] transition-transform duration-200 hover:scale-105">
                   <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10">
-                    <Plus className="h-6 w-6" />
+                    {item.icon}
                   </div>
                 </div>
                 <span className="mt-1 text-[10px] font-semibold text-primary">
