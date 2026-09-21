@@ -76,7 +76,10 @@ const STATUS_OPTIONS = [
   { value: "FAILED", label: "Gagal", icon: XCircle, color: "text-red-500" },
 ];
 
+import { usePageGuard } from "@/lib/use-page-guard";
+
 export default function AnnouncementsPage() {
+  usePageGuard(["SUPERADMIN", "PIMPINAN"]);
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [lembagas, setLembagas] = useState<Lembaga[]>([]);
   const [loading, setLoading] = useState(true);
