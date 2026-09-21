@@ -310,29 +310,29 @@ export default function ReportsPage() {
           title: "Total Pemasukan",
           value: formatCurrency(reportData.statCards.totalIncome),
           change: "",
-          icon: <TrendingUp className="w-6 h-6 text-green-600" />,
-          bgColor: "bg-green-100",
+          icon: <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
+          bgColor: "bg-emerald-500/10",
         },
         {
           title: "Total Pengeluaran",
           value: formatCurrency(reportData.statCards.totalExpense),
           change: "",
-          icon: <TrendingDown className="w-6 h-6 text-red-600" />,
-          bgColor: "bg-red-100",
+          icon: <TrendingDown className="w-5 h-5 text-rose-600 dark:text-rose-400" />,
+          bgColor: "bg-rose-500/10",
         },
         {
           title: "Laba Bersih",
           value: formatCurrency(reportData.statCards.netProfit),
           change: "",
-          icon: <PieChartIcon className="w-6 h-6 text-emerald-600" />,
-          bgColor: "bg-emerald-100",
+          icon: <PieChartIcon className="w-5 h-5 text-primary" />,
+          bgColor: "bg-primary/10",
         },
         {
           title: "Rasio Profit",
           value: `${reportData.statCards.profitRatio}%`,
           change: "",
-          icon: <BarChart3 className="w-6 h-6 text-blue-600" />,
-          bgColor: "bg-blue-100",
+          icon: <BarChart3 className="w-5 h-5 text-sky-600 dark:text-sky-400" />,
+          bgColor: "bg-sky-500/10",
         },
       ]
     : [];
@@ -644,31 +644,28 @@ export default function ReportsPage() {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 rounded-[22px] border border-border bg-card/90 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="flex items-center gap-2">
-            <Calendar size={18} className="text-muted-foreground" />
-            <div className="flex-1">
-              <select
-                value={filters.period}
-                onChange={(e) =>
-                  setFilters({ ...filters, period: e.target.value })
-                }
-                className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="daily">Harian (7 hari)</option>
-                <option value="weekly">Mingguan (4 minggu)</option>
-                <option value="monthly">Bulanan (6 bulan)</option>
-                <option value="6months">6 Bulan Terakhir</option>
-                <option value="12months">12 Bulan Terakhir</option>
-              </select>
-            </div>
-          </div>
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Calendar size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <select
+            value={filters.period}
+            onChange={(e) => setFilters({ ...filters, period: e.target.value })}
+            className="h-8 appearance-none rounded-lg border border-border bg-card pl-8 pr-7 text-xs outline-none transition focus:border-primary"
+          >
+            <option value="daily">Harian (7 hari)</option>
+            <option value="weekly">Mingguan (4 minggu)</option>
+            <option value="monthly">Bulanan (6 bulan)</option>
+            <option value="6months">6 Bulan Terakhir</option>
+            <option value="12months">12 Bulan Terakhir</option>
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" size={12} />
+        </div>
 
+        <div className="relative">
           <select
             value={filters.unitId}
             onChange={(e) => setFilters({ ...filters, unitId: e.target.value })}
-            className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="h-8 appearance-none rounded-lg border border-border bg-card px-2.5 pr-7 text-xs outline-none transition focus:border-primary"
           >
             <option value="">Semua Unit</option>
             {units
@@ -679,6 +676,7 @@ export default function ReportsPage() {
                 </option>
               ))}
           </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" size={12} />
         </div>
       </div>
 

@@ -20,11 +20,7 @@ import { PendingApprovalsWidget } from "@/components/dashboard/PendingApprovalsW
 import { QuickAccessGrid } from "@/components/dashboard/QuickAccessGrid";
 import { TxCompactList } from "@/components/dashboard/TxCompactList";
 import { BarChart } from "@/components/charts/BarChart";
-import { DoughnutChart } from "@/components/charts/DoughnutChart";
-import {
-  barChartOptions,
-  doughnutChartOptions,
-} from "@/components/charts/chartOptions";
+import { barChartOptions } from "@/components/charts/chartOptions";
 import { UnitVirtualCard } from "@/components/dashboard/UnitVirtualCard";
 
 export default function ManagerDashboard() {
@@ -65,8 +61,7 @@ export default function ManagerDashboard() {
 
   if (!data) return null;
 
-  const { summary, units, recentTransactions, chartData, expenseByCategory } =
-    data;
+  const { summary, units, recentTransactions, chartData } = data;
 
   const netIncome = summary.totalIncome - summary.totalExpense;
   const todayIncome = summary.todayIncome;
@@ -210,88 +205,40 @@ export default function ManagerDashboard() {
       )}
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-3">
-        <div className="rounded-[22px] border border-border bg-card/90 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
-          <h2 className="mb-3 text-sm font-semibold text-foreground">
-            Pemasukan vs Pengeluaran Unit
-          </h2>
-          {chartData && chartData.labels.length > 0 ? (
-            <div className="h-60 sm:h-64">
-              <BarChart
-                data={{
-                  labels: chartData.labels,
-                  datasets: [
-                    {
-                      label: "Pemasukan",
-                      data: chartData.income,
-                      backgroundColor: "rgba(34, 197, 94, 0.6)",
-                      borderColor: "rgb(34, 197, 94)",
-                      borderWidth: 1,
-                    },
-                    {
-                      label: "Pengeluaran",
-                      data: chartData.expense,
-                      backgroundColor: "rgba(249, 112, 102, 0.6)",
-                      borderColor: "rgb(249, 112, 102)",
-                      borderWidth: 1,
-                    },
-                  ],
-                }}
-                options={barChartOptions(formatCurrency)}
-              />
-            </div>
-          ) : (
-            <div className="text-center py-10 text-muted-foreground text-sm">
-              Tidak ada data grafik
-            </div>
-          )}
-        </div>
-
-        <div className="rounded-[22px] border border-border bg-card/90 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
-          <h2 className="mb-3 text-sm font-semibold text-foreground">
-            Pengeluaran per Kategori
-          </h2>
-          {expenseByCategory && expenseByCategory.length > 0 ? (
-            <div className="h-60 sm:h-64">
-              <DoughnutChart
-                data={{
-                  labels: expenseByCategory.map((c) => c.name),
-                  datasets: [
-                    {
-                      data: expenseByCategory.map((c) => c.amount),
-                      backgroundColor: [
-                        "rgba(249, 112, 102, 0.7)",
-                        "rgba(251, 191, 36, 0.7)",
-                        "rgba(147, 51, 234, 0.7)",
-                        "rgba(59, 130, 246, 0.7)",
-                        "rgba(6, 182, 209, 0.7)",
-                        "rgba(168, 85, 247, 0.7)",
-                        "rgba(236, 72, 153, 0.7)",
-                        "rgba(34, 197, 94, 0.7)",
-                      ],
-                      borderColor: [
-                        "rgb(249, 112, 102)",
-                        "rgb(251, 191, 36)",
-                        "rgb(147, 51, 234)",
-                        "rgb(59, 130, 246)",
-                        "rgb(6, 182, 209)",
-                        "rgb(168, 85, 247)",
-                        "rgb(236, 72, 153)",
-                        "rgb(34, 197, 94)",
-                      ],
-                      borderWidth: 1,
-                    },
-                  ],
-                }}
-                options={doughnutChartOptions(formatCurrency)}
-              />
-            </div>
-          ) : (
-            <div className="text-center py-10 text-muted-foreground text-sm">
-              Tidak ada pengeluaran
-            </div>
-          )}
-        </div>
+      <div className="rounded-[22px] border border-border bg-card/90 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+        <h2 className="mb-3 text-sm font-semibold text-foreground">
+          Pemasukan vs Pengeluaran Unit
+        </h2>
+        {chartData && chartData.labels.length > 0 ? (
+          <div className="h-52">
+            <BarChart
+              data={{
+                labels: chartData.labels,
+                datasets: [
+                  {
+                    label: "Pemasukan",
+                    data: chartData.income,
+                    backgroundColor: "rgba(34, 197, 94, 0.6)",
+                    borderColor: "rgb(34, 197, 94)",
+                    borderWidth: 1,
+                  },
+                  {
+                    label: "Pengeluaran",
+                    data: chartData.expense,
+                    backgroundColor: "rgba(249, 112, 102, 0.6)",
+                    borderColor: "rgb(249, 112, 102)",
+                    borderWidth: 1,
+                  },
+                ],
+              }}
+              options={barChartOptions(formatCurrency)}
+            />
+          </div>
+        ) : (
+          <div className="text-center py-10 text-muted-foreground text-sm">
+            Tidak ada data grafik
+          </div>
+        )}
       </div>
 
       {/* Transaksi Terbaru Unit */}

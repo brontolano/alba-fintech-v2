@@ -48,118 +48,149 @@ type NavItem = {
   icon: React.ReactNode;
   roles?: string[];
   nonRetailOnly?: boolean;
+  retailOnly?: boolean;
 };
 
-const NAV_ITEMS: NavItem[] = [
+type NavGroup = {
+  title?: string;
+  items: NavItem[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: <LayoutDashboard size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+    items: [
+      {
+        label: "Dashboard",
+        href: "/dashboard",
+        icon: <LayoutDashboard size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+      },
+      {
+        label: "Papan Pantau",
+        href: "/dashboard/monitor",
+        icon: <Monitor size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN"],
+      },
+      {
+        label: "Pengumuman",
+        href: "/dashboard/announcements",
+        icon: <Bell size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN"],
+      },
+    ],
   },
   {
-    label: "Papan Pantau",
-    href: "/dashboard/monitor",
-    icon: <Monitor size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN"],
+    title: "Keuangan",
+    items: [
+      {
+        label: "Buku Kas",
+        href: "/dashboard/transactions",
+        icon: <Receipt size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+      },
+      {
+        label: "Pengajuan",
+        href: "/dashboard/approvals",
+        icon: <ClipboardList size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
+      },
+      {
+        label: "Rekonsiliasi",
+        href: "/dashboard/reconciliation",
+        icon: <Clock size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
+      },
+      {
+        label: "Serah Terima Kas",
+        href: "/dashboard/handovers",
+        icon: <ClipboardList size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN"],
+      },
+      {
+        label: "Tabungan Santri",
+        href: "/dashboard/savings",
+        icon: <Wallet size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+        nonRetailOnly: true,
+      },
+      {
+        label: "Kas Unit",
+        href: "/dashboard/cash-unit",
+        icon: <Receipt size={20} />,
+        roles: ["MANAGER", "STAFF"],
+        nonRetailOnly: true,
+      },
+      {
+        label: "Laporan",
+        href: "/dashboard/reports",
+        icon: <BarChart3 size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+      },
+    ],
   },
   {
-    label: "Buku Kas",
-    href: "/dashboard/transactions",
-    icon: <Receipt size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+    title: "Toko",
+    items: [
+      {
+        label: "Inventori",
+        href: "/dashboard/inventory",
+        icon: <Package size={20} />,
+        roles: ["SUPERADMIN", "MANAGER", "STAFF"],
+        retailOnly: true,
+      },
+      {
+        label: "POS",
+        href: "/dashboard/pos",
+        icon: <ShoppingCart size={20} />,
+        roles: ["MANAGER", "STAFF"],
+        retailOnly: true,
+      },
+    ],
   },
   {
-    label: "Pengajuan Khusus",
-    href: "/dashboard/approvals",
-    icon: <ClipboardList size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
+    title: "Sistem",
+    items: [
+      {
+        label: "Unit",
+        href: "/dashboard/units",
+        icon: <LayoutGrid size={20} />,
+        roles: ["SUPERADMIN"],
+      },
+      {
+        label: "Pengguna",
+        href: "/dashboard/users",
+        icon: <Users size={20} />,
+        roles: ["SUPERADMIN"],
+      },
+      {
+        label: "Lembaga",
+        href: "/dashboard/lembaga",
+        icon: <Landmark size={20} />,
+        roles: ["SUPERADMIN"],
+      },
+      {
+        label: "Pengaturan",
+        href: "/dashboard/settings",
+        icon: <Settings size={20} />,
+        roles: ["SUPERADMIN"],
+      },
+    ],
   },
   {
-    label: "Tabungan Santri",
-    href: "/dashboard/savings",
-    icon: <Wallet size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
-    nonRetailOnly: true,
-  },
-  {
-    label: "Inventori",
-    href: "/dashboard/inventory",
-    icon: <Package size={20} />,
-    roles: ["SUPERADMIN", "MANAGER", "STAFF"],
-  },
-  {
-    label: "POS",
-    href: "/dashboard/pos",
-    icon: <ShoppingCart size={20} />,
-    roles: ["MANAGER", "STAFF"],
-  },
-  {
-    label: "Kas Unit",
-    href: "/dashboard/cash-unit",
-    icon: <Receipt size={20} />,
-    roles: ["MANAGER", "STAFF"],
-    nonRetailOnly: true,
-  },
-  {
-    label: "Laporan & Setoran",
-    href: "/dashboard/reports",
-    icon: <BarChart3 size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
-  },
-  {
-    label: "Pengumuman",
-    href: "/dashboard/announcements",
-    icon: <Bell size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN"],
-  },
-  {
-    label: "Rekonsiliasi",
-    href: "/dashboard/reconciliation",
-    icon: <Clock size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
-  },
-  {
-    label: "Serah Terima Kas",
-    href: "/dashboard/handovers",
-    icon: <ClipboardList size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN"],
-  },
-  {
-    label: "Unit",
-    href: "/dashboard/units",
-    icon: <LayoutGrid size={20} />,
-    roles: ["SUPERADMIN"],
-  },
-  {
-    label: "Pengguna",
-    href: "/dashboard/users",
-    icon: <Users size={20} />,
-    roles: ["SUPERADMIN"],
-  },
-  {
-    label: "Lembaga",
-    href: "/dashboard/lembaga",
-    icon: <Landmark size={20} />,
-    roles: ["SUPERADMIN"],
-  },
-  {
-    label: "Pengaturan",
-    href: "/dashboard/settings",
-    icon: <Settings size={20} />,
-    roles: ["SUPERADMIN"],
-  },
-  {
-    label: "Profil",
-    href: "/dashboard/profile",
-    icon: <User size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
-  },
-  {
-    label: "Keluar",
-    href: "#",
-    icon: <LogOut size={20} />,
-    roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+    items: [
+      {
+        label: "Profil",
+        href: "/dashboard/profile",
+        icon: <User size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+      },
+      {
+        label: "Keluar",
+        href: "#",
+        icon: <LogOut size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+      },
+    ],
   },
 ];
 
@@ -177,17 +208,17 @@ export function Sidebar({
   const canUseRetailModules =
     role === "SUPERADMIN" || user?.unitIsRetail === true;
 
-  const items = NAV_ITEMS.filter(
-    (item) =>
-      (!item.roles || item.roles.includes(role)) &&
-      (!item.nonRetailOnly ||
-        role === "SUPERADMIN" ||
-        role === "PIMPINAN" ||
-        !canUseRetailModules) &&
-      (canUseRetailModules ||
-        (item.href !== "/dashboard/inventory" &&
-          item.href !== "/dashboard/pos")),
-  );
+  const canSeeItem = (item: NavItem) => {
+    if (item.roles && !item.roles.includes(role)) return false;
+    if (item.nonRetailOnly && canUseRetailModules) return false;
+    if (item.retailOnly && !canUseRetailModules) return false;
+    return true;
+  };
+
+  const visibleGroups = NAV_GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter(canSeeItem),
+  })).filter((g) => g.items.length > 0);
   const isActive = (href: string) =>
     href === "/dashboard"
       ? pathname === href
@@ -301,39 +332,49 @@ export function Sidebar({
           </div>
         )}
 
-        <nav className="flex-1 py-3 px-2 space-y-1">
-          {items.map((item) => {
-            const isActiveItem = isActive(item.href);
-
-            return (
-              <button
-                key={item.href}
-                onClick={() => {
-                  if (item.href === "#") {
-                    signOut();
-                  } else {
-                    router.push(item.href);
-                  }
-                  onCloseMobile?.();
-                }}
-                className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200 ${
-                  isActiveItem
-                    ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/10 font-semibold"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-                title={expanded ? undefined : item.label}
-              >
-                <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-                  {item.icon}
-                </div>
-                {expanded && (
-                  <span className="font-medium text-sm whitespace-nowrap truncate flex-1 text-left">
-                    {item.label}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        <nav className="flex-1 py-3 px-2 space-y-3 overflow-y-auto">
+          {visibleGroups.map((group, gi) => (
+            <div key={gi}>
+              {group.title && expanded && (
+                <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  {group.title}
+                </p>
+              )}
+              {group.title && !expanded && (
+                <div className="mx-3 mb-1 border-b border-border/50" />
+              )}
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const activeItem = isActive(item.href);
+                  return (
+                    <button
+                      key={item.href}
+                      onClick={() => {
+                        if (item.href === "#") signOut();
+                        else router.push(item.href);
+                        onCloseMobile?.();
+                      }}
+                      className={`flex min-h-10 w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-all duration-200 ${
+                        activeItem
+                          ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/10 font-semibold"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      }`}
+                      title={expanded ? undefined : item.label}
+                    >
+                      <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                        {item.icon}
+                      </div>
+                      {expanded && (
+                        <span className="font-medium text-sm whitespace-nowrap truncate flex-1 text-left">
+                          {item.label}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Bottom: Version info when expanded */}

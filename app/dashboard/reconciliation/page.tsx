@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, CheckCircle, Clock, Download, Send } from "lucide-react";
+import { Search, CheckCircle, Clock, Download, Send, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
@@ -314,43 +314,39 @@ export default function ReconciliationPage() {
         </button>
       </div>
 
-      <div className="rounded-[22px] border border-border bg-card p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder="Cari unit..."
-              value={filters.search}
-              onChange={(e) =>
-                setFilters({ ...filters, search: e.target.value })
-              }
-              className="w-full rounded-full border border-border bg-background px-4 py-2.5 pl-10 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-            />
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              size={16}
-            />
-          </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[140px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+          <input
+            type="text"
+            placeholder="Cari unit..."
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            className="h-8 w-full rounded-lg border border-border bg-card pl-8 pr-3 text-xs outline-none transition focus:border-primary"
+          />
+        </div>
 
+        <div className="relative">
           <select
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            className="rounded-full border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+            className="h-8 appearance-none rounded-lg border border-border bg-card px-2.5 pr-7 text-xs outline-none transition focus:border-primary"
           >
             <option value="">Semua Status</option>
             <option value="pending">Pending</option>
             <option value="reconciled">Selesai</option>
           </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" size={12} />
+        </div>
 
-          <div className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-2.5 text-sm text-foreground">
-            <Clock size={16} className="text-muted-foreground" />
-            <input
-              type="date"
-              value={filters.date}
-              onChange={(e) => setFilters({ ...filters, date: e.target.value })}
-              className="bg-transparent outline-none"
-            />
-          </div>
+        <div className="relative">
+          <Clock size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="date"
+            value={filters.date}
+            onChange={(e) => setFilters({ ...filters, date: e.target.value })}
+            className="h-8 rounded-lg border border-border bg-card pl-8 pr-3 text-xs outline-none transition focus:border-primary"
+          />
         </div>
       </div>
 

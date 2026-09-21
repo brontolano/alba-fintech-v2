@@ -6,7 +6,6 @@ import {
   Eye,
   Trash2,
   Plus,
-  Filter,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -346,24 +345,6 @@ export default function TransactionsPage() {
     (v) => v !== "" && v !== undefined,
   );
 
-  const overviewStats = [
-    {
-      label: "Hari ini",
-      value: `${summary.todayCount} transaksi`,
-      tone: "emerald",
-    },
-    {
-      label: "Saldo terakhir",
-      value: formatCurrency(summary.netBalance),
-      tone: "amber",
-    },
-    {
-      label: "Pending",
-      value: `${summary.pendingCount} menunggu`,
-      tone: "sky",
-    },
-  ];
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -537,204 +518,51 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      <div className="rounded-[24px] border border-emerald-200/80 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-4 shadow-[0_10px_35px_rgba(16,185,129,0.08)] dark:border-emerald-500/20 dark:from-emerald-500/10 dark:via-card dark:to-cyan-500/10">
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/dashboard/transactions/create"
-            className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500"
-          >
-            Input Data
-          </Link>
-          <Link
-            href="/dashboard/transactions"
-            className="rounded-full border border-emerald-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-white dark:border-emerald-500/30 dark:bg-card/80 dark:text-emerald-300"
-          >
-            Transaksi Berjalan
-          </Link>
-          <Link
-            href="/dashboard/reconciliation"
-            className="rounded-full border border-emerald-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-white dark:border-emerald-500/30 dark:bg-card/80 dark:text-emerald-300"
-          >
-            Rekonsiliasi
-          </Link>
-          <Link
-            href="/dashboard/reports"
-            className="rounded-full border border-emerald-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-white dark:border-emerald-500/30 dark:bg-card/80 dark:text-emerald-300"
-          >
-            Laporan & Setoran
-          </Link>
-        </div>
-
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          {overviewStats.map((item) => (
-            <div
-              key={item.label}
-              className="rounded-2xl border border-white/70 bg-white/75 p-3 shadow-sm dark:border-border dark:bg-card/80"
-            >
-              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                {item.label}
-              </div>
-              <div
-                className={`mt-1 text-sm font-bold ${
-                  item.tone === "emerald"
-                    ? "text-emerald-600"
-                    : item.tone === "amber"
-                      ? "text-amber-600"
-                      : "text-sky-600"
-                }`}
-              >
-                {item.value}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         <div className="relative">
-          <Search
-            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#6b7280] dark:text-muted-foreground"
-            size={18}
-          />
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input
             type="text"
             placeholder="Cari deskripsi atau referensi..."
             value={filters.search}
             onChange={(e) => handleFilterChange("search", e.target.value)}
-            className="h-[46px] w-full rounded-full border border-[#e5e7eb] bg-[#f3f4f6] pl-11 pr-14 text-[15px] text-slate-700 outline-none transition focus:border-[#1bb0a6] focus:bg-white dark:border-border dark:bg-muted dark:text-foreground dark:focus:bg-card"
+            className="h-10 w-full rounded-lg border border-border bg-muted pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:bg-card"
           />
-
-          <button
-            type="button"
-            onClick={() => setShowDateMenu((prev) => !prev)}
-            className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#374151] shadow-sm ring-1 ring-[#e5e7eb] transition hover:bg-[#f3faf9] dark:bg-card dark:text-foreground dark:ring-border dark:hover:bg-muted"
-            aria-label="Pilih periode"
-          >
-            <CalendarDays size={18} />
-          </button>
         </div>
 
-        {showDateMenu && (
-          <div className="z-20 mt-2 w-full rounded-[24px] border border-border bg-popover p-3 shadow-lg">
-            <div className="space-y-1.5">
-              {[
-                { id: "all", label: "Semua" },
-                { id: "today", label: "Hari ini" },
-                { id: "7d", label: "7 hari" },
-                { id: "30d", label: "30 hari" },
-                { id: "90d", label: "90 hari" },
-                { id: "custom", label: "Custom" },
-              ].map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => {
-                    if (preset.id === "custom") {
-                      setDatePreset("custom");
-                      return;
-                    }
-                    applyDatePreset(preset.id);
-                    setShowDateMenu(false);
-                  }}
-                  className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-sm transition ${
-                    datePreset === preset.id
-                      ? "bg-[#eafaf7] text-[#0f766e]"
-                      : "text-foreground hover:bg-muted/40"
-                  }`}
-                >
-                  <span>{preset.label}</span>
-                  {datePreset === preset.id && (
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#1bb0a6]" />
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {datePreset === "custom" && (
-              <div className="mt-3 space-y-2 border-t border-border pt-3">
-                <div>
-                  <label className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    Dari
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.startDate}
-                    onChange={(e) => {
-                      handleFilterChange("startDate", e.target.value);
-                      setDatePreset(
-                        e.target.value || filters.endDate ? "custom" : "all",
-                      );
-                    }}
-                    className="h-10 w-full rounded-full border border-border bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#1bb0a6] dark:bg-card dark:text-foreground"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    Sampai
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.endDate}
-                    onChange={(e) => {
-                      handleFilterChange("endDate", e.target.value);
-                      setDatePreset(
-                        filters.startDate || e.target.value ? "custom" : "all",
-                      );
-                    }}
-                    className="h-10 w-full rounded-full border border-border bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#1bb0a6] dark:bg-card dark:text-foreground"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="space-y-2.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <div className="relative">
             <select
               value={filters.unitId}
               onChange={(e) => handleFilterChange("unitId", e.target.value)}
-              className="h-[52px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-[#f3f4f6] px-4 pr-10 text-[15px] text-slate-700 outline-none transition focus:border-[#1bb0a6] focus:bg-white dark:border-border dark:bg-muted dark:text-foreground dark:focus:bg-card"
-              aria-label="Filter unit"
+              className="h-8 appearance-none rounded-lg border border-border bg-card px-2.5 pr-7 text-xs outline-none transition focus:border-primary"
             >
               <option value="">Semua Unit</option>
-              {units.map((unit) => (
-                <option key={unit.id} value={unit.id}>
-                  {unit.name}
-                </option>
+              {units.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
-            <ChevronDown
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7280] dark:text-muted-foreground"
-              size={18}
-            />
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" size={12} />
           </div>
 
           <div className="relative">
             <select
               value={filters.type}
               onChange={(e) => handleFilterChange("type", e.target.value)}
-              className="h-[52px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-[#f3f4f6] px-4 pr-10 text-[15px] text-slate-700 outline-none transition focus:border-[#1bb0a6] focus:bg-white dark:border-border dark:bg-muted dark:text-foreground dark:focus:bg-card"
-              aria-label="Filter tipe"
+              className="h-8 appearance-none rounded-lg border border-border bg-card px-2.5 pr-7 text-xs outline-none transition focus:border-primary"
             >
               <option value="">Semua Tipe</option>
               <option value="INCOME">Pemasukan</option>
               <option value="EXPENSE">Pengeluaran</option>
-              <option value="TRANSFER">Transfer</option>
             </select>
-            <ChevronDown
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7280] dark:text-muted-foreground"
-              size={18}
-            />
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" size={12} />
           </div>
 
           <div className="relative">
             <select
               value={filters.status}
               onChange={(e) => handleFilterChange("status", e.target.value)}
-              className="h-[52px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-[#f3f4f6] px-4 pr-10 text-[15px] text-slate-700 outline-none transition focus:border-[#1bb0a6] focus:bg-white dark:border-border dark:bg-muted dark:text-foreground dark:focus:bg-card"
-              aria-label="Filter status"
+              className="h-8 appearance-none rounded-lg border border-border bg-card px-2.5 pr-7 text-xs outline-none transition focus:border-primary"
             >
               <option value="">Semua Status</option>
               <option value="PENDING">Pending</option>
@@ -742,32 +570,81 @@ export default function TransactionsPage() {
               <option value="REJECTED">Ditolak</option>
               <option value="DRAFT">Draft</option>
             </select>
-            <ChevronDown
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7280] dark:text-muted-foreground"
-              size={18}
-            />
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" size={12} />
           </div>
 
-          <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowDateMenu((p) => !p)}
+            className={`h-8 inline-flex items-center gap-1 rounded-lg border px-2 text-xs transition ${showDateMenu ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:text-foreground"}`}
+          >
+            <CalendarDays size={12} />
+            {datePreset === "all" ? "Periode" : datePreset === "today" ? "Hari ini" : datePreset === "7d" ? "7 hari" : datePreset === "30d" ? "30 hari" : datePreset === "90d" ? "90 hari" : "Custom"}
+          </button>
+
+          {hasFilter && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilters({ search: "", unitId: "", type: "", status: "", categoryId: "", startDate: "", endDate: "" });
+                setDatePreset("all");
+                setCurrentPage(1);
+              }}
+              className="h-8 inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+
+        {showDateMenu && (
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card p-2">
+            {[
+              { id: "all", label: "Semua" },
+              { id: "today", label: "Hari ini" },
+              { id: "7d", label: "7 hari" },
+              { id: "30d", label: "30 hari" },
+              { id: "90d", label: "90 hari" },
+              { id: "custom", label: "Custom" },
+            ].map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  if (p.id === "custom") { setDatePreset("custom"); return; }
+                  applyDatePreset(p.id);
+                  setShowDateMenu(false);
+                }}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${datePreset === p.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+              >
+                {p.label}
+              </button>
+            ))}
+            {datePreset === "custom" && (
+              <div className="flex items-center gap-1.5 ml-2">
+                <input type="date" value={filters.startDate} onChange={(e) => { handleFilterChange("startDate", e.target.value); setDatePreset("custom"); }} className="h-7 rounded-md border border-border bg-card px-2 text-xs outline-none focus:border-primary" />
+                <span className="text-xs text-muted-foreground">-</span>
+                <input type="date" value={filters.endDate} onChange={(e) => { handleFilterChange("endDate", e.target.value); setDatePreset("custom"); }} className="h-7 rounded-md border border-border bg-card px-2 text-xs outline-none focus:border-primary" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {showDateMenu && categories.length > 0 && (
+          <div className="relative inline-block">
             <select
               value={filters.categoryId}
               onChange={(e) => handleFilterChange("categoryId", e.target.value)}
-              className="h-[52px] w-full appearance-none rounded-full border border-[#e5e7eb] bg-[#f3f4f6] px-4 pr-10 text-[15px] text-slate-700 outline-none transition focus:border-[#1bb0a6] focus:bg-white dark:border-border dark:bg-muted dark:text-foreground dark:focus:bg-card"
-              aria-label="Filter kategori"
+              className="h-8 appearance-none rounded-lg border border-border bg-card px-2.5 pr-7 text-xs outline-none transition focus:border-primary"
             >
               <option value="">Semua Kategori</option>
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
-            <ChevronDown
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7280] dark:text-muted-foreground"
-              size={18}
-            />
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" size={12} />
           </div>
-        </div>
+        )}
       </div>
 
       {loading ? (
