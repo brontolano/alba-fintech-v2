@@ -10,6 +10,9 @@ import {
   ArrowDownRight,
   Package,
   BarChart3,
+  BookOpen,
+  CreditCard,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -97,27 +100,64 @@ export default function StaffDashboard() {
     },
   ];
 
-  const quickActions: QuickAccessAction[] = [
+  const isKpak = session?.user?.unitType === "KPAK";
+
+  const kpakActions: QuickAccessAction[] = [
     {
-      href: "/dashboard/transactions/create",
-      icon: Receipt,
-      label: "Buku Kas",
-      color: "islamic",
+      href: "/dashboard/kpak/students",
+      icon: BookOpen,
+      label: "Santri",
+      color: "blue",
     },
     {
-      href: "/dashboard/transactions",
-      icon: TrendingUp,
-      label: "Transaksi",
+      href: "/dashboard/savings",
+      icon: Wallet,
+      label: "Tabungan",
       color: "green",
     },
-    ...(canUseRetailModules ? retailActions : nonRetailActions),
     {
-      href: "/dashboard/reports",
+      href: "/dashboard/kpak/finance",
+      icon: CreditCard,
+      label: "Layanan",
+      color: "orange",
+    },
+    {
+      href: "/dashboard/kpak/internal",
+      icon: FileText,
+      label: "Internal",
+      color: "amber",
+    },
+    {
+      href: "/dashboard/kpak/reports",
       icon: BarChart3,
-      label: "Laporan",
+      label: "Rekap",
       color: "purple",
     },
   ];
+
+  const quickActions: QuickAccessAction[] = isKpak
+    ? kpakActions
+    : [
+        {
+          href: "/dashboard/transactions/create",
+          icon: Receipt,
+          label: "Buku Kas",
+          color: "islamic",
+        },
+        {
+          href: "/dashboard/transactions",
+          icon: TrendingUp,
+          label: "Transaksi",
+          color: "green",
+        },
+        ...(canUseRetailModules ? retailActions : nonRetailActions),
+        {
+          href: "/dashboard/reports",
+          icon: BarChart3,
+          label: "Laporan",
+          color: "purple",
+        },
+      ];
 
   return (
     <div className="space-y-4">

@@ -10,6 +10,9 @@ import {
   Package,
   BarChart3,
   Clock,
+  BookOpen,
+  CreditCard,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -78,28 +81,71 @@ export default function ManagerDashboard() {
       {/* Quick Access — Modul Manager */}
       <QuickAccessGrid
         actions={[
-          {
-            href: "/dashboard/transactions/create",
-            icon: Receipt,
-            label: "Buku Kas",
-            color: "islamic",
-          },
-          {
-            href: "/dashboard/transactions",
-            icon: TrendingUp,
-            label: "Transaksi",
-            color: "green",
-          },
-          ...(canUseRetailModules
-            ? []
-            : ([
+          ...(session?.user?.unitType === "KPAK"
+            ? ([
+                {
+                  href: "/dashboard/kpak/students",
+                  icon: BookOpen,
+                  label: "Santri",
+                  color: "blue",
+                },
                 {
                   href: "/dashboard/savings",
                   icon: Wallet,
                   label: "Tabungan",
-                  color: "blue",
+                  color: "green",
+                },
+                {
+                  href: "/dashboard/kpak/finance",
+                  icon: CreditCard,
+                  label: "Layanan",
+                  color: "orange",
+                },
+                {
+                  href: "/dashboard/kpak/internal",
+                  icon: FileText,
+                  label: "Internal",
+                  color: "amber",
+                },
+                {
+                  href: "/dashboard/kpak/budget",
+                  icon: Send,
+                  label: "Anggaran",
+                  color: "purple",
+                },
+                {
+                  href: "/dashboard/kpak/reports",
+                  icon: BarChart3,
+                  label: "Rekap",
+                  color: "accent",
+                },
+              ] as const)
+            : ([
+                {
+                  href: "/dashboard/transactions/create",
+                  icon: Receipt,
+                  label: "Buku Kas",
+                  color: "islamic",
+                },
+                {
+                  href: "/dashboard/transactions",
+                  icon: TrendingUp,
+                  label: "Transaksi",
+                  color: "green",
                 },
               ] as const)),
+          ...(session?.user?.unitType === "KPAK"
+            ? []
+            : canUseRetailModules
+              ? []
+              : ([
+                  {
+                    href: "/dashboard/savings",
+                    icon: Wallet,
+                    label: "Tabungan",
+                    color: "blue",
+                  },
+                ] as const)),
           ...(canUseRetailModules
             ? ([
                 {
@@ -120,18 +166,22 @@ export default function ManagerDashboard() {
                 },
               ] as const)
             : []),
-          {
-            href: "/dashboard/reconciliation",
-            icon: Clock,
-            label: "Rekonsiliasi",
-            color: "accent",
-          },
-          {
-            href: "/dashboard/reports",
-            icon: BarChart3,
-            label: "Laporan",
-            color: "purple",
-          },
+          ...(session?.user?.unitType === "KPAK"
+            ? []
+            : ([
+                {
+                  href: "/dashboard/reconciliation",
+                  icon: Clock,
+                  label: "Rekonsiliasi",
+                  color: "accent",
+                },
+                {
+                  href: "/dashboard/reports",
+                  icon: BarChart3,
+                  label: "Laporan",
+                  color: "purple",
+                },
+              ] as const)),
         ]}
       />
 
