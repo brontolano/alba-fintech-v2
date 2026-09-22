@@ -16,6 +16,7 @@ const paySchema = z.object({
   method: z.enum(["TUNAI", "TABUNGAN"]),
   studentNumber: z.string().optional(),
   unitId: z.string().optional(),
+  photoUrl: z.string().max(500).optional(),
 });
 
 /**
@@ -158,6 +159,7 @@ export async function POST(request: NextRequest) {
               method === "TABUNGAN" ? `[Tabungan] ${description}` : description,
             categoryId,
             reference: savingsTx ? `TABUNGAN:${savingsTx.id}` : undefined,
+            photoUrl: parsed.data.photoUrl || undefined,
             createdById: session.user.id!,
             status: approved ? "APPROVED" : "PENDING",
             approvedById: approved ? session.user.id : undefined,

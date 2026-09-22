@@ -48,11 +48,15 @@ export async function POST(request: NextRequest) {
     const bytes = Buffer.from(await file.arrayBuffer());
     const timestamp = Date.now();
     const filename = `item-${timestamp}.${ext}`;
-    const dir = join(process.cwd(), 'public', 'uploads', 'inventory');
+    // Folder tujuan opsional (?folder=bukti) — whitelist agar aman
+    const { searchParams } = new URL(request.url);
+    const folder =
+      searchParams.get('folder') === 'bukti' ? 'bukti' : 'inventory';
+    const dir = join(process.cwd(), 'public', 'uploads', folder);
     await mkdir(dir, { recursive: true });
     await writeFile(join(dir, filename), bytes);
 
-    const url = `/uploads/inventory/${filename}`;
+    const url = `/uploads/${folder}/${filename}`;
     return NextResponse.json({ url, filename }, { status: 200 });
   } catch (error) {
     console.error('[Upload API] Error:', error);

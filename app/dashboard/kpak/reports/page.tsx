@@ -47,6 +47,7 @@ interface SavingTx {
   type: string;
   amount: number | string;
   description?: string | null;
+  photoUrl?: string | null;
   createdAt: string;
 }
 
@@ -384,6 +385,16 @@ export default function KpakReportsPage() {
                           <p className="font-medium">
                             {t.type === "DEPOSIT" ? "Setoran" : "Penarikan"}
                             {t.description ? ` — ${t.description}` : ""}
+                            {t.photoUrl && (
+                              <a
+                                href={t.photoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-2 text-xs font-medium text-primary hover:underline"
+                              >
+                                Bukti →
+                              </a>
+                            )}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(t.createdAt).toLocaleDateString("id-ID", {

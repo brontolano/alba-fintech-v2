@@ -12,6 +12,7 @@ const mutationSchema = z.object({
   description: z.string().optional(),
   reference: z.string().optional(),
   cardUid: z.string().optional(),
+  photoUrl: z.string().max(500).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -78,6 +79,7 @@ export async function POST(request: NextRequest) {
             balanceAfter: after,
             description: parsed.data.description,
             reference: parsed.data.reference,
+            photoUrl: parsed.data.photoUrl || undefined,
             cardUid:
               parsed.data.cardUid?.trim().toUpperCase() ||
               account.student.cardUid,

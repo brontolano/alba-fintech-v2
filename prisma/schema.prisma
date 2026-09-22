@@ -136,6 +136,7 @@ model SavingsTransaction {
   reference     String?             @db.VarChar(255)
   description   String?             @db.Text
   cardUid       String?             @db.VarChar(100)
+  photoUrl      String?             @db.VarChar(500)
   createdById   String              @db.VarChar(36)
   createdAt     DateTime?           @default(now()) @db.DateTime(0)
   account       SavingsAccount      @relation(fields: [accountId], references: [id], onUpdate: Restrict, map: "savings_transactions_ibfk_1")

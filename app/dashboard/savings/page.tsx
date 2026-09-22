@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { uploadProof } from "@/lib/upload-proof";
 
 interface StudentData {
   id: string;
@@ -74,11 +75,20 @@ export default function SavingsPage() {
     }
   };
 
+  const [proofFile, setProofFile] = useState<File | null>(null);
+
   const submitMutation = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!student?.account?.id || !mutation.amount) return;
     setSaving(true);
     try {
+      // Bukti transfer via rekening (opsional) — upload dulu
+      let photoUrl: string | undefined;
+      if (proofFile) {
+        toast.loading("Mengunggah bukti...", { id: "proof" });
+        photoUrl = await uploadProof(proofFile);
+        toast.dismiss("proof");
+      }
       const response = await fetch("/api/savings/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,6 +97,7 @@ export default function SavingsPage() {
           ...mutation,
           amount: Number(mutation.amount),
           cardUid: student.cardUid,
+          photoUrl,
         }),
       });
       const result = await response.json();
@@ -104,6 +115,7 @@ export default function SavingsPage() {
           : current,
       );
       setMutation({ ...mutation, amount: "", description: "" });
+      setProofFile(null);
       toast.success(
         mutation.type === "DEPOSIT"
           ? "Setoran berhasil dicatat"
@@ -336,6 +348,22 @@ export default function SavingsPage() {
               rows={3}
               className="w-full resize-none rounded-xl border border-input bg-background px-3 py-3 text-sm"
             />
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Bukti transfer (opsional, bila via rekening)
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium"
+              />
+              {proofFile && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {proofFile.name}
+                </p>
+              )}
+            </div>
             <button
               disabled={saving}
               className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"

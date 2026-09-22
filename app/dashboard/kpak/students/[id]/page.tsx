@@ -27,6 +27,7 @@ interface Mutation {
   amount: number | string;
   balanceAfter: number | string;
   description?: string | null;
+  photoUrl?: string | null;
   createdAt: string;
 }
 
@@ -305,6 +306,16 @@ export default function StudentDetailPage({
                       <p className="text-xs text-muted-foreground">
                         {m.description}
                       </p>
+                    )}
+                    {m.photoUrl && (
+                      <a
+                        href={m.photoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        Lihat bukti →
+                      </a>
                     )}
                   </div>
                 </div>

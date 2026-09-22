@@ -14,6 +14,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { usePageGuard } from "@/lib/use-page-guard";
+import { uploadProof } from "@/lib/upload-proof";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -52,6 +53,7 @@ interface RecentTx {
   reference?: string | null;
   date: string;
   status: string;
+  photoUrl?: string | null;
   category?: { name: string } | null;
 }
 
@@ -80,6 +82,7 @@ export default function KpakFinancePage() {
   const [note, setNote] = useState("");
   const [method, setMethod] = useState<"TUNAI" | "TABUNGAN">("TUNAI");
   const [saving, setSaving] = useState(false);
+  const [proofFile, setProofFile] = useState<File | null>(null);
 
   const { data: session } = useSession();
   const canManageCategories =
@@ -207,6 +210,12 @@ export default function KpakFinancePage() {
     // Satu panggilan atomik: potong tabungan + catat pemasukan + approval
     setSaving(true);
     try {
+      let photoUrl: string | undefined;
+      if (proofFile) {
+        toast.loading("Mengunggah bukti...", { id: "proof" });
+        photoUrl = await uploadProof(proofFile);
+        toast.dismiss("proof");
+      }
       const res = await fetch("/api/kpak/pay-service", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -216,6 +225,7 @@ export default function KpakFinancePage() {
           note: note.trim() || undefined,
           method,
           studentNumber: method === "TABUNGAN" ? santri?.studentNumber : undefined,
+          photoUrl,
         }),
       });
       const json = await res.json();
@@ -234,6 +244,7 @@ export default function KpakFinancePage() {
       );
       setAmount("");
       setNote("");
+      setProofFile(null);
       fetchData();
     } catch (err: any) {
       toast.error(err.message);
@@ -435,6 +446,22 @@ export default function KpakFinancePage() {
             placeholder="Keterangan (contoh: HER bulan September, gelombang 2)"
             className="w-full rounded-lg border bg-background px-3 py-3 text-sm"
           />
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              Bukti transfer (opsional, bila via rekening)
+            </label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+              className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium"
+            />
+            {proofFile && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {proofFile.name}
+              </p>
+            )}
+          </div>
           <button
             disabled={saving || !selectedCat}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
@@ -464,7 +491,19 @@ export default function KpakFinancePage() {
                 className="flex items-center justify-between py-2.5 text-sm"
               >
                 <div>
-                  <p className="font-medium">{t.description}</p>
+                  <p className="font-medium">
+                    {t.description}
+                    {t.photoUrl && (
+                      <a
+                        href={t.photoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 text-xs font-medium text-primary hover:underline"
+                      >
+                        Bukti →
+                      </a>
+                    )}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {t.category?.name || "Tanpa kategori"} ·{" "}
                     {new Date(t.date).toLocaleDateString("id-ID", {

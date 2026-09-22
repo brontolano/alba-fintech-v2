@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Send, Loader2, ClipboardList, CircleDashed, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -77,6 +77,32 @@ export default function KpakBudgetPage() {
   const canAllocate =
     session?.user?.role === "SUPERADMIN" ||
     session?.user?.role === "PIMPINAN";
+  const canSeed =
+    session?.user?.role === "SUPERADMIN" ||
+    session?.user?.role === "PIMPINAN" ||
+    session?.user?.role === "MANAGER";
+  const [seeding, setSeeding] = useState(false);
+
+  const seedDefaultCategories = async () => {
+    setSeeding(true);
+    try {
+      const res = await fetch("/api/financial-categories/seed-kpak", {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal membuat kategori");
+      toast.success(
+        json.data?.created > 0
+          ? `${json.data.created} kategori bawaan dibuat`
+          : "Kategori bawaan sudah ada",
+      );
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const currentMonth = () => {
     const d = new Date();
@@ -227,6 +253,21 @@ export default function KpakBudgetPage() {
     fetchData();
   }, [fetchData]);
 
+  // Auto-seed sekali bila kategori kosong (penyebab umum "tidak bisa mengajukan")
+  const seedTried = useRef(false);
+  useEffect(() => {
+    if (
+      !loading &&
+      categories.length === 0 &&
+      canSeed &&
+      !seedTried.current
+    ) {
+      seedTried.current = true;
+      seedDefaultCategories();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, categories, canSeed]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const nominal = Number(amount);
@@ -306,17 +347,35 @@ export default function KpakBudgetPage() {
             <label className="mb-1 block text-xs font-medium">
               Kategori Anggaran
             </label>
-            <select
-              value={catId}
-              onChange={(e) => setCatId(e.target.value)}
-              className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm"
-            >
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            {categories.length === 0 && !loading ? (
+              <div className="rounded-lg border border-dashed p-3 text-center text-sm text-muted-foreground">
+                Belum ada kategori anggaran.
+                {canSeed ? (
+                  <button
+                    type="button"
+                    onClick={seedDefaultCategories}
+                    disabled={seeding}
+                    className="mx-auto mt-2 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                  >
+                    {seeding ? "Membuat..." : "Buat Kategori Bawaan KPAK"}
+                  </button>
+                ) : (
+                  <p className="mt-1">Hubungi Manager.</p>
+                )}
+              </div>
+            ) : (
+              <select
+                value={catId}
+                onChange={(e) => setCatId(e.target.value)}
+                className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm"
+              >
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            )}
             {allocRemaining != null && (
               <p
                 className={`mt-1 text-xs ${overBudget ? "font-medium text-amber-600" : "text-muted-foreground"}`}
