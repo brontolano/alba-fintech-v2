@@ -77,6 +77,11 @@ npm install
 # 2. Setup environment
 cp .env.example .env.local
 # Edit .env.local and configure your database
+# PENTING — host DB berbeda per environment:
+#   Lokal (laptop)  : mysql://USER:PASS@srv594.hstgr.io:3306/u826712707_alba
+#   Produksi hPanel : mysql://USER:PASS@localhost:3306/u826712707_alba
+# Runtime Node Hostinger TIDAK bisa konek ke srv594.hstgr.io (pool timeout
+# active=0/idle=0) — wajib pakai localhost di Environment Variables hPanel.
 
 # 3. Generate Prisma Client
 npx prisma generate
