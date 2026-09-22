@@ -123,10 +123,6 @@ export default function KpakFinancePage() {
     () => unitCats.filter((c) => c.type === "INCOME"),
     [unitCats],
   );
-  const intCats = useMemo(
-    () => unitCats.filter((c) => c.type === txType),
-    [unitCats, txType],
-  );
   // Kategori administrasi santri = INCOME kecuali Uang Masuk Internal.
   // Default wajib: HER (SPP) + Daftar Ulang (+ Pendaftaran).
   const adminCatIds = useMemo(
@@ -139,6 +135,14 @@ export default function KpakFinancePage() {
   const adminCats = useMemo(
     () => incomeCats.filter((c) => adminCatIds.has(c.id)),
     [incomeCats, adminCatIds],
+  );
+  // Internal: semua kategori unit KECUALI administrasi santri
+  // (HER/Daful hanya di tab Santri). Kategori tambahan manager
+  // otomatis muncul di dropdown ini.
+  const intCats = useMemo(
+    () =>
+      unitCats.filter((c) => c.type === txType && !adminCatIds.has(c.id)),
+    [unitCats, txType, adminCatIds],
   );
 
   const fetchData = useCallback(async () => {
