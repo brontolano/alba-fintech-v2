@@ -1,0 +1,325 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  Wallet,
+  PiggyBank,
+  GraduationCap,
+  ClipboardList,
+  ArrowDownRight,
+  ArrowUpRight,
+  Loader2,
+  BookOpen,
+  CreditCard,
+  FileText,
+  BarChart3,
+} from "lucide-react";
+import Link from "next/link";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { QuickAccessGrid } from "@/components/dashboard/QuickAccessGrid";
+import type { QuickAccessAction } from "@/components/dashboard/QuickAccessGrid";
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(amount);
+
+const todayLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const isCashTx = (x: any) => !x.paymentMethod || x.paymentMethod === "CASH";
+const isCashSv = (x: any) => !x.channel || x.channel === "CASH";
+
+/**
+ * Dashboard khusus Staff KPAK:
+ * saldo unit, pengingat check-in, quick akses, 4 ringkasan, log unit.
+ */
+export function KpakStaffDashboard() {
+  const [loading, setLoading] = useState(true);
+  const [shiftOn, setShiftOn] = useState<boolean | null>(null);
+  const [stats, setStats] = useState({
+    masuk: 0,
+    keluar: 0,
+    count: 0,
+    tabIn: 0,
+    tabOut: 0,
+    tabCount: 0,
+    her: 0,
+    herCount: 0,
+    daful: 0,
+    dafulCount: 0,
+    intIn: 0,
+    intOut: 0,
+  });
+  const [log, setLog] = useState<any[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const today = todayLocal();
+        const [txRes, svRes, catRes, shiftRes] = await Promise.all([
+          fetch(
+            `/api/transactions?startDate=${today}&endDate=${today}&limit=100`,
+          ),
+          fetch("/api/savings/transactions"),
+          fetch("/api/financial-categories"),
+          fetch("/api/kpak/shift").catch(() => null),
+        ]);
+        let txs: any[] = [];
+        let svs: any[] = [];
+        let cats: any[] = [];
+        if (txRes.ok) {
+          const t = await txRes.json();
+          txs = (t.data || t.transactions || []).filter(
+            (x: any) => x.status !== "REJECTED",
+          );
+        }
+        if (svRes.ok) {
+          const s = await svRes.json();
+          svs = (s.data || []).filter(
+            (x: any) => (x.createdAt || "").slice(0, 10) === today,
+          );
+        }
+        if (catRes.ok) {
+          const c = await catRes.json();
+          cats = (c.data || []).filter((x: any) => x.unitId);
+        }
+        if (shiftRes && shiftRes.ok) {
+          const s = await shiftRes.json();
+          const mine = s.data?.mine;
+          setShiftOn(!!mine && !mine.checkOutAt);
+        }
+
+        const sum = (l: any[]) =>
+          l.reduce((s, x) => s + Number(x.amount || 0), 0);
+        const cashTxs = txs.filter(isCashTx);
+        const cashSv = svs.filter(isCashSv);
+        const masuk =
+          sum(cashTxs.filter((x) => x.type === "INCOME")) +
+          sum(cashSv.filter((x) => x.type === "DEPOSIT"));
+        const keluar =
+          sum(cashTxs.filter((x) => x.type === "EXPENSE")) +
+          sum(cashSv.filter((x) => x.type === "WITHDRAWAL"));
+
+        const herIds = new Set(
+          cats.filter((c) => c.code.endsWith("-HER")).map((c: any) => c.id),
+        );
+        const dafulIds = new Set(
+          cats
+            .filter(
+              (c) =>
+                c.code.endsWith("-DAFUL") || c.code.endsWith("-DAFTAR"),
+            )
+            .map((c: any) => c.id),
+        );
+        const herTxs = txs.filter(
+          (x) => x.type === "INCOME" && herIds.has(x.categoryId),
+        );
+        const dafulTxs = txs.filter(
+          (x) => x.type === "INCOME" && dafulIds.has(x.categoryId),
+        );
+        const intTxs = txs.filter(
+          (x) =>
+            x.type === "EXPENSE" ||
+            (x.type === "INCOME" &&
+              !herIds.has(x.categoryId) &&
+              !dafulIds.has(x.categoryId)),
+        );
+
+        setStats({
+          masuk,
+          keluar,
+          count: txs.length + svs.length,
+          tabIn: sum(svs.filter((x) => x.type === "DEPOSIT")),
+          tabOut: sum(svs.filter((x) => x.type === "WITHDRAWAL")),
+          tabCount: svs.length,
+          her: sum(herTxs),
+          herCount: herTxs.length,
+          daful: sum(dafulTxs),
+          dafulCount: dafulTxs.length,
+          intIn: sum(intTxs.filter((x) => x.type === "INCOME")),
+          intOut: sum(intTxs.filter((x) => x.type === "EXPENSE")),
+        });
+
+        const entries = [
+          ...txs.map((x) => ({
+            key: `k-${x.id}`,
+            dir: x.type === "INCOME" ? "in" : "out",
+            title: x.description,
+            dateISO: x.date,
+            amount: Number(x.amount || 0),
+          })),
+          ...svs.map((x) => ({
+            key: `s-${x.id}`,
+            dir: x.type === "DEPOSIT" ? "in" : "out",
+            title: `${x.type === "DEPOSIT" ? "Setoran" : "Penarikan"}${x.description ? ` — ${x.description}` : ""}`,
+            dateISO: x.createdAt,
+            amount: Number(x.amount || 0),
+          })),
+        ]
+          .sort((a, b) => (b.dateISO || "").localeCompare(a.dateISO || ""))
+          .slice(0, 8);
+        setLog(entries);
+      } catch {
+        // dashboard tetap tampil walau ringkasan gagal
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const actions: QuickAccessAction[] = [
+    { href: "/dashboard/kpak/students", icon: BookOpen, label: "Santri", color: "blue" },
+    { href: "/dashboard/savings", icon: Wallet, label: "Tabungan", color: "green" },
+    { href: "/dashboard/kpak/finance", icon: CreditCard, label: "Layanan", color: "orange" },
+    { href: "/dashboard/kpak/internal", icon: FileText, label: "Internal", color: "amber" },
+    { href: "/dashboard/kpak/reports", icon: BarChart3, label: "Rekap", color: "purple" },
+  ];
+
+  // NOTE: /dashboard/kpak/internal redirect ke finance?tab=internal
+  const fixedActions = actions.map((a) =>
+    a.href === "/dashboard/kpak/internal"
+      ? { ...a, href: "/dashboard/kpak/finance?tab=internal" }
+      : a,
+  );
+
+  return (
+    <div className="space-y-4">
+      <DashboardHeader title="Dashboard KPAK" subtitle="Petugas Shift" />
+
+      {shiftOn === false && !loading && (
+        <Link
+          href="/dashboard/kpak/shift"
+          className="flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm"
+        >
+          <span className="font-medium">Belum check-in shift hari ini</span>
+          <span className="font-semibold text-primary">Check-in →</span>
+        </Link>
+      )}
+
+      {/* Saldo unit */}
+      <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 p-5 text-white">
+        <p className="text-xs opacity-80">Saldo Unit Hari Ini (tunai)</p>
+        {loading ? (
+          <Loader2 size={18} className="my-2 animate-spin" />
+        ) : (
+          <>
+            <p className="mt-1 text-3xl font-bold">
+              {formatCurrency(stats.masuk - stats.keluar)}
+            </p>
+            <div className="mt-2 flex gap-4 text-xs">
+              <span className="inline-flex items-center gap-1">
+                <ArrowDownRight size={12} /> Masuk {formatCurrency(stats.masuk)}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <ArrowUpRight size={12} /> Keluar {formatCurrency(stats.keluar)}
+              </span>
+              <span>{stats.count} transaksi</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      <QuickAccessGrid actions={fixedActions} />
+
+      {/* 4 ringkasan */}
+      <div className="grid grid-cols-2 gap-3">
+        <Link
+          href="/dashboard/savings"
+          className="rounded-xl border bg-card p-4 hover:border-primary/40"
+        >
+          <div className="flex items-center gap-2">
+            <PiggyBank size={16} className="text-blue-600" />
+            <p className="text-xs text-muted-foreground">Tabungan</p>
+          </div>
+          <p className="mt-1 text-sm font-bold">
+            <span className="text-emerald-600">+{formatCurrency(stats.tabIn)}</span>{" "}
+            <span className="text-rose-600">-{formatCurrency(stats.tabOut)}</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            {stats.tabCount} mutasi
+          </p>
+        </Link>
+        <Link
+          href="/dashboard/kpak/finance"
+          className="rounded-xl border bg-card p-4 hover:border-primary/40"
+        >
+          <div className="flex items-center gap-2">
+            <GraduationCap size={16} className="text-emerald-600" />
+            <p className="text-xs text-muted-foreground">HER / SPP</p>
+          </div>
+          <p className="mt-1 text-sm font-bold">{formatCurrency(stats.her)}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {stats.herCount} pembayaran
+          </p>
+        </Link>
+        <Link
+          href="/dashboard/kpak/finance"
+          className="rounded-xl border bg-card p-4 hover:border-primary/40"
+        >
+          <div className="flex items-center gap-2">
+            <ClipboardList size={16} className="text-purple-600" />
+            <p className="text-xs text-muted-foreground">Daftar Ulang</p>
+          </div>
+          <p className="mt-1 text-sm font-bold">{formatCurrency(stats.daful)}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {stats.dafulCount} pembayaran
+          </p>
+        </Link>
+        <Link
+          href="/dashboard/kpak/finance?tab=internal"
+          className="rounded-xl border bg-card p-4 hover:border-primary/40"
+        >
+          <div className="flex items-center gap-2">
+            <Wallet size={16} className="text-amber-600" />
+            <p className="text-xs text-muted-foreground">Keu. Internal</p>
+          </div>
+          <p className="mt-1 text-sm font-bold">
+            <span className="text-emerald-600">+{formatCurrency(stats.intIn)}</span>{" "}
+            <span className="text-rose-600">-{formatCurrency(stats.intOut)}</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground">kas internal</p>
+        </Link>
+      </div>
+
+      {/* Log unit */}
+      <div className="rounded-xl border bg-card p-4">
+        <h2 className="mb-2 text-sm font-semibold">Log Unit Hari Ini</h2>
+        {loading ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            <Loader2 size={16} className="mx-auto animate-spin" />
+          </p>
+        ) : log.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            Belum ada aktivitas
+          </p>
+        ) : (
+          <div className="divide-y">
+            {log.map((e) => (
+              <div
+                key={e.key}
+                className="flex items-center justify-between gap-3 py-2 text-sm"
+              >
+                <p className="min-w-0 truncate">{e.title}</p>
+                <p
+                  className={`shrink-0 font-semibold ${
+                    e.dir === "in" ? "text-emerald-600" : "text-rose-600"
+                  }`}
+                >
+                  {e.dir === "in" ? "+" : "-"}
+                  {formatCurrency(e.amount)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

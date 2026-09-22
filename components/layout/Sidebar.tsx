@@ -182,7 +182,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Layanan KPAK",
     items: [
       {
-        label: "Shift Petugas",
+        label: "Shift Saya",
         href: "/dashboard/kpak/shift",
         icon: <CalendarCheck size={20} />,
         roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],

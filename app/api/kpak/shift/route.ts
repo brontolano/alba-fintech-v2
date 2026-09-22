@@ -15,6 +15,8 @@ const wibHM = (now = Date.now()) =>
 const actionSchema = z.object({
   action: z.enum(["check-in", "check-out"]),
   note: z.string().optional(),
+  // Jenis layanan shift: TABUNGAN (layanan tabungan) | KEUANGAN (layanan keuangan)
+  service: z.enum(["TABUNGAN", "KEUANGAN"]).optional(),
 });
 
 async function resolveUnitId(session: any, requested?: string | null) {
@@ -40,6 +42,53 @@ export async function GET(request: NextRequest) {
 
   const dateStr = searchParams.get("date") || wibDateStr();
   const start = dayStart(dateStr);
+
+  // ?history=1: log shift saya (14 hari) + durasi + jumlah transaksi
+  if (searchParams.get("history") === "1") {
+    const rows = await prisma.shiftAttendance.findMany({
+      where: { unitId, userId: session.user.id! },
+      orderBy: { date: "desc" },
+      take: 14,
+    });
+    const history = await Promise.all(
+      rows.map(async (r) => {
+        const d = new Date(r.date).toISOString().slice(0, 10);
+        const ds = new Date(`${d}T00:00:00.000Z`);
+        const de = new Date(`${d}T23:59:59.999Z`);
+        const [txCount, savCount] = await Promise.all([
+          prisma.transaction.count({
+            where: {
+              unitId,
+              createdById: session.user.id!,
+              date: { gte: ds, lte: de },
+              status: { not: "REJECTED" },
+            },
+          }),
+          prisma.savingsTransaction.count({
+            where: {
+              unitId,
+              createdById: session.user.id!,
+              createdAt: { gte: ds, lte: de },
+            },
+          }),
+        ]);
+        const end = r.checkOutAt ? new Date(r.checkOutAt).getTime() : null;
+        return {
+          id: r.id,
+          date: d,
+          service: r.service,
+          checkInAt: r.checkInAt,
+          checkOutAt: r.checkOutAt,
+          durationMin:
+            end != null
+              ? Math.max(0, Math.round((end - new Date(r.checkInAt).getTime()) / 60000))
+              : null,
+          txCount: txCount + savCount,
+        };
+      }),
+    );
+    return NextResponse.json({ data: { history } });
+  }
 
   const [mine, crew, attendances] = await Promise.all([
     prisma.shiftAttendance.findUnique({
@@ -113,7 +162,10 @@ export async function POST(request: NextRequest) {
       if (existing && existing.checkOutAt) {
         const row = await prisma.shiftAttendance.update({
           where: { id: existing.id },
-          data: { checkOutAt: null },
+          data: {
+            checkOutAt: null,
+            service: parsed.data.service || existing.service || undefined,
+          },
         });
         return NextResponse.json({ data: row });
       }
@@ -125,6 +177,7 @@ export async function POST(request: NextRequest) {
           date: start,
           checkInAt: new Date(),
           late,
+          service: parsed.data.service || undefined,
           note: parsed.data.note?.trim() || undefined,
         },
       });

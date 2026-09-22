@@ -27,6 +27,7 @@ interface Student {
   name: string;
   className?: string | null;
   cardUid?: string | null;
+  isActive?: boolean | null;
   account?: { id: string; balance: number | string; status: string } | null;
 }
 
@@ -148,10 +149,8 @@ export default function KpakStudentsPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium">NIS</th>
               <th className="px-4 py-3 text-left font-medium">Nama</th>
               <th className="px-4 py-3 text-left font-medium">Kelas</th>
-              <th className="px-4 py-3 text-left font-medium">UID NFC</th>
               <th className="px-4 py-3 text-right font-medium">Saldo</th>
               <th className="px-4 py-3 text-center font-medium">Rincian</th>
             </tr>
@@ -160,7 +159,7 @@ export default function KpakStudentsPage() {
             {loading ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={4}
                   className="px-4 py-12 text-center text-muted-foreground"
                 >
                   <Loader2 size={20} className="mx-auto mb-2 animate-spin" />
@@ -170,7 +169,7 @@ export default function KpakStudentsPage() {
             ) : students.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={4}
                   className="px-4 py-12 text-center text-muted-foreground"
                 >
                   <AlertCircle size={20} className="mx-auto mb-2" />
@@ -195,15 +194,21 @@ export default function KpakStudentsPage() {
                   key={s.id}
                   className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                 >
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {s.studentNumber}
+                  <td className="px-4 py-3 font-medium">
+                    {s.name}
+                    {s.account?.status === "FROZEN" && (
+                      <span className="ml-2 rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-medium text-sky-600">
+                        Beku
+                      </span>
+                    )}
+                    {s.isActive === false && (
+                      <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        Non-aktif
+                      </span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 font-medium">{s.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {s.className || "-"}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {s.cardUid || "-"}
                   </td>
                   <td className="px-4 py-3 text-right font-medium">
                     {formatCurrency(Number(s.account?.balance || 0))}

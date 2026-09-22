@@ -37,6 +37,7 @@ interface Detail {
   name: string;
   className?: string | null;
   cardUid?: string | null;
+  isActive?: boolean | null;
   account?: {
     id: string;
     balance: number | string;
@@ -91,6 +92,29 @@ export default function StudentDetailPage({
     };
     load();
   }, [id]);
+
+  const changeStatus = async (body: {
+    isActive?: boolean;
+    accountStatus?: "ACTIVE" | "FROZEN" | "CLOSED";
+  }) => {
+    if (!detail) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/savings/students/${detail.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal mengubah status");
+      toast.success("Status diperbarui");
+      setDetail({ ...detail, ...json.data });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleEdit = async () => {
     if (!detail) return;
@@ -245,6 +269,71 @@ export default function StudentDetailPage({
         )}
       </div>
 
+      {/* Status santri + rekening (manager) */}
+      <div className="rounded-xl border bg-card p-5">
+        <h2 className="mb-3 text-sm font-semibold">Status</h2>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-medium ${
+              detail.isActive !== false
+                ? "bg-emerald-500/10 text-emerald-600"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            Santri: {detail.isActive !== false ? "Aktif" : "Non-aktif"}
+          </span>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-medium ${
+              detail.account?.status === "ACTIVE"
+                ? "bg-emerald-500/10 text-emerald-600"
+                : detail.account?.status === "FROZEN"
+                  ? "bg-sky-500/10 text-sky-600"
+                  : "bg-muted text-muted-foreground"
+            }`}
+          >
+            Rekening:{" "}
+            {detail.account?.status === "ACTIVE"
+              ? "Aktif"
+              : detail.account?.status === "FROZEN"
+                ? "Beku"
+                : "Non-aktif"}
+          </span>
+        </div>
+        {canEdit && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              onClick={() => changeStatus({ isActive: detail.isActive === false })}
+              disabled={saving}
+              className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+            >
+              {detail.isActive === false ? "Aktifkan Santri" : "Non-aktifkan Santri"}
+            </button>
+            {detail.account?.status === "FROZEN" ? (
+              <button
+                onClick={() => changeStatus({ accountStatus: "ACTIVE" })}
+                disabled={saving}
+                className="rounded-lg border border-sky-500/40 px-3 py-1.5 text-xs font-medium text-sky-600 hover:bg-sky-500/10 disabled:opacity-50"
+              >
+                Buka Beku
+              </button>
+            ) : (
+              <button
+                onClick={() => changeStatus({ accountStatus: "FROZEN" })}
+                disabled={saving}
+                className="rounded-lg border border-sky-500/40 px-3 py-1.5 text-xs font-medium text-sky-600 hover:bg-sky-500/10 disabled:opacity-50"
+              >
+                Bekukan Rekening
+              </button>
+            )}
+          </div>
+        )}
+        {!canEdit && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Perubahan status oleh Manager.
+          </p>
+        )}
+      </div>
+
       {/* Saldo */}
       <div className="rounded-xl border bg-card p-5">
         <div className="flex items-center gap-2">
@@ -254,18 +343,11 @@ export default function StudentDetailPage({
         <p className="mt-2 text-3xl font-bold">
           {formatCurrency(Number(detail.account?.balance || 0))}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Status:{" "}
-          <span
-            className={
-              detail.account?.status === "ACTIVE"
-                ? "font-medium text-emerald-600"
-                : "font-medium text-red-600"
-            }
-          >
-            {detail.account?.status === "ACTIVE" ? "Aktif" : "Nonaktif"}
-          </span>
-        </p>
+        {detail.account?.status === "FROZEN" && (
+          <p className="mt-1 text-xs text-sky-600">
+            Rekening dibekukan — setor/tarik ditolak sementara.
+          </p>
+        )}
       </div>
 
       {/* Mutasi */}

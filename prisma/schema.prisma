@@ -518,6 +518,7 @@ enum HandoverStatus {
 enum SavingsAccountStatus {
   ACTIVE
   CLOSED
+  FROZEN
 
   @@map("savings_account_status")
 }
@@ -555,6 +556,7 @@ model ShiftAttendance {
   checkInAt  DateTime  @db.DateTime(0)
   checkOutAt DateTime? @db.DateTime(0)
   late       Boolean   @default(false)
+  service    String?   @db.VarChar(20)
   note       String?   @db.Text
   createdAt  DateTime? @default(now()) @db.DateTime(0)
   units      Unit      @relation(fields: [unitId], references: [id], onUpdate: Restrict)

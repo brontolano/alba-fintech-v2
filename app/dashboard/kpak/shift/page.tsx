@@ -9,7 +9,7 @@ import {
   FileText,
   Check,
   Loader2,
-  AlertTriangle,
+  Timer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
@@ -30,12 +30,29 @@ const fmtTime = (iso?: string | null) =>
       })
     : "-";
 
+const fmtDate = (d: string) =>
+  new Date(`${d}T00:00:00`).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+const fmtDuration = (min: number | null) => {
+  if (min == null) return "berjalan";
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h > 0 ? `${h} jam ${m} mnt` : `${m} mnt`;
+};
+
+const serviceLabel = (s?: string | null) =>
+  s === "KEUANGAN" ? "Keuangan" : s === "TABUNGAN" ? "Tabungan" : "—";
+
 interface Attendance {
   id: string;
   userId: string;
   checkInAt: string;
   checkOutAt?: string | null;
-  late: boolean;
+  service?: string | null;
   user?: { id: string; name: string; role: string };
 }
 
@@ -44,6 +61,16 @@ interface CrewMember {
   name: string;
   role: string;
   attendance: Attendance | null;
+}
+
+interface HistoryRow {
+  id: string;
+  date: string;
+  service?: string | null;
+  checkInAt: string;
+  checkOutAt?: string | null;
+  durationMin: number | null;
+  txCount: number;
 }
 
 interface ShiftReport {
@@ -73,13 +100,16 @@ export default function KpakShiftPage() {
   const canReview =
     role === "SUPERADMIN" || role === "PIMPINAN" || role === "MANAGER";
 
-  const [tab, setTab] = useState<"absensi" | "laporan">("absensi");
+  const [tab, setTab] = useState<"saya" | "kru">("saya");
   const [loading, setLoading] = useState(true);
   const [mine, setMine] = useState<Attendance | null>(null);
   const [crew, setCrew] = useState<CrewMember[]>([]);
   const [nowWib, setNowWib] = useState("");
   const [acting, setActing] = useState(false);
+  const [service, setService] = useState<"TABUNGAN" | "KEUANGAN">("TABUNGAN");
+  const [tick, setTick] = useState(0);
 
+  const [history, setHistory] = useState<HistoryRow[]>([]);
   const [reports, setReports] = useState<ShiftReport[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [repNote, setRepNote] = useState("");
@@ -94,10 +124,21 @@ export default function KpakShiftPage() {
       setMine(json.data.mine);
       setCrew(json.data.crew || []);
       setNowWib(json.data.nowWib || "");
+      if (json.data.mine?.service) setService(json.data.mine.service);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const fetchHistory = useCallback(async () => {
+    try {
+      const res = await fetch("/api/kpak/shift?history=1");
+      const json = await res.json();
+      if (res.ok) setHistory(json.data.history || []);
+    } catch {
+      // abaikan — log opsional
     }
   }, []);
 
@@ -117,23 +158,35 @@ export default function KpakShiftPage() {
 
   useEffect(() => {
     fetchShift();
+    fetchHistory();
     fetchReports();
-  }, [fetchShift, fetchReports]);
+  }, [fetchShift, fetchHistory, fetchReports]);
 
-  const shiftState = !mine
-    ? "none"
-    : !mine.checkOutAt
-      ? "active"
-      : "done";
+  // Stopwatch: tick tiap detik saat shift aktif
+  useEffect(() => {
+    if (!mine || mine.checkOutAt) return;
+    const t = setInterval(() => setTick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [mine]);
+
+  const liveSeconds =
+    mine && !mine.checkOutAt
+      ? Math.max(0, Math.floor((Date.now() - new Date(mine.checkInAt).getTime()) / 1000)) +
+        tick * 0
+      : 0;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const liveStr = `${pad(Math.floor(liveSeconds / 3600))}:${pad(Math.floor((liveSeconds % 3600) / 60))}:${pad(liveSeconds % 60)}`;
+
+  const shiftOn = !!mine && !mine.checkOutAt;
 
   const opStatus =
     !nowWib || nowWib < "08:00"
-      ? { label: "Belum jam operasional", tone: "muted" }
+      ? "Belum jam operasional"
       : nowWib <= "16:00"
-        ? { label: "Jam operasional (08:00–16:00)", tone: "ok" }
+        ? "Jam operasional (08:00–16:00)"
         : nowWib <= "17:00"
-          ? { label: "Waktu pelaporan staff (s/d 17:00)", tone: "warn" }
-          : { label: "Shift selesai", tone: "muted" };
+          ? "Waktu pelaporan (s/d 17:00)"
+          : "Shift selesai";
 
   const doCheck = async (action: "check-in" | "check-out") => {
     setActing(true);
@@ -141,7 +194,7 @@ export default function KpakShiftPage() {
       const res = await fetch("/api/kpak/shift", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, service }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal");
@@ -151,6 +204,7 @@ export default function KpakShiftPage() {
           : "Check-out tercatat — terima kasih",
       );
       fetchShift();
+      fetchHistory();
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -158,8 +212,6 @@ export default function KpakShiftPage() {
     }
   };
 
-  // Laporan full-otomatis: angka dihitung sistem dari transaksi akun ini.
-  // Staff cukup tulis catatan serah terima (opsional) lalu kirim.
   const submitReport = async (e: React.FormEvent) => {
     e.preventDefault();
     setRepSaving(true);
@@ -167,9 +219,7 @@ export default function KpakShiftPage() {
       const res = await fetch("/api/kpak/shift-reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          note: repNote.trim() || undefined,
-        }),
+        body: JSON.stringify({ note: repNote.trim() || undefined }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal mengirim laporan");
@@ -204,335 +254,325 @@ export default function KpakShiftPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Shift Petugas</h1>
+        <h1 className="text-2xl font-bold">Shift Saya</h1>
         <p className="text-sm text-muted-foreground">
-          Absensi shift 08:00–16:00 · laporan staff ke manager s/d 17:00
+          Operasional KPAK 08:00–16:00 WIB · laporan s/d 17:00
         </p>
       </div>
 
-      {/* Status operasional + saya */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border bg-card p-5">
-          <div className="flex items-center gap-2">
-            <Clock size={16} className="text-primary" />
-            <h2 className="text-sm font-semibold">Status Shift Saya</h2>
-          </div>
-          {loading ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              <Loader2 size={16} className="mx-auto animate-spin" />
-            </p>
-          ) : shiftState === "none" ? (
-            <div className="mt-3">
-              <p className="text-sm text-muted-foreground">
-                Belum check-in hari ini.
-              </p>
-              <button
-                onClick={() => doCheck("check-in")}
-                disabled={acting}
-                className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-              >
-                {acting ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <LogIn size={16} />
-                )}
-                Check-in Sekarang
-              </button>
-            </div>
-          ) : shiftState === "active" ? (
-            <div className="mt-3">
-              <p className="text-sm">
-                Bertugas sejak{" "}
-                <span className="font-semibold">{fmtTime(mine?.checkInAt)}</span>
-              </p>
-              <button
-                onClick={() => doCheck("check-out")}
-                disabled={acting}
-                className="mt-3 inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-muted disabled:opacity-50"
-              >
-                {acting ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <LogOut size={16} />
-                )}
-                Check-out
-              </button>
-            </div>
-          ) : (
-            <div className="mt-3">
-              <p className="text-sm text-muted-foreground">
-                Selesai: {fmtTime(mine?.checkInAt)} –{" "}
-                {fmtTime(mine?.checkOutAt)}
-              </p>
-              <button
-                onClick={() => doCheck("check-in")}
-                disabled={acting}
-                className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-              >
-                {acting ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <LogIn size={16} />
-                )}
-                Check-in Lagi
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="rounded-xl border bg-card p-5">
-          <h2 className="text-sm font-semibold">Jam Operasional KPAK</h2>
-          <p className="mt-2 text-2xl font-bold">08:00 – 16:00 WIB</p>
-          <p
-            className={`mt-1 text-sm ${
-              opStatus.tone === "ok"
-                ? "text-emerald-600"
-                : opStatus.tone === "warn"
-                  ? "text-amber-600"
-                  : "text-muted-foreground"
-            }`}
-          >
-            {opStatus.label}
-            {nowWib ? ` · sekarang ${nowWib} WIB` : ""}
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Alur: check-in → operasional → staff lapor ke manager (s/d 17:00)
-            → manager lapor + setor ke pimpinan.
-          </p>
-        </div>
-      </div>
-
-      {/* Pilihan layanan shift */}
-      <div className="grid grid-cols-2 gap-3">
-        <a
-          href="/dashboard/savings"
-          className="rounded-xl border bg-card p-4 text-center transition-colors hover:border-primary/40"
-        >
-          <p className="font-semibold">Layanan Tabungan</p>
-          <p className="text-xs text-muted-foreground">Setor / tarik</p>
-        </a>
-        <a
-          href="/dashboard/kpak/finance"
-          className="rounded-xl border bg-card p-4 text-center transition-colors hover:border-primary/40"
-        >
-          <p className="font-semibold">Layanan Keuangan</p>
-          <p className="text-xs text-muted-foreground">HER, daful, internal</p>
-        </a>
-      </div>
-
-      {/* Tabs */}
       <div className="flex gap-2">
         <button
-          onClick={() => setTab("absensi")}
-          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${
-            tab === "absensi"
+          onClick={() => setTab("saya")}
+          className={`rounded-lg px-4 py-2 text-sm font-medium ${
+            tab === "saya"
               ? "bg-primary text-primary-foreground"
               : "bg-muted hover:bg-muted/70"
           }`}
         >
-          <Users size={15} /> Kru Hari Ini
+          Shift Saya
         </button>
         <button
-          onClick={() => setTab("laporan")}
-          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${
-            tab === "laporan"
+          onClick={() => setTab("kru")}
+          className={`rounded-lg px-4 py-2 text-sm font-medium ${
+            tab === "kru"
               ? "bg-primary text-primary-foreground"
               : "bg-muted hover:bg-muted/70"
           }`}
         >
-          <FileText size={15} /> Laporan Shift
+          Kru & Laporan
         </button>
       </div>
 
-      {tab === "absensi" ? (
-        <div className="rounded-xl border bg-card p-5">
-          <h2 className="mb-3 text-sm font-semibold">
-            Kru Bertugas ({crew.filter((c) => c.attendance).length}/{crew.length})
-          </h2>
-          {crew.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              Belum ada petugas unit
-            </p>
-          ) : (
-            <div className="divide-y">
-              {crew.map((c) => (
-                <div
-                  key={c.id}
-                  className="flex items-center justify-between py-2.5 text-sm"
-                >
-                  <div>
-                    <p className="font-medium">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">{c.role}</p>
-                  </div>
-                  {c.attendance ? (
-                    <p className="text-xs">
-                      <span className="font-medium text-emerald-600">
-                        {fmtTime(c.attendance.checkInAt)}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {" "}
-                        –{" "}
-                        {c.attendance.checkOutAt
-                          ? fmtTime(c.attendance.checkOutAt)
-                          : "bertugas"}
-                      </span>
-                    </p>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      Belum check-in
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
-          <form
-            onSubmit={submitReport}
-            className="space-y-4 rounded-xl border bg-card p-5"
-          >
-            <h2 className="text-sm font-semibold">
-              Laporan Saya (otomatis)
-            </h2>
-            <p className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
-              Angka laporan dihitung otomatis oleh sistem dari semua transaksi
-              akun ini hari ini — tidak perlu hitung manual. Cukup kirim.
-            </p>
-            {myReport && (
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="rounded-lg bg-muted/60 p-3">
-                  <p className="text-xs text-muted-foreground">Masuk</p>
-                  <p className="font-semibold text-emerald-600">
-                    {formatCurrency(
-                      Number(myReport.cashIncomeCounted || 0),
-                    )}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-muted/60 p-3">
-                  <p className="text-xs text-muted-foreground">Keluar</p>
-                  <p className="font-semibold text-rose-600">
-                    {formatCurrency(
-                      Number(myReport.cashExpenseCounted || 0),
-                    )}
-                  </p>
-                </div>
-              </div>
-            )}
-            {myReport?.status === "ACCEPTED" && (
-              <p className="rounded-lg bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-400">
-                Laporan hari ini sudah diterima manager.
-              </p>
-            )}
-            <div>
-              <label className="mb-1 block text-xs font-medium">
-                Catatan serah terima (opsional)
-              </label>
-              <textarea
-                value={repNote}
-                onChange={(e) => setRepNote(e.target.value)}
-                rows={2}
-                placeholder="Contoh: laci diserahkan + kunci..."
-                className="w-full resize-none rounded-lg border bg-background px-3 py-2.5 text-sm"
-              />
-            </div>
-            <button
-              disabled={repSaving}
-              className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-            >
-              {repSaving ? "Mengirim..." : "Buat & Kirim Laporan Otomatis"}
-            </button>
-          </form>
-
+      {tab === "saya" ? (
+        <>
+          {/* Header info operasional */}
           <div className="rounded-xl border bg-card p-5">
-            <h2 className="mb-3 text-sm font-semibold">Laporan Masuk Hari Ini</h2>
-            {reportsLoading ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Clock size={16} className="text-primary" />
+              <h2 className="text-sm font-semibold">Operasional KPAK</h2>
+            </div>
+            <p className="mt-2 text-2xl font-bold">08:00 – 16:00 WIB</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {opStatus}
+              {nowWib ? ` · sekarang ${nowWib} WIB` : ""}
+            </p>
+          </div>
+
+          {/* Check-in/out + layanan */}
+          <div className="rounded-xl border bg-card p-5">
+            <h2 className="mb-3 text-sm font-semibold">
+              1. Pilih layanan shift
+            </h2>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setService("TABUNGAN")}
+                className={`rounded-lg border px-4 py-3 text-sm font-semibold ${
+                  service === "TABUNGAN"
+                    ? "border-primary bg-primary/5"
+                    : "border-border text-muted-foreground"
+                }`}
+              >
+                Layanan Tabungan
+              </button>
+              <button
+                type="button"
+                onClick={() => setService("KEUANGAN")}
+                className={`rounded-lg border px-4 py-3 text-sm font-semibold ${
+                  service === "KEUANGAN"
+                    ? "border-primary bg-primary/5"
+                    : "border-border text-muted-foreground"
+                }`}
+              >
+                Layanan Keuangan
+              </button>
+            </div>
+
+            <h2 className="mb-3 mt-5 text-sm font-semibold">2. Check-in / out</h2>
+            {loading ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
                 <Loader2 size={16} className="mx-auto animate-spin" />
               </p>
-            ) : reports.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                Belum ada laporan masuk
+            ) : !shiftOn ? (
+              <button
+                onClick={() => doCheck("check-in")}
+                disabled={acting}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                {acting ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <LogIn size={16} />
+                )}
+                Check-in ({service === "TABUNGAN" ? "Tabungan" : "Keuangan"})
+              </button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="inline-flex items-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                  <Timer size={16} /> {liveStr}
+                </p>
+                <button
+                  onClick={() => doCheck("check-out")}
+                  disabled={acting}
+                  className="inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-muted disabled:opacity-50"
+                >
+                  {acting ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <LogOut size={16} />
+                  )}
+                  Check-out
+                </button>
+              </div>
+            )}
+            {shiftOn && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Masuk {fmtTime(mine?.checkInAt)} · layanan{" "}
+                {serviceLabel(mine?.service || service)}
+              </p>
+            )}
+          </div>
+
+          {/* Log tabel */}
+          <div className="rounded-xl border bg-card p-5">
+            <h2 className="mb-3 text-sm font-semibold">Log Shift Saya</h2>
+            {history.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Belum ada riwayat shift
               </p>
             ) : (
-              <div className="space-y-3">
-                {reports.map((r) => {
-                  const sysIn = r.system.income + r.system.savingsIn;
-                  const sysOut = r.system.expense + r.system.savingsOut;
-                  const dIn = Number(r.cashIncomeCounted) - sysIn;
-                  const dOut = Number(r.cashExpenseCounted) - sysOut;
-                  const ok = dIn === 0 && dOut === 0;
-                  return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-xs text-muted-foreground">
+                      <th className="py-2 pr-3 font-medium">Tanggal</th>
+                      <th className="py-2 pr-3 font-medium">Durasi</th>
+                      <th className="py-2 pr-3 font-medium">Layanan</th>
+                      <th className="py-2 text-right font-medium">Transaksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((h) => (
+                      <tr key={h.id} className="border-b last:border-0">
+                        <td className="py-2.5 pr-3">{fmtDate(h.date)}</td>
+                        <td className="py-2.5 pr-3">
+                          {fmtDuration(h.durationMin)}
+                        </td>
+                        <td className="py-2.5 pr-3">
+                          {serviceLabel(h.service)}
+                        </td>
+                        <td className="py-2.5 text-right font-medium">
+                          {h.txCount}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Kru hari ini */}
+          <div className="rounded-xl border bg-card p-5">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              <Users size={15} /> Kru Bertugas ({crew.filter((c) => c.attendance).length}/
+              {crew.length})
+            </h2>
+            {crew.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Belum ada petugas unit
+              </p>
+            ) : (
+              <div className="divide-y">
+                {crew.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-center justify-between py-2.5 text-sm"
+                  >
+                    <div>
+                      <p className="font-medium">{c.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {c.role}
+                        {c.attendance?.service
+                          ? ` · ${serviceLabel(c.attendance.service)}`
+                          : ""}
+                      </p>
+                    </div>
+                    {c.attendance ? (
+                      <p className="text-xs">
+                        <span className="font-medium text-emerald-600">
+                          {fmtTime(c.attendance.checkInAt)}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          –{" "}
+                          {c.attendance.checkOutAt
+                            ? fmtTime(c.attendance.checkOutAt)
+                            : "bertugas"}
+                        </span>
+                      </p>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        Belum check-in
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Laporan shift */}
+          <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
+            <form
+              onSubmit={submitReport}
+              className="space-y-4 rounded-xl border bg-card p-5"
+            >
+              <h2 className="text-sm font-semibold">
+                Laporan Saya (otomatis)
+              </h2>
+              <p className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+                Angka dihitung otomatis dari transaksimu hari ini. Cukup
+                kirim.
+              </p>
+              {myReport && (
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="rounded-lg bg-muted/60 p-3">
+                    <p className="text-xs text-muted-foreground">Masuk</p>
+                    <p className="font-semibold text-emerald-600">
+                      {formatCurrency(Number(myReport.cashIncomeCounted || 0))}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-muted/60 p-3">
+                    <p className="text-xs text-muted-foreground">Keluar</p>
+                    <p className="font-semibold text-rose-600">
+                      {formatCurrency(Number(myReport.cashExpenseCounted || 0))}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {myReport?.status === "ACCEPTED" && (
+                <p className="rounded-lg bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-400">
+                  Laporan hari ini sudah diterima manager.
+                </p>
+              )}
+              <div>
+                <label className="mb-1 block text-xs font-medium">
+                  Catatan serah terima (opsional)
+                </label>
+                <textarea
+                  value={repNote}
+                  onChange={(e) => setRepNote(e.target.value)}
+                  rows={2}
+                  placeholder="Contoh: laci diserahkan + kunci..."
+                  className="w-full resize-none rounded-lg border bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
+              <button
+                disabled={repSaving}
+                className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                {repSaving ? "Mengirim..." : "Buat & Kirim Laporan Otomatis"}
+              </button>
+            </form>
+
+            <div className="rounded-xl border bg-card p-5">
+              <h2 className="mb-3 text-sm font-semibold">
+                Laporan Masuk Hari Ini
+              </h2>
+              {reportsLoading ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  <Loader2 size={16} className="mx-auto animate-spin" />
+                </p>
+              ) : reports.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  Belum ada laporan masuk
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {reports.map((r) => (
                     <div key={r.id} className="rounded-lg border p-3 text-sm">
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="font-medium">{r.staff.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {new Date(r.submittedAt).toLocaleTimeString(
-                              "id-ID",
-                              { hour: "2-digit", minute: "2-digit" },
-                            )}{" "}
-                            WIB
+                            Masuk {formatCurrency(Number(r.cashIncomeCounted))} ·
+                            Keluar{" "}
+                            {formatCurrency(Number(r.cashExpenseCounted))}
                             {r.reviewer && ` · diterima ${r.reviewer.name}`}
                           </p>
+                          {r.note && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              “{r.note}”
+                            </p>
+                          )}
                         </div>
                         {r.status === "ACCEPTED" ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-600">
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-600">
                             <Check size={12} /> Diterima
                           </span>
+                        ) : canReview ? (
+                          <button
+                            onClick={() => acceptReport(r.id)}
+                            className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+                          >
+                            Terima
+                          </button>
                         ) : (
-                          <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs text-amber-600">
+                          <span className="shrink-0 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs text-amber-600">
                             Menunggu
                           </span>
                         )}
                       </div>
-                      <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded bg-muted/60 p-2">
-                          <p className="text-muted-foreground">Masuk: hitung</p>
-                          <p className="font-semibold">
-                            {formatCurrency(Number(r.cashIncomeCounted))}
-                          </p>
-                          <p className="text-muted-foreground">
-                            sistem {formatCurrency(sysIn)}
-                          </p>
-                        </div>
-                        <div className="rounded bg-muted/60 p-2">
-                          <p className="text-muted-foreground">Keluar: hitung</p>
-                          <p className="font-semibold">
-                            {formatCurrency(Number(r.cashExpenseCounted))}
-                          </p>
-                          <p className="text-muted-foreground">
-                            sistem {formatCurrency(sysOut)}
-                          </p>
-                        </div>
-                      </div>
-                      {!ok && (
-                        <p className="mt-2 flex items-center gap-1 text-xs text-amber-600">
-                          <AlertTriangle size={12} />
-                          Selisih masuk {formatCurrency(Math.abs(dIn))} · keluar{" "}
-                          {formatCurrency(Math.abs(dOut))}
-                        </p>
-                      )}
-                      {r.note && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          “{r.note}”
-                        </p>
-                      )}
-                      {canReview && r.status !== "ACCEPTED" && (
-                        <button
-                          onClick={() => acceptReport(r.id)}
-                          className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-                        >
-                          Terima Laporan
-                        </button>
-                      )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

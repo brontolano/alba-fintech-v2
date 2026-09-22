@@ -9,6 +9,8 @@ const updateStudentSchema = z.object({
   className: z.string().optional().nullable(),
   cardUid: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
+  // Status rekening: ACTIVE (aktif) | FROZEN (beku, transaksi ditolak) | CLOSED (tutup)
+  accountStatus: z.enum(["ACTIVE", "FROZEN", "CLOSED"]).optional(),
 });
 
 export async function GET(
@@ -110,6 +112,9 @@ export async function PATCH(
           cardUid: parsed.data.cardUid?.trim().toUpperCase() || null,
         }),
         ...(parsed.data.isActive !== undefined && { isActive: parsed.data.isActive }),
+        ...(parsed.data.accountStatus !== undefined && {
+          account: { update: { status: parsed.data.accountStatus } },
+        }),
       },
       include: { account: true },
     });
