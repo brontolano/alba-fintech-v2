@@ -1,0 +1,17 @@
+# CODEOWNERS — perlindungan modul beku
+# Modul STAFF KPAK terkunci (docs/KPAK-STAFF-FREEZE.md, tag kpak-staff-freeze-v1).
+# Perubahan pada path ini wajib review pemilik.
+
+/app/dashboard/kpak/ @brontolano
+/app/dashboard/savings/ @brontolano
+/app/api/savings/ @brontolano
+/app/api/kpak/ @brontolano
+/app/api/financial-categories/ @brontolano
+/components/kpak/ @brontolano
+/components/layout/Sidebar.tsx @brontolano
+/components/layout/MobileNav.tsx @brontolano
+/lib/kpak-shift-gate.ts @brontolano
+/lib/upload-proof.ts @brontolano
+/lib/upload-drive.ts @brontolano
+/lib/modules/kpak/ @brontolano
+prisma/schema.prisma @brontolano

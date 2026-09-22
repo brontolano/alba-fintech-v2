@@ -85,6 +85,8 @@ cp .env.example .env.local
 # DILARANG `npx prisma db push` ke remote (drift: errno 150 FK cash_handovers
 # beda collation). Tabel baru dibuat manual via SQL (CREATE TABLE IF NOT
 # EXISTS + ALTER CONVERT utf8mb4_uca1400_ai_ci + ADD CONSTRAINT FK).
+# MODUL STAFF DIKUNCI (FIX): lihat docs/KPAK-STAFF-FREEZE.md. Jangan ubah
+# perilaku file beku tanpa persetujuan pemilik; `npm test` wajib hijau.
 
 # 3. Generate Prisma Client
 npx prisma generate
