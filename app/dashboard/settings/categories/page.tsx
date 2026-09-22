@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Plus,
   Trash2,
@@ -116,6 +116,22 @@ export default function CategorySettingsPage() {
     }
     return [...map.entries()].map(([unitId, g]) => ({ unitId, ...g }));
   }, [unitCategories, isUnitScopedView, unitId]);
+
+  // Auto-seed bawaan KPAK sekali bila unit masih kosong (manager+)
+  const seedTried = useRef(false);
+  useEffect(() => {
+    if (
+      !loading &&
+      unitCategories.length === 0 &&
+      canManageUnit &&
+      unitType === "KPAK" &&
+      !seedTried.current
+    ) {
+      seedTried.current = true;
+      handleSeedKpak();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, unitCategories, canManageUnit, unitType]);
 
   // ── Seed default Umum ──
   const handleSeed = async () => {

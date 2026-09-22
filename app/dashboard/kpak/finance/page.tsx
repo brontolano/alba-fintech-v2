@@ -129,13 +129,18 @@ export default function KpakFinancePage() {
     () => unitCats.filter((c) => c.type === txType),
     [unitCats, txType],
   );
-  // Kategori administrasi santri = INCOME kecuali Uang Masuk Internal
+  // Kategori administrasi santri = INCOME kecuali Uang Masuk Internal.
+  // Default wajib: HER (SPP) + Daftar Ulang (+ Pendaftaran).
   const adminCatIds = useMemo(
     () =>
       new Set(
         incomeCats.filter((c) => !c.code.endsWith("-IN-IN")).map((c) => c.id),
       ),
     [incomeCats],
+  );
+  const adminCats = useMemo(
+    () => incomeCats.filter((c) => adminCatIds.has(c.id)),
+    [incomeCats, adminCatIds],
   );
 
   const fetchData = useCallback(async () => {
@@ -225,8 +230,12 @@ export default function KpakFinancePage() {
   }, [fetchData]);
 
   useEffect(() => {
-    if (!selectedCat && incomeCats.length > 0) setSelectedCat(incomeCats[0]);
-  }, [incomeCats, selectedCat]);
+    if (!selectedCat || !adminCatIds.has(selectedCat.id)) {
+      const first = incomeCats.find((c) => adminCatIds.has(c.id));
+      if (first) setSelectedCat(first);
+      else if (incomeCats.length === 0) setSelectedCat(null);
+    }
+  }, [incomeCats, selectedCat, adminCatIds]);
   useEffect(() => {
     setIntCat(intCats[0] || null);
   }, [intCats]);
@@ -440,9 +449,12 @@ export default function KpakFinancePage() {
             atau atur manual di Kelola Kategori
           </Link>
         </>
-      ) : (
-        <p className="mt-2">Hubungi Manager untuk menambah kategori</p>
-      )}
+              ) : (
+                <p className="mt-2">
+                  Minta Manager membuka halaman ini sekali untuk mengaktifkan
+                  kategori bawaan.
+                </p>
+              )}
     </div>
   );
 
@@ -526,9 +538,8 @@ export default function KpakFinancePage() {
                 <Loader2 size={16} className="mx-auto mb-1 animate-spin" />
                 Memuat...
               </p>
-            ) : incomeCats.filter((c) => adminCatIds.has(c.id)).length ===
-              0 ? (
-              emptySeedBox("layanan")
+            ) : adminCats.length === 0 ? (
+              emptySeedBox("layanan (HER, Daftar Ulang)")
             ) : (
               <>
                 <div>
@@ -536,8 +547,7 @@ export default function KpakFinancePage() {
                     Layanan
                   </p>
                   <div className="flex gap-2 overflow-x-auto pb-1">
-                    {incomeCats
-                      .filter((c) => adminCatIds.has(c.id))
+                    {adminCats
                       .map((c) => (
                         <button
                           key={c.id}
