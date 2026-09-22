@@ -25,6 +25,14 @@ export function buildCategoryVisibilityWhere({
   }
 
   if (!lembagaId) {
+    // Fallback: user tanpa lembaga (data lama) tapi punya unit —
+    // tampilkan kategori unitnya saja agar operasional tidak mati total.
+    if (
+      (role === "STAFF" || role === "MANAGER") &&
+      (unitId ?? sessionUnitId)
+    ) {
+      return { unitId: unitId ?? sessionUnitId };
+    }
     return { id: "__EMPTY__" };
   }
 

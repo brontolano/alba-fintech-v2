@@ -240,12 +240,16 @@ export const authOptions: NextAuthOptions = {
             select: {
               role: true,
               isActive: true,
+              unitId: true,
+              lembagaId: true,
               units: { select: { isRetail: true, type: true } },
             },
           });
           if (dbUser) {
             token.role = dbUser.role ?? "STAFF";
             token.isActive = dbUser.isActive ?? false;
+            token.unitId = dbUser.unitId ?? null;
+            token.lembagaId = dbUser.lembagaId ?? null;
             token.unitIsRetail = dbUser.units?.isRetail ?? false;
             token.unitType = dbUser.units?.type ?? "UMUM";
           } else {
