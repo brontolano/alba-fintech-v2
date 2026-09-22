@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 import { usePageGuard } from "@/lib/use-page-guard";
 
 const formatCurrency = (amount: number) =>
@@ -74,6 +75,73 @@ export default function KpakReportsPage() {
   const [savings, setSavings] = useState<SavingTx[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // ── Tutup Hari Otomatis (manager+) ──
+  const { data: session } = useSession();
+  const canClose =
+    session?.user?.role === "SUPERADMIN" ||
+    session?.user?.role === "PIMPINAN" ||
+    session?.user?.role === "MANAGER";
+  const [closeDate, setCloseDate] = useState(todayStr());
+  const [closePreview, setClosePreview] = useState<any>(null);
+  const [closeLoading, setCloseLoading] = useState(false);
+  const [cashCounted, setCashCounted] = useState("");
+  const [closing, setClosing] = useState(false);
+  const [closeResult, setCloseResult] = useState<any>(null);
+
+  const fetchClosePreview = useCallback(async (d: string) => {
+    setCloseLoading(true);
+    setCloseResult(null);
+    try {
+      const res = await fetch(`/api/kpak/reconcile?date=${d}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal memuat");
+      setClosePreview(json.data);
+    } catch (e: any) {
+      setClosePreview(null);
+      toast.error(e.message);
+    } finally {
+      setCloseLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (canClose) fetchClosePreview(closeDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [closeDate, canClose]);
+
+  const closeVariance =
+    closePreview && cashCounted !== ""
+      ? Number(cashCounted) - Number(closePreview.expected || 0)
+      : null;
+
+  const doClose = async () => {
+    if (cashCounted === "" || Number(cashCounted) < 0) {
+      toast.error("Isi hitung fisik kas dulu");
+      return;
+    }
+    setClosing(true);
+    try {
+      const res = await fetch("/api/kpak/reconcile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: closeDate,
+          cashCounted: Number(cashCounted),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal menutup hari");
+      setCloseResult(json.data);
+      setCashCounted("");
+      fetchClosePreview(closeDate);
+      toast.success("Hari ditutup — serah terima dibuat untuk pimpinan");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setClosing(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -418,13 +486,135 @@ export default function KpakReportsPage() {
             </>
           )}
 
+          {canClose && (
+            <div className="rounded-xl border border-primary/25 bg-primary/[0.03] p-5">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="flex items-center gap-2 text-sm font-semibold">
+                  <Scale size={15} /> Tutup Hari Otomatis
+                </h2>
+                <input
+                  type="date"
+                  value={closeDate}
+                  onChange={(e) =>
+                    e.target.value && setCloseDate(e.target.value)
+                  }
+                  className="rounded-lg border bg-background px-3 py-1.5 text-sm"
+                />
+              </div>
+              {closeLoading ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  <Loader2 size={16} className="mx-auto animate-spin" />
+                </p>
+              ) : !closePreview ||
+                (closePreview.txCount === 0 &&
+                  closePreview.savingsCount === 0) ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  Tidak ada aktivitas kas/tabungan tanggal ini
+                </p>
+              ) : closePreview.existingHandover?.status === "PENDING" ? (
+                <div className="rounded-lg border border-dashed p-4 text-center text-sm">
+                  <p className="font-medium">
+                    Serah terima tanggal ini sudah dibuat (menunggu pimpinan).
+                  </p>
+                  <Link
+                    href="/dashboard/handovers"
+                    className="mt-2 inline-block font-medium text-primary hover:underline"
+                  >
+                    Lihat Serah Terima Kas →
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
+                    <div className="rounded-lg bg-muted/60 p-2.5">
+                      <p className="text-xs text-muted-foreground">Kas masuk</p>
+                      <p className="font-semibold text-emerald-600">
+                        +{formatCurrency(closePreview.kasIn)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-muted/60 p-2.5">
+                      <p className="text-xs text-muted-foreground">Kas keluar</p>
+                      <p className="font-semibold text-rose-600">
+                        -{formatCurrency(closePreview.kasOut)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-muted/60 p-2.5">
+                      <p className="text-xs text-muted-foreground">Tab. masuk</p>
+                      <p className="font-semibold text-emerald-600">
+                        +{formatCurrency(closePreview.savIn)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-muted/60 p-2.5">
+                      <p className="text-xs text-muted-foreground">Tab. keluar</p>
+                      <p className="font-semibold text-rose-600">
+                        -{formatCurrency(closePreview.savOut)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-primary/10 p-2.5">
+                      <p className="text-xs text-muted-foreground">
+                        Seharusnya ada
+                      </p>
+                      <p className="font-bold">
+                        {formatCurrency(closePreview.expected)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={cashCounted}
+                      onChange={(e) => setCashCounted(e.target.value)}
+                      placeholder="Hitung fisik uang di laci (Rp)"
+                      className="min-w-52 flex-1 rounded-lg border bg-background px-3 py-2.5 text-sm"
+                    />
+                    <button
+                      onClick={doClose}
+                      disabled={closing || cashCounted === ""}
+                      className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                    >
+                      {closing ? "Memproses..." : "Tutup & Serahkan"}
+                    </button>
+                  </div>
+                  {closeVariance != null && (
+                    <p
+                      className={`text-sm font-medium ${closeVariance === 0 ? "text-emerald-600" : "text-amber-600"}`}
+                    >
+                      {closeVariance === 0
+                        ? "✓ Pas — tidak ada selisih"
+                        : `Selisih ${formatCurrency(Math.abs(closeVariance))} (${closeVariance > 0 ? "lebih" : "kurang"}) — tetap bisa diserahkan, tercatat otomatis`}
+                    </p>
+                  )}
+                  {closeResult && (
+                    <p className="text-sm">
+                      <span className="font-medium text-emerald-600">
+                        Serah terima #{closeResult.handover?.id?.slice(0, 8)}…
+                        dibuat.
+                      </span>{" "}
+                      <Link
+                        href="/dashboard/handovers"
+                        className="font-medium text-primary hover:underline"
+                      >
+                        Lihat Serah Terima Kas →
+                      </Link>
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Sekali klik: tandai transaksi reconciled + buat serah terima
+                    ke pimpinan. Detail manual tetap bisa lewat Rekonsiliasi.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed bg-card p-5">
             <div className="text-sm">
               <p className="flex items-center gap-2 font-semibold">
-                <Scale size={15} /> Samakan catatan dengan uang cash
+                <Scale size={15} /> Butuh rincian manual?
               </p>
               <p className="text-muted-foreground">
-                Rekonsiliasi dulu, lalu serahkan kas + laporan ini ke pimpinan.
+                Cek per transaksi di Rekonsiliasi, atau daftar serah terima.
               </p>
             </div>
             <div className="flex gap-2">
