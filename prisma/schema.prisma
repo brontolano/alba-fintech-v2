@@ -590,7 +590,11 @@ model BudgetAllocation {
   id          String            @id @default(cuid()) @db.VarChar(36)
   unitId      String            @db.VarChar(36)
   categoryId  String            @db.VarChar(36)
-  period      String            @db.VarChar(7)
+  periodType  String            @default("MONTHLY") @db.VarChar(10)
+  period      String            @db.VarChar(32)
+  title       String?           @db.VarChar(255)
+  startDate   DateTime?         @db.DateTime(0)
+  endDate     DateTime?         @db.DateTime(0)
   amount      Decimal           @db.Decimal(15, 2)
   note        String?           @db.Text
   isActive    Boolean?          @default(true)

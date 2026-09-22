@@ -82,20 +82,35 @@ export default function KpakBudgetPage() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
-  const [period, setPeriod] = useState(currentMonth());
+  type AllocType = "DAILY" | "WEEKLY" | "MONTHLY" | "AGENDA";
+  const [allocType, setAllocType] = useState<AllocType>("MONTHLY");
+  const [viewMonth, setViewMonth] = useState(currentMonth());
   const [allocations, setAllocations] = useState<any[]>([]);
   const [allocLoading, setAllocLoading] = useState(false);
   const [allocForm, setAllocForm] = useState({
     categoryId: "",
     amount: "",
     note: "",
+    date: "",
+    week: "",
+    month: "",
+    title: "",
+    startDate: "",
+    endDate: "",
   });
   const [allocSaving, setAllocSaving] = useState(false);
 
-  const fetchAllocations = useCallback(async (p: string) => {
+  const viewRange = (m: string) => {
+    const [y, mo] = m.split("-").map(Number);
+    const last = new Date(Date.UTC(y, mo, 0)).toISOString().slice(0, 10);
+    return { from: `${m}-01`, to: last };
+  };
+
+  const fetchAllocations = useCallback(async (m: string) => {
     setAllocLoading(true);
     try {
-      const res = await fetch(`/api/kpak/allocations?period=${p}`);
+      const { from, to } = viewRange(m);
+      const res = await fetch(`/api/kpak/allocations?from=${from}&to=${to}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal memuat alokasi");
       setAllocations(json.data.allocations || []);
@@ -107,8 +122,9 @@ export default function KpakBudgetPage() {
   }, []);
 
   useEffect(() => {
-    fetchAllocations(period);
-  }, [period, fetchAllocations]);
+    fetchAllocations(viewMonth);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMonth, fetchAllocations]);
 
   const saveAllocation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,7 +140,13 @@ export default function KpakBudgetPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           categoryId: allocForm.categoryId,
-          period,
+          periodType: allocType,
+          date: allocForm.date || undefined,
+          week: allocForm.week || undefined,
+          month: allocForm.month || undefined,
+          title: allocForm.title.trim() || undefined,
+          startDate: allocForm.startDate || undefined,
+          endDate: allocForm.endDate || undefined,
           amount: nominal,
           note: allocForm.note.trim() || undefined,
         }),
@@ -132,14 +154,45 @@ export default function KpakBudgetPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal menyimpan alokasi");
       toast.success("Alokasi anggaran ditetapkan");
-      setAllocForm({ categoryId: "", amount: "", note: "" });
-      fetchAllocations(period);
+      setAllocForm({
+        categoryId: "",
+        amount: "",
+        note: "",
+        date: "",
+        week: "",
+        month: "",
+        title: "",
+        startDate: "",
+        endDate: "",
+      });
+      fetchAllocations(viewMonth);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setAllocSaving(false);
     }
   };
+
+  const deleteAllocation = async (id: string) => {
+    try {
+      const res = await fetch(`/api/kpak/allocations?id=${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal menghapus");
+      toast.success("Alokasi dihapus");
+      fetchAllocations(viewMonth);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  // Sisa alokasi kategori terpilih (berlaku hari ini) untuk acuan pengajuan
+  const selectedAlloc = allocations.find((a) => a.categoryId === catId);
+  const allocRemaining =
+    selectedAlloc != null ? Number(selectedAlloc.remaining || 0) : null;
+  const overBudget =
+    allocRemaining != null && Number(amount) > 0 && Number(amount) > allocRemaining;
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -264,6 +317,16 @@ export default function KpakBudgetPage() {
                 </option>
               ))}
             </select>
+            {allocRemaining != null && (
+              <p
+                className={`mt-1 text-xs ${overBudget ? "font-medium text-amber-600" : "text-muted-foreground"}`}
+              >
+                Sisa alokasi berlaku: {formatCurrency(allocRemaining)}
+                {overBudget
+                  ? " — nominal melebihi sisa, keputusan pimpinan"
+                  : ""}
+              </p>
+            )}
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium">
@@ -352,61 +415,143 @@ export default function KpakBudgetPage() {
           </div>
         </div>
 
-      {/* ── Alokasi Anggaran (rapat manager–pimpinan) ── */}
+      {/* ── Alokasi Anggaran (harian/mingguan/bulanan/agenda) ── */}
       <div className="rounded-xl border bg-card p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">
-            Alokasi Anggaran per Kategori
-          </h2>
+          <h2 className="text-sm font-semibold">Alokasi Anggaran</h2>
           <input
             type="month"
-            value={period}
-            onChange={(e) => e.target.value && setPeriod(e.target.value)}
+            value={viewMonth}
+            onChange={(e) => e.target.value && setViewMonth(e.target.value)}
             className="rounded-lg border bg-background px-3 py-1.5 text-sm"
           />
         </div>
         {canAllocate && (
-          <form
-            onSubmit={saveAllocation}
-            className="mb-4 grid gap-2 rounded-lg bg-muted/50 p-3 sm:grid-cols-[1fr_140px_1fr_auto]"
-          >
-            <select
-              value={allocForm.categoryId}
-              onChange={(e) =>
-                setAllocForm({ ...allocForm, categoryId: e.target.value })
-              }
-              className="rounded-lg border bg-background px-3 py-2 text-sm"
-            >
-              <option value="">Pilih kategori...</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
+          <form onSubmit={saveAllocation} className="mb-4 space-y-2 rounded-lg bg-muted/50 p-3">
+            <div className="flex gap-1">
+              {(
+                [
+                  ["DAILY", "Harian"],
+                  ["WEEKLY", "Mingguan"],
+                  ["MONTHLY", "Bulanan"],
+                  ["AGENDA", "Agenda"],
+                ] as [AllocType, string][]
+              ).map(([v, l]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setAllocType(v)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                    allocType === v
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background hover:bg-muted"
+                  }`}
+                >
+                  {l}
+                </button>
               ))}
-            </select>
-            <input
-              type="number"
-              min="1"
-              value={allocForm.amount}
-              onChange={(e) =>
-                setAllocForm({ ...allocForm, amount: e.target.value })
-              }
-              placeholder="Nominal (Rp)"
-              className="rounded-lg border bg-background px-3 py-2 text-sm"
-            />
-            <input
-              value={allocForm.note}
-              onChange={(e) =>
-                setAllocForm({ ...allocForm, note: e.target.value })
-              }
-              placeholder="Catatan (opsional)"
-              className="rounded-lg border bg-background px-3 py-2 text-sm"
-            />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-[1fr_140px]">
+              <select
+                value={allocForm.categoryId}
+                onChange={(e) =>
+                  setAllocForm({ ...allocForm, categoryId: e.target.value })
+                }
+                className="rounded-lg border bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Pilih kategori...</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min="1"
+                value={allocForm.amount}
+                onChange={(e) =>
+                  setAllocForm({ ...allocForm, amount: e.target.value })
+                }
+                placeholder="Nominal (Rp)"
+                className="rounded-lg border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {allocType === "DAILY" && (
+                <input
+                  type="date"
+                  value={allocForm.date}
+                  onChange={(e) =>
+                    setAllocForm({ ...allocForm, date: e.target.value })
+                  }
+                  className="rounded-lg border bg-background px-3 py-2 text-sm"
+                />
+              )}
+              {allocType === "WEEKLY" && (
+                <input
+                  type="week"
+                  value={allocForm.week}
+                  onChange={(e) =>
+                    setAllocForm({ ...allocForm, week: e.target.value })
+                  }
+                  className="rounded-lg border bg-background px-3 py-2 text-sm"
+                />
+              )}
+              {allocType === "MONTHLY" && (
+                <input
+                  type="month"
+                  value={allocForm.month}
+                  onChange={(e) =>
+                    setAllocForm({ ...allocForm, month: e.target.value })
+                  }
+                  className="rounded-lg border bg-background px-3 py-2 text-sm"
+                />
+              )}
+              {allocType === "AGENDA" && (
+                <>
+                  <input
+                    value={allocForm.title}
+                    onChange={(e) =>
+                      setAllocForm({ ...allocForm, title: e.target.value })
+                    }
+                    placeholder="Nama agenda (mis. Maulid, Renovasi)"
+                    className="rounded-lg border bg-background px-3 py-2 text-sm"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={allocForm.startDate}
+                      onChange={(e) =>
+                        setAllocForm({ ...allocForm, startDate: e.target.value })
+                      }
+                      className="rounded-lg border bg-background px-3 py-2 text-sm"
+                    />
+                    <input
+                      type="date"
+                      value={allocForm.endDate}
+                      onChange={(e) =>
+                        setAllocForm({ ...allocForm, endDate: e.target.value })
+                      }
+                      className="rounded-lg border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </>
+              )}
+              <input
+                value={allocForm.note}
+                onChange={(e) =>
+                  setAllocForm({ ...allocForm, note: e.target.value })
+                }
+                placeholder="Catatan (opsional)"
+                className="rounded-lg border bg-background px-3 py-2 text-sm"
+              />
+            </div>
             <button
               disabled={allocSaving}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
             >
-              {allocSaving ? "..." : "Tetapkan"}
+              {allocSaving ? "Menyimpan..." : "Tetapkan Alokasi"}
             </button>
           </form>
         )}
@@ -416,7 +561,7 @@ export default function KpakBudgetPage() {
           </p>
         ) : allocations.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
-            Belum ada alokasi periode ini
+            Belum ada alokasi pada bulan ini
             {canAllocate ? " — tetapkan lewat form di atas." : "."}
           </p>
         ) : (
@@ -425,13 +570,39 @@ export default function KpakBudgetPage() {
               const total = Number(a.amount || 0);
               const used = Number(a.used || 0);
               const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+              const typeLabel =
+                a.periodType === "DAILY"
+                  ? "Harian"
+                  : a.periodType === "WEEKLY"
+                    ? "Mingguan"
+                    : a.periodType === "AGENDA"
+                      ? "Agenda"
+                      : "Bulanan";
+              const rangeLabel = a.title
+                ? a.title
+                : `${new Date(a.rangeStart).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })} – ${new Date(a.rangeEnd).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}`;
               return (
                 <div key={a.id} className="rounded-lg border p-3 text-sm">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium">{a.category?.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrency(used)} / {formatCurrency(total)}
+                    <p className="font-medium">
+                      {a.category?.name}{" "}
+                      <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {typeLabel}
+                      </span>
                     </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrency(used)} / {formatCurrency(total)}
+                      </p>
+                      {canAllocate && (
+                        <button
+                          onClick={() => deleteAllocation(a.id)}
+                          className="text-xs text-destructive hover:underline"
+                        >
+                          Hapus
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
                     <div
@@ -440,8 +611,9 @@ export default function KpakBudgetPage() {
                     />
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Sisa {formatCurrency(Number(a.remaining || 0))}
-                    {a.note ? ` · ${a.note}` : ""}
+                    {rangeLabel} · Sisa {formatCurrency(Number(a.remaining || 0))}
+                    {a.note && !a.title ? ` · ${a.note}` : ""}
+                    {a.note && a.title ? ` · ${a.note}` : ""}
                   </p>
                 </div>
               );
