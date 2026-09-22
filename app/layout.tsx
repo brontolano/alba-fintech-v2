@@ -38,6 +38,10 @@ export const metadata: Metadata = {
     shortcut: "/logo-baru.png",
     apple: "/logo-baru.png",
   },
+};
+
+// Next.js 16: themeColor wajib di viewport export, bukan metadata
+export const viewport = {
   themeColor: "#059669",
 };
 

@@ -44,6 +44,7 @@ declare module "next-auth/jwt" {
     unitType?: string;
     lembagaId?: string | null;
     isActive?: boolean;
+    roleCheckedAt?: number;
   }
 }
 
@@ -225,10 +226,14 @@ export const authOptions: NextAuthOptions = {
         token.isActive = authUser.isActive;
       }
 
-      // APP-5 fix: Re-validate role & isActive from DB on each token refresh.
-      // This ensures demotion/deactivation takes effect without waiting for JWT expiry.
+      // APP-5 fix: Re-validate role & isActive from DB, throttled to once
+      // per 60s per token. Every API route calls getServerSession, so an
+      // unthrottled check floods the small shared-hosting pool and causes
+      // pool timeouts. Demotion/deactivation now takes effect within ~60s.
       // Wrapped in try-catch to prevent DB errors from breaking auth (graceful degradation)
-      if (token.id) {
+      const now = Date.now();
+      const lastCheck = Number(token.roleCheckedAt ?? 0);
+      if (token.id && now - lastCheck > 60_000) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
@@ -247,10 +252,12 @@ export const authOptions: NextAuthOptions = {
             // User no longer exists — invalidate token
             token.isActive = false;
           }
+          token.roleCheckedAt = now;
         } catch (dbErr: unknown) {
           // DB connection/schema error — preserve existing token values
           // This prevents 500 errors when DB is temporarily unavailable
           // prisma:error sudah dicatat oleh Prisma client; cukup satu baris warn tanpa stack panjang.
+          // Jangan update roleCheckedAt agar percobaan berikutnya retry, bukan menunggu 60s.
           console.warn(
             "[Auth] DB unreachable during JWT refresh — keeping cached token role/isActive.",
           );
