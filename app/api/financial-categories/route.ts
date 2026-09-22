@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
     const categories = await prisma.financialCategory.findMany({
       where,
       orderBy: [{ type: "asc" }, { name: "asc" }],
+      include: { unit: { select: { name: true, code: true } } },
     });
 
     return NextResponse.json({ data: categories }, { status: 200 });
