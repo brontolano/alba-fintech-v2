@@ -24,7 +24,7 @@ import { QuickAccessGrid } from "@/components/dashboard/QuickAccessGrid";
 import { TxCompactList } from "@/components/dashboard/TxCompactList";
 import { BarChart } from "@/components/charts/BarChart";
 import { barChartOptions } from "@/components/charts/chartOptions";
-import { KpakCashSummary } from "@/components/kpak/KpakCashSummary";
+
 
 export default function StaffDashboard() {
   const { data: session } = useSession();
@@ -162,8 +162,6 @@ export default function StaffDashboard() {
   return (
     <div className="space-y-4">
       <DashboardHeader title="Kasir Interface" subtitle="Staff Unit" />
-
-      {session?.user?.unitType === "KPAK" && <KpakCashSummary />}
 
       {/* Hero: Saldo Unit + CTA */}
       <div className="relative overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#10b981_0%,#0f766e_50%,#0f172a_100%)] p-5 text-white shadow-[0_18px_42px_rgba(16,185,129,0.2)]">

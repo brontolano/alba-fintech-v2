@@ -25,7 +25,7 @@ import { TxCompactList } from "@/components/dashboard/TxCompactList";
 import { BarChart } from "@/components/charts/BarChart";
 import { barChartOptions } from "@/components/charts/chartOptions";
 import { UnitVirtualCard } from "@/components/dashboard/UnitVirtualCard";
-import { KpakCashSummary } from "@/components/kpak/KpakCashSummary";
+
 
 export default function ManagerDashboard() {
   const { data: session } = useSession();
@@ -75,8 +75,6 @@ export default function ManagerDashboard() {
   return (
     <div className="space-y-4">
       <DashboardHeader title="Dashboard Unit" subtitle="Manager" />
-
-      {session?.user?.unitType === "KPAK" && <KpakCashSummary />}
 
       {/* Quick Access — Modul Manager */}
       <QuickAccessGrid

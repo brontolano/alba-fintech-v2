@@ -13,9 +13,10 @@ const wibHM = (now = Date.now()) =>
   new Date(now + WIB).toISOString().slice(11, 16);
 
 const actionSchema = z.object({
-  action: z.enum(["check-in", "check-out"]),
+  action: z.enum(["check-in", "check-out", "set-service"]),
   note: z.string().optional(),
-  // Jenis layanan shift: TABUNGAN (layanan tabungan) | KEUANGAN (layanan keuangan)
+  // Jenis layanan shift (khusus staff): TABUNGAN | KEUANGAN.
+  // Manager check-in general tanpa layanan.
   service: z.enum(["TABUNGAN", "KEUANGAN"]).optional(),
 });
 
@@ -148,6 +149,34 @@ export async function POST(request: NextRequest) {
   const start = dayStart(dateStr);
 
   try {
+    // Ganti layanan mid-shift (tanpa checkout dulu)
+    if (parsed.data.action === "set-service") {
+      if (!parsed.data.service)
+        return NextResponse.json(
+          { error: "Layanan wajib dipilih" },
+          { status: 400 },
+        );
+      const existing = await prisma.shiftAttendance.findUnique({
+        where: {
+          unitId_userId_date: {
+            unitId,
+            userId: session.user.id!,
+            date: start,
+          },
+        },
+      });
+      if (!existing || existing.checkOutAt)
+        return NextResponse.json(
+          { error: "Check-in dulu sebelum ganti layanan" },
+          { status: 400 },
+        );
+      const row = await prisma.shiftAttendance.update({
+        where: { id: existing.id },
+        data: { service: parsed.data.service },
+      });
+      return NextResponse.json({ data: row });
+    }
+
     if (parsed.data.action === "check-in") {
       // Selalu bisa check-in ulang meski sudah checkout (shift lanjut)
       const existing = await prisma.shiftAttendance.findUnique({

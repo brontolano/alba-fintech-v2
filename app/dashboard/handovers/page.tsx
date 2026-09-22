@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 import { usePageGuard } from "@/lib/use-page-guard";
 import { CheckCircle, XCircle, Clock, Send } from "lucide-react";
 
@@ -27,7 +28,12 @@ interface Handover {
 }
 
 export default function HandoversPage() {
-  usePageGuard(["SUPERADMIN", "PIMPINAN"]);
+  usePageGuard(["SUPERADMIN", "PIMPINAN", "MANAGER"]);
+  const { data: session } = useSession();
+  // Terima/Tolak hanya pimpinan (manager pantau status serah terimanya)
+  const canDecide =
+    session?.user?.role === "SUPERADMIN" ||
+    session?.user?.role === "PIMPINAN";
   const [handovers, setHandovers] = useState<Handover[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -229,24 +235,29 @@ export default function HandoversPage() {
                   </p>
                 </div>
 
-                {h.status === "PENDING" && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleAccept(h.id)}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
-                    >
-                      <CheckCircle size={14} />
-                      Terima
-                    </button>
-                    <button
-                      onClick={() => handleReject(h.id)}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-700"
-                    >
-                      <XCircle size={14} />
-                      Tolak
-                    </button>
-                  </div>
-                )}
+                {h.status === "PENDING" &&
+                  (canDecide ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleAccept(h.id)}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                      >
+                        <CheckCircle size={14} />
+                        Terima
+                      </button>
+                      <button
+                        onClick={() => handleReject(h.id)}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-700"
+                      >
+                        <XCircle size={14} />
+                        Tolak
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      Menunggu pimpinan
+                    </span>
+                  ))}
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">

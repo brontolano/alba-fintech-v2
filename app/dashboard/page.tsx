@@ -6,6 +6,7 @@ import PimpinanDashboard from "@/components/dashboard/PimpinanDashboard";
 import ManagerDashboard from "@/components/dashboard/ManagerDashboard";
 import StaffDashboard from "@/components/dashboard/StaffDashboard";
 import { KpakStaffDashboard } from "@/components/kpak/KpakStaffDashboard";
+import { KpakManagerDashboard } from "@/components/kpak/KpakManagerDashboard";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -21,11 +22,13 @@ export default function DashboardPage() {
   }
 
   const role = session?.user?.role || "STAFF";
-  const isKpakStaff =
-    role === "STAFF" && session?.user?.unitType === "KPAK";
+  const isKpak = (session?.user as any)?.unitType === "KPAK";
+  const isKpakStaff = role === "STAFF" && isKpak;
+  const isKpakManager = role === "MANAGER" && isKpak;
 
   const renderDashboard = () => {
     if (isKpakStaff) return <KpakStaffDashboard />;
+    if (isKpakManager) return <KpakManagerDashboard />;
     switch (role) {
       case "SUPERADMIN":
         return <SuperadminDashboard />;

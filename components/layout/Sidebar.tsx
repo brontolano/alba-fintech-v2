@@ -117,6 +117,13 @@ const NAV_GROUPS: NavGroup[] = [
         roles: ["SUPERADMIN", "PIMPINAN"],
       },
       {
+        label: "Serah Terima Kas",
+        href: "/dashboard/handovers",
+        icon: <ClipboardList size={20} />,
+        roles: ["MANAGER"],
+        kpakOnly: true,
+      },
+      {
         label: "Tabungan Santri",
         href: "/dashboard/savings",
         icon: <Wallet size={20} />,
