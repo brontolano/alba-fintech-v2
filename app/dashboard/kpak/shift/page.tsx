@@ -259,9 +259,24 @@ export default function KpakShiftPage() {
               </button>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-muted-foreground">
-              Selesai: {fmtTime(mine?.checkInAt)} – {fmtTime(mine?.checkOutAt)}
-            </p>
+            <div className="mt-3">
+              <p className="text-sm text-muted-foreground">
+                Selesai: {fmtTime(mine?.checkInAt)} –{" "}
+                {fmtTime(mine?.checkOutAt)}
+              </p>
+              <button
+                onClick={() => doCheck("check-in")}
+                disabled={acting}
+                className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                {acting ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <LogIn size={16} />
+                )}
+                Check-in Lagi
+              </button>
+            </div>
           )}
         </div>
         <div className="rounded-xl border bg-card p-5">
