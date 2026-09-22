@@ -100,6 +100,23 @@ export async function POST(request: NextRequest) {
 
   try {
     if (parsed.data.action === "check-in") {
+      // Selalu bisa check-in ulang meski sudah checkout (shift lanjut)
+      const existing = await prisma.shiftAttendance.findUnique({
+        where: {
+          unitId_userId_date: {
+            unitId,
+            userId: session.user.id!,
+            date: start,
+          },
+        },
+      });
+      if (existing && existing.checkOutAt) {
+        const row = await prisma.shiftAttendance.update({
+          where: { id: existing.id },
+          data: { checkOutAt: null },
+        });
+        return NextResponse.json({ data: row });
+      }
       const late = wibHM() > "08:00";
       const row = await prisma.shiftAttendance.create({
         data: {

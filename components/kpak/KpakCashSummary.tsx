@@ -56,14 +56,17 @@ export function KpakCashSummary() {
         if (txRes.ok) {
           const t = await txRes.json();
           const list = t.data || t.transactions || [];
+          // Ringkasan = kas tunai (legacy tanpa channel = tunai)
+          const isCash = (x: any) =>
+            !x.paymentMethod || x.paymentMethod === "CASH";
           setTodayIn(
             list
-              .filter((x: any) => x.type === "INCOME")
+              .filter((x: any) => x.type === "INCOME" && isCash(x))
               .reduce((s: number, x: any) => s + Number(x.amount || 0), 0),
           );
           setTodayOut(
             list
-              .filter((x: any) => x.type === "EXPENSE")
+              .filter((x: any) => x.type === "EXPENSE" && isCash(x))
               .reduce((s: number, x: any) => s + Number(x.amount || 0), 0),
           );
         }

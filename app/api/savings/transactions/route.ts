@@ -13,6 +13,8 @@ const mutationSchema = z.object({
   reference: z.string().optional(),
   cardUid: z.string().optional(),
   photoUrl: z.string().max(500).optional(),
+  // Jalur uang: CASH (laci) | BANK (rekening). Penarikan selalu CASH.
+  channel: z.enum(["CASH", "BANK"]).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -80,6 +82,10 @@ export async function POST(request: NextRequest) {
             description: parsed.data.description,
             reference: parsed.data.reference,
             photoUrl: parsed.data.photoUrl || undefined,
+            channel:
+              parsed.data.type === "WITHDRAWAL"
+                ? "CASH"
+                : parsed.data.channel || "CASH",
             cardUid:
               parsed.data.cardUid?.trim().toUpperCase() ||
               account.student.cardUid,

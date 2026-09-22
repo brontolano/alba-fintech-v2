@@ -82,7 +82,7 @@ export default function KpakShiftPage() {
 
   const [reports, setReports] = useState<ShiftReport[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
-  const [repForm, setRepForm] = useState({ income: "", expense: "", note: "" });
+  const [repNote, setRepNote] = useState("");
   const [repSaving, setRepSaving] = useState(false);
 
   const fetchShift = useCallback(async () => {
@@ -147,9 +147,7 @@ export default function KpakShiftPage() {
       if (!res.ok) throw new Error(json.error || "Gagal");
       toast.success(
         action === "check-in"
-          ? json.data.late
-            ? "Check-in tercatat (telat)"
-            : "Check-in tercatat — selamat bertugas"
+          ? "Check-in tercatat — selamat bertugas"
           : "Check-out tercatat — terima kasih",
       );
       fetchShift();
@@ -160,33 +158,23 @@ export default function KpakShiftPage() {
     }
   };
 
+  // Laporan full-otomatis: angka dihitung sistem dari transaksi akun ini.
+  // Staff cukup tulis catatan serah terima (opsional) lalu kirim.
   const submitReport = async (e: React.FormEvent) => {
     e.preventDefault();
-    const ci = Number(repForm.income);
-    const ce = Number(repForm.expense);
-    if (isNaN(ci) || isNaN(ce) || ci < 0 || ce < 0) {
-      toast.error("Nominal harus angka ≥ 0");
-      return;
-    }
     setRepSaving(true);
     try {
       const res = await fetch("/api/kpak/shift-reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cashIncomeCounted: ci,
-          cashExpenseCounted: ce,
-          note: repForm.note.trim() || undefined,
+          note: repNote.trim() || undefined,
         }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal mengirim laporan");
-      toast.success(
-        json.data?.late
-          ? "Laporan terkirim (melewati 17:00)"
-          : "Laporan shift terkirim ke manager",
-      );
-      setRepForm({ income: "", expense: "", note: "" });
+      toast.success("Laporan shift terkirim ke manager");
+      setRepNote("");
       fetchReports();
     } catch (e: any) {
       toast.error(e.message);
@@ -255,12 +243,7 @@ export default function KpakShiftPage() {
             <div className="mt-3">
               <p className="text-sm">
                 Bertugas sejak{" "}
-                <span className="font-semibold">{fmtTime(mine?.checkInAt)}</span>{" "}
-                {mine?.late && (
-                  <span className="ml-1 rounded bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600">
-                    Telat
-                  </span>
-                )}
+                <span className="font-semibold">{fmtTime(mine?.checkInAt)}</span>
               </p>
               <button
                 onClick={() => doCheck("check-out")}
@@ -301,6 +284,24 @@ export default function KpakShiftPage() {
             → manager lapor + setor ke pimpinan.
           </p>
         </div>
+      </div>
+
+      {/* Pilihan layanan shift */}
+      <div className="grid grid-cols-2 gap-3">
+        <a
+          href="/dashboard/savings"
+          className="rounded-xl border bg-card p-4 text-center transition-colors hover:border-primary/40"
+        >
+          <p className="font-semibold">Layanan Tabungan</p>
+          <p className="text-xs text-muted-foreground">Setor / tarik</p>
+        </a>
+        <a
+          href="/dashboard/kpak/finance"
+          className="rounded-xl border bg-card p-4 text-center transition-colors hover:border-primary/40"
+        >
+          <p className="font-semibold">Layanan Keuangan</p>
+          <p className="text-xs text-muted-foreground">HER, daful, internal</p>
+        </a>
       </div>
 
       {/* Tabs */}
@@ -354,13 +355,11 @@ export default function KpakShiftPage() {
                       </span>
                       <span className="text-muted-foreground">
                         {" "}
-                        – {fmtTime(c.attendance.checkOutAt) || "bertugas"}
+                        –{" "}
+                        {c.attendance.checkOutAt
+                          ? fmtTime(c.attendance.checkOutAt)
+                          : "bertugas"}
                       </span>
-                      {c.attendance.late && (
-                        <span className="ml-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-600">
-                          Telat
-                        </span>
-                      )}
                     </p>
                   ) : (
                     <span className="text-xs text-muted-foreground">
@@ -379,63 +378,54 @@ export default function KpakShiftPage() {
             className="space-y-4 rounded-xl border bg-card p-5"
           >
             <h2 className="text-sm font-semibold">
-              Laporan Kas Saya (s/d 17:00)
+              Laporan Saya (otomatis)
             </h2>
+            <p className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+              Angka laporan dihitung otomatis oleh sistem dari semua transaksi
+              akun ini hari ini — tidak perlu hitung manual. Cukup kirim.
+            </p>
+            {myReport && (
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="rounded-lg bg-muted/60 p-3">
+                  <p className="text-xs text-muted-foreground">Masuk</p>
+                  <p className="font-semibold text-emerald-600">
+                    {formatCurrency(
+                      Number(myReport.cashIncomeCounted || 0),
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-muted/60 p-3">
+                  <p className="text-xs text-muted-foreground">Keluar</p>
+                  <p className="font-semibold text-rose-600">
+                    {formatCurrency(
+                      Number(myReport.cashExpenseCounted || 0),
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
             {myReport?.status === "ACCEPTED" && (
               <p className="rounded-lg bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-400">
-                Laporan hari ini sudah diterima manager — terkunci.
+                Laporan hari ini sudah diterima manager.
               </p>
             )}
             <div>
               <label className="mb-1 block text-xs font-medium">
-                Uang masuk terhitung (Rp)
+                Catatan serah terima (opsional)
               </label>
-              <input
-                type="number"
-                min="0"
-                value={repForm.income}
-                onChange={(e) =>
-                  setRepForm({ ...repForm, income: e.target.value })
-                }
-                placeholder="Hitung fisik kas masuk"
-                disabled={myReport?.status === "ACCEPTED"}
-                className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium">
-                Uang keluar terhitung (Rp)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={repForm.expense}
-                onChange={(e) =>
-                  setRepForm({ ...repForm, expense: e.target.value })
-                }
-                placeholder="Hitung fisik kas keluar"
-                disabled={myReport?.status === "ACCEPTED"}
-                className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium">Catatan</label>
               <textarea
-                value={repForm.note}
-                onChange={(e) =>
-                  setRepForm({ ...repForm, note: e.target.value })
-                }
+                value={repNote}
+                onChange={(e) => setRepNote(e.target.value)}
                 rows={2}
-                placeholder="Catatan serah terima..."
-                disabled={myReport?.status === "ACCEPTED"}
+                placeholder="Contoh: laci diserahkan + kunci..."
                 className="w-full resize-none rounded-lg border bg-background px-3 py-2.5 text-sm"
               />
             </div>
             <button
-              disabled={repSaving || myReport?.status === "ACCEPTED"}
+              disabled={repSaving}
               className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
             >
-              {repSaving ? "Mengirim..." : "Kirim Laporan ke Manager"}
+              {repSaving ? "Mengirim..." : "Buat & Kirim Laporan Otomatis"}
             </button>
           </form>
 

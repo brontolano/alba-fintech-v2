@@ -12,7 +12,6 @@ import {
   Clock,
   ClipboardList,
   Monitor,
-  BookOpen,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -227,7 +226,7 @@ export function MobileNav({ user }: MobileNavProps) {
         }
         // ── STAFF KPAK ────────────────────────────
         // Pusat: Tabungan — cek saldo, setor, tarik
-        // Sisa: Beranda, Layanan (catat bayar), Santri (cek data), Profil
+        // Sisa: Beranda, Layanan, Rekap harian, Profil
         if (isKpak) {
           return [
             { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
@@ -243,9 +242,9 @@ export function MobileNav({ user }: MobileNavProps) {
               isPrimary: true,
             },
             {
-              label: "Santri",
-              href: "/dashboard/kpak/students",
-              icon: <BookOpen size={24} />,
+              label: "Rekap",
+              href: "/dashboard/kpak/reports",
+              icon: <BarChart2 size={24} />,
             },
             {
               label: "Profil",

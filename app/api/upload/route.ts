@@ -3,6 +3,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/options';
+import { uploadToDrive } from '@/lib/upload-drive';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -48,15 +49,50 @@ export async function POST(request: NextRequest) {
     const bytes = Buffer.from(await file.arrayBuffer());
     const timestamp = Date.now();
     const filename = `item-${timestamp}.${ext}`;
-    // Folder tujuan opsional (?folder=bukti) — whitelist agar aman
     const { searchParams } = new URL(request.url);
-    const folder =
-      searchParams.get('folder') === 'bukti' ? 'bukti' : 'inventory';
-    const dir = join(process.cwd(), 'public', 'uploads', folder);
+    const isBukti = searchParams.get('folder') === 'bukti';
+
+    // Bukti transaksi -> Google Drive pemilik (folder "Bukti Transaksi").
+    // Gagal/belum dikonfigurasi -> fallback lokal via /api/bukti.
+    if (isBukti) {
+      try {
+        const drive = await uploadToDrive({
+          bytes,
+          filename,
+          mimeType: file.type,
+          folder: 'Bukti Transaksi',
+        });
+        return NextResponse.json(
+          { url: drive.url, filename: drive.fileName, storage: 'drive' },
+          { status: 200 },
+        );
+      } catch (driveErr) {
+        console.warn(
+          '[Upload API] Drive gagal, fallback lokal:',
+          (driveErr as Error).message,
+        );
+        const dir = join(process.cwd(), 'data', 'bukti');
+        await mkdir(dir, { recursive: true });
+        await writeFile(join(dir, filename), bytes);
+        return NextResponse.json(
+          {
+            url: `/api/bukti/${filename}`,
+            filename,
+            storage: 'local',
+            warning:
+              'Tersimpan lokal (Google Drive belum dikonfigurasi). ' +
+              (driveErr as Error).message,
+          },
+          { status: 200 },
+        );
+      }
+    }
+
+    const dir = join(process.cwd(), 'public', 'uploads', 'inventory');
     await mkdir(dir, { recursive: true });
     await writeFile(join(dir, filename), bytes);
 
-    const url = `/uploads/${folder}/${filename}`;
+    const url = `/uploads/inventory/${filename}`;
     return NextResponse.json({ url, filename }, { status: 200 });
   } catch (error) {
     console.error('[Upload API] Error:', error);

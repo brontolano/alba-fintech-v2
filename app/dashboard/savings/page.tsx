@@ -40,6 +40,7 @@ export default function SavingsPage() {
     type: "DEPOSIT" as "DEPOSIT" | "WITHDRAWAL",
     amount: "",
     description: "",
+    channel: "CASH" as "CASH" | "BANK",
   });
   const [showRegister, setShowRegister] = useState(false);
   const [register, setRegister] = useState({
@@ -86,16 +87,24 @@ export default function SavingsPage() {
       let photoUrl: string | undefined;
       if (proofFile) {
         toast.loading("Mengunggah bukti...", { id: "proof" });
-        photoUrl = await uploadProof(proofFile);
+        const up = await uploadProof(proofFile);
         toast.dismiss("proof");
+        photoUrl = up.url;
+        if (up.storage === "local")
+          toast.warning("Drive belum aktif — bukti tersimpan lokal", {
+            description: up.warning,
+          });
       }
       const response = await fetch("/api/savings/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           accountId: student.account.id,
-          ...mutation,
+          type: mutation.type,
           amount: Number(mutation.amount),
+          description: mutation.description,
+          channel:
+            mutation.type === "WITHDRAWAL" ? "CASH" : mutation.channel,
           cardUid: student.cardUid,
           photoUrl,
         }),
@@ -103,6 +112,12 @@ export default function SavingsPage() {
       const result = await response.json();
       if (!response.ok)
         throw new Error(result.error || "Gagal menyimpan mutasi");
+      // Pastikan bukti benar-benar tersimpan, bukan hanya terupload
+      if (proofFile && !result.data?.photoUrl) {
+        toast.warning(
+          "Mutasi tersimpan, TAPI bukti foto tidak tersimpan — coba lampirkan ulang",
+        );
+      }
       setStudent((current) =>
         current && current.account
           ? {
@@ -122,6 +137,7 @@ export default function SavingsPage() {
           : "Pengambilan berhasil dicatat",
       );
     } catch (error) {
+      toast.dismiss("proof");
       toast.error(
         error instanceof Error ? error.message : "Gagal menyimpan mutasi",
       );
@@ -328,6 +344,28 @@ export default function SavingsPage() {
                 <ArrowDownRight size={17} /> Ambil
               </button>
             </div>
+            {mutation.type === "DEPOSIT" ? (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMutation({ ...mutation, channel: "CASH" })}
+                  className={`rounded-xl border px-4 py-2.5 text-sm font-semibold ${mutation.channel === "CASH" ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "border-border text-muted-foreground"}`}
+                >
+                  Tunai (Cash)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMutation({ ...mutation, channel: "BANK" })}
+                  className={`rounded-xl border px-4 py-2.5 text-sm font-semibold ${mutation.channel === "BANK" ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400" : "border-border text-muted-foreground"}`}
+                >
+                  Transfer Bank
+                </button>
+              </div>
+            ) : (
+              <p className="rounded-xl bg-muted/60 px-3 py-2.5 text-xs text-muted-foreground">
+                Penarikan hanya tunai (cash) — diambil langsung di loket.
+              </p>
+            )}
             <input
               required
               type="number"

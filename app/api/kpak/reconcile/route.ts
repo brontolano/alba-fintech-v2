@@ -32,23 +32,38 @@ async function breakdown(unitId: string, dateStr: string) {
         status: "APPROVED",
         date: { gte: start, lte: end },
       },
-      select: { id: true, type: true, amount: true },
+      select: { id: true, type: true, amount: true, paymentMethod: true },
     }),
     prisma.savingsTransaction.findMany({
       where: { unitId, createdAt: { gte: start, lte: end } },
-      select: { type: true, amount: true },
+      select: { type: true, amount: true, channel: true },
     }),
   ]);
 
   const sum = (list: { amount: any }[]) =>
     list.reduce((s, x) => s + Number(x.amount || 0), 0);
-  const kasIn = sum(txs.filter((t) => t.type === "INCOME"));
-  const kasOut = sum(txs.filter((t) => t.type === "EXPENSE"));
-  const savIn = sum(savings.filter((t) => t.type === "DEPOSIT"));
-  const savOut = sum(savings.filter((t) => t.type === "WITHDRAWAL"));
+  // Legacy (null) = CASH. Hanya CASH yang mengisi laci fisik;
+  // BANK (rekening) dan TABUNGAN (internal) dicatat terpisah.
+  const isCashTx = (t: any) => !t.paymentMethod || t.paymentMethod === "CASH";
+  const isBankTx = (t: any) => t.paymentMethod === "BANK";
+  const isCashSv = (t: any) => !t.channel || t.channel === "CASH";
+  const isBankSv = (t: any) => t.channel === "BANK";
 
-  // Pasangan bayar-via-tabungan (withdrawal + income) saling meniadakan
-  // secara cash fisik, jadi rumus ini tepat untuk uang di laci.
+  const kasIn = sum(txs.filter((t) => t.type === "INCOME" && isCashTx(t)));
+  const kasOut = sum(txs.filter((t) => t.type === "EXPENSE" && isCashTx(t)));
+  const savIn = sum(
+    savings.filter((t) => t.type === "DEPOSIT" && isCashSv(t)),
+  );
+  const savOut = sum(
+    savings.filter((t) => t.type === "WITHDRAWAL" && isCashSv(t)),
+  );
+  const bankIn =
+    sum(txs.filter((t) => t.type === "INCOME" && isBankTx(t))) +
+    sum(savings.filter((t) => t.type === "DEPOSIT" && isBankSv(t)));
+  const bankOut =
+    sum(txs.filter((t) => t.type === "EXPENSE" && isBankTx(t))) +
+    sum(savings.filter((t) => t.type === "WITHDRAWAL" && isBankSv(t)));
+
   const totalIncome = kasIn + savIn;
   const totalExpense = kasOut + savOut;
   const expected = totalIncome - totalExpense;
@@ -59,6 +74,8 @@ async function breakdown(unitId: string, dateStr: string) {
     kasOut,
     savIn,
     savOut,
+    bankIn,
+    bankOut,
     totalIncome,
     totalExpense,
     expected,
@@ -150,7 +167,7 @@ export async function POST(request: NextRequest) {
 
   const note =
     parsed.data.note?.trim() ||
-    `Auto-rekonsiliasi: kas +${data.kasIn} -${data.kasOut}, tabungan +${data.savIn} -${data.savOut}`;
+    `Auto: laci +${data.kasIn} -${data.kasOut}, tabungan tunai +${data.savIn} -${data.savOut}, bank +${data.bankIn} -${data.bankOut}`;
 
   const result = await prisma.$transaction(async (tx) => {
     const handover = existing

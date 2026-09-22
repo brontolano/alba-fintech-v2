@@ -40,6 +40,7 @@ interface Tx {
   categoryId?: string | null;
   categoryName?: string | null;
   category?: { name: string } | null;
+  createdById?: string | null;
 }
 
 interface SavingTx {
@@ -49,6 +50,7 @@ interface SavingTx {
   description?: string | null;
   photoUrl?: string | null;
   createdAt: string;
+  createdById?: string | null;
 }
 
 interface Category {
@@ -237,6 +239,119 @@ export default function KpakReportsPage() {
     { id: "administrasi", label: "HER & Daftar Ulang" },
     { id: "internal", label: "Dana Internal" },
   ];
+
+  // ── Staff: histori harian akun sendiri, list saja ──
+  const isStaff = session?.user?.role === "STAFF";
+  const myId = session?.user?.id;
+  const myHistory = (() => {
+    if (!isStaff || !myId) return [];
+    const k = txs
+      .filter((t) => t.createdById === myId)
+      .map((t) => ({
+        key: `k-${t.id}`,
+        kind: "Kas" as const,
+        dir: t.type === "INCOME" ? ("in" as const) : ("out" as const),
+        title: t.description,
+        sub: `${catName(t)} · ${t.status}`,
+        dateISO: t.date,
+        amount: Number(t.amount || 0),
+        photoUrl: (t as any).photoUrl as string | null | undefined,
+      }));
+    const s = savings
+      .filter((t) => t.createdById === myId)
+      .map((t) => ({
+        key: `s-${t.id}`,
+        kind: "Tabungan" as const,
+        dir: t.type === "DEPOSIT" ? ("in" as const) : ("out" as const),
+        title: `${t.type === "DEPOSIT" ? "Setoran" : "Penarikan"}${t.description ? ` — ${t.description}` : ""}`,
+        sub: "Tabungan santri",
+        dateISO: t.createdAt,
+        amount: Number(t.amount || 0),
+        photoUrl: t.photoUrl,
+      }));
+    return [...k, ...s].sort((a, b) =>
+      (b.dateISO || "").localeCompare(a.dateISO || ""),
+    );
+  })();
+
+  if (isStaff) {
+    return (
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">Histori Transaksi Saya</h1>
+            <p className="text-sm text-muted-foreground">
+              Semua transaksi akun ini — harian
+            </p>
+          </div>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => {
+              if (e.target.value) {
+                setStartDate(e.target.value);
+                setEndDate(e.target.value);
+              }
+            }}
+            className="rounded-lg border bg-background px-3 py-2 text-sm"
+          />
+        </div>
+        <div className="rounded-xl border bg-card p-5">
+          {loading ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              <Loader2 size={18} className="mx-auto mb-2 animate-spin" />
+              Memuat...
+            </p>
+          ) : myHistory.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Tidak ada transaksi pada tanggal ini
+            </p>
+          ) : (
+            <div className="divide-y">
+              {myHistory.map((h) => (
+                <div
+                  key={h.key}
+                  className="flex items-center justify-between gap-3 py-2.5 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">
+                      {h.title}
+                      {h.photoUrl && (
+                        <a
+                          href={h.photoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 text-xs font-medium text-primary hover:underline"
+                        >
+                          Bukti →
+                        </a>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      <span className="mr-1 rounded bg-muted px-1.5 py-0.5 text-[10px]">
+                        {h.kind}
+                      </span>
+                      {h.sub}
+                    </p>
+                  </div>
+                  <p
+                    className={`shrink-0 font-semibold ${
+                      h.dir === "in"
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-rose-600 dark:text-rose-400"
+                    }`}
+                  >
+                    {h.dir === "in" ? "+" : "-"}
+                    {formatCurrency(h.amount)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const txRow = (t: Tx) => (
     <div
@@ -563,13 +678,21 @@ export default function KpakReportsPage() {
                     </div>
                     <div className="rounded-lg bg-primary/10 p-2.5">
                       <p className="text-xs text-muted-foreground">
-                        Seharusnya ada
+                        Seharusnya ada (laci)
                       </p>
                       <p className="font-bold">
                         {formatCurrency(closePreview.expected)}
                       </p>
                     </div>
                   </div>
+                  {(Number(closePreview.bankIn || 0) > 0 ||
+                    Number(closePreview.bankOut || 0) > 0) && (
+                    <p className="rounded-lg bg-blue-500/5 p-2.5 text-xs text-blue-700 dark:text-blue-400">
+                      Via bank (tidak masuk laci): +
+                      {formatCurrency(Number(closePreview.bankIn || 0))} −{" "}
+                      {formatCurrency(Number(closePreview.bankOut || 0))}
+                    </p>
+                  )}
                   <div className="flex flex-wrap items-center gap-2">
                     <input
                       type="number"

@@ -11,8 +11,9 @@ const dayStart = (s: string) => new Date(`${s}T00:00:00.000Z`);
 const dayEnd = (s: string) => new Date(`${s}T23:59:59.999Z`);
 
 const submitSchema = z.object({
-  cashIncomeCounted: z.number().min(0),
-  cashExpenseCounted: z.number().min(0),
+  // Opsional: bila kosong, sistem isi otomatis dari transaksi akun tsb.
+  cashIncomeCounted: z.number().min(0).optional(),
+  cashExpenseCounted: z.number().min(0).optional(),
   note: z.string().optional(),
   date: z.string().optional(),
 });
@@ -118,6 +119,13 @@ export async function POST(request: NextRequest) {
   const dateStr = parsed.data.date || wibDateStr();
   const start = dayStart(dateStr);
 
+  // Laporan full-otomatis: angka diambil dari sistem (transaksi akun ini)
+  const system = await systemTotals(unitId, session.user.id!, dateStr);
+  const cashIn =
+    parsed.data.cashIncomeCounted ?? system.income + system.savingsIn;
+  const cashOut =
+    parsed.data.cashExpenseCounted ?? system.expense + system.savingsOut;
+
   const existing = await prisma.shiftReport.findUnique({
     where: {
       unitId_userId_date: { unitId, userId: session.user.id!, date: start },
@@ -135,8 +143,8 @@ export async function POST(request: NextRequest) {
     ? await prisma.shiftReport.update({
         where: { id: existing.id },
         data: {
-          cashIncomeCounted: parsed.data.cashIncomeCounted,
-          cashExpenseCounted: parsed.data.cashExpenseCounted,
+          cashIncomeCounted: cashIn,
+          cashExpenseCounted: cashOut,
           note: parsed.data.note?.trim() || null,
           status: "SUBMITTED",
         },
@@ -146,14 +154,13 @@ export async function POST(request: NextRequest) {
           unitId,
           userId: session.user.id!,
           date: start,
-          cashIncomeCounted: parsed.data.cashIncomeCounted,
-          cashExpenseCounted: parsed.data.cashExpenseCounted,
+          cashIncomeCounted: cashIn,
+          cashExpenseCounted: cashOut,
           note: parsed.data.note?.trim() || null,
           status: "SUBMITTED",
         },
       });
 
-  const system = await systemTotals(unitId, session.user.id!, dateStr);
   return NextResponse.json(
     { data: { ...row, system, late } },
     { status: existing ? 200 : 201 },

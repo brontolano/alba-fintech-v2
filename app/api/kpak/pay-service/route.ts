@@ -13,7 +13,9 @@ const paySchema = z.object({
   categoryId: z.string().min(1),
   amount: z.number().positive(),
   note: z.string().optional(),
-  method: z.enum(["TUNAI", "TABUNGAN"]),
+  // CASH (laci) | BANK (rekening) | TABUNGAN (potong saldo)
+  // TUNAI diterima sebagai alias CASH untuk kompatibilitas lama.
+  method: z.enum(["TUNAI", "CASH", "BANK", "TABUNGAN"]),
   studentNumber: z.string().optional(),
   unitId: z.string().optional(),
   photoUrl: z.string().max(500).optional(),
@@ -40,7 +42,10 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
 
-  const { categoryId, amount, note, method, studentNumber } = parsed.data;
+  const { categoryId, amount, note, studentNumber } = parsed.data;
+  // Normalisasi: TUNAI lama = CASH
+  const method =
+    parsed.data.method === "TUNAI" ? "CASH" : (parsed.data.method as string);
 
   // Unit: operator pakai unit sendiri; pimpinan/superadmin boleh pilih unit
   let unitId = session.user.unitId;
@@ -144,22 +149,27 @@ export async function POST(request: NextRequest) {
               balanceBefore: before,
               balanceAfter: after,
               description: `Bayar ${category.name}${note ? ` — ${note}` : ""}`,
+              channel: "TABUNGAN",
               createdById: session.user.id!,
             },
           });
           balanceAfter = after;
         }
 
+        const channelLabel =
+          method === "TABUNGAN" ? "[Tabungan]" : method === "BANK" ? "[Bank]" : "";
         const transaction = await tx.transaction.create({
           data: {
             unitId,
             type: "INCOME",
             amount,
-            description:
-              method === "TABUNGAN" ? `[Tabungan] ${description}` : description,
+            description: channelLabel
+              ? `${channelLabel} ${description}`
+              : description,
             categoryId,
             reference: savingsTx ? `TABUNGAN:${savingsTx.id}` : undefined,
             photoUrl: parsed.data.photoUrl || undefined,
+            paymentMethod: method,
             createdById: session.user.id!,
             status: approved ? "APPROVED" : "PENDING",
             approvedById: approved ? session.user.id : undefined,
