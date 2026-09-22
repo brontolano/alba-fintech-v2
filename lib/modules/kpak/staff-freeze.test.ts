@@ -113,6 +113,18 @@ test("gate shift: staff KPAK dibatasi shift aktif", () => {
   );
 });
 
+test("transactions generik BEBAS kasus khusus anggaran (lewat budget-submit)", () => {
+  const t = read("app/api/transactions/route.ts");
+  assert.ok(
+    !t.includes("ANGGARAN"),
+    "kasus khusus anggaran masuk file beku! pindahkan ke /api/kpak/budget-submit",
+  );
+  assert.ok(
+    fs.existsSync(path.join(ROOT, "app/api/kpak/budget-submit/route.ts")),
+    "endpoint budget-submit hilang",
+  );
+});
+
 test("pembayaran dukung channel Cash/Bank/Tabungan", () => {
   const pay = read("app/api/kpak/pay-service/route.ts");
   assert.ok(pay.includes("TABUNGAN"), "channel TABUNGAN hilang");

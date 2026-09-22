@@ -609,14 +609,10 @@ export async function POST(request: NextRequest) {
 
     // Business rule: transaksi rutin unit tidak perlu approval pimpinan.
     // Approval hanya dipakai untuk pengajuan khusus / kasus exception.
-    // Pengajuan anggaran (ref ANGGARAN:) SELALU butuh persetujuan agar
-    // sampai ke pimpinan meski unit diset auto-approve.
-    const isBudgetSubmission =
-      typeof parsed.data.reference === "string" &&
-      parsed.data.reference.startsWith("ANGGARAN:");
+    // (FILE BEKU staff-freeze: jangan tambah kasus khusus di sini.
+    //  Pengajuan anggaran lewat endpoint khusus /api/kpak/budget-submit.)
     const requiresApproval =
-      (!isLembagaScope && (unitSettings?.requiresApproval ?? false)) ||
-      isBudgetSubmission;
+      !isLembagaScope && (unitSettings?.requiresApproval ?? false);
     const isFinalAuthority = role === "PIMPINAN" || role === "SUPERADMIN";
     const initialStatus =
       isFinalAuthority || !requiresApproval ? "APPROVED" : "PENDING";

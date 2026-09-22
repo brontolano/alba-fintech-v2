@@ -280,15 +280,15 @@ export default function KpakBudgetPage() {
     }
     setSaving(true);
     try {
-      const res = await fetch("/api/transactions", {
+      // Endpoint khusus: selalu masuk antrean persetujuan pimpinan
+      const res = await fetch("/api/kpak/budget-submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "EXPENSE",
-          amount: nominal,
-          description: `${title.trim()} — ${reason.trim()}`,
           categoryId: catId,
-          reference: `ANGGARAN:${Date.now()}`,
+          amount: nominal,
+          title: title.trim(),
+          reason: reason.trim(),
         }),
       });
       const json = await res.json();
