@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
 import { CalendarCheck, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-/** Layar kunci layanan staff: wajib check-in (dan layanan sesuai) dulu. */
+/** Layar kunci layanan staff: otomatis alihkan ke Shift Saya. */
 export function ShiftLock({
   loading,
   active,
@@ -13,6 +15,14 @@ export function ShiftLock({
   active: boolean;
   needService: "TABUNGAN" | "KEUANGAN";
 }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(() => router.replace("/dashboard/kpak/shift"), 2500);
+    return () => clearTimeout(t);
+  }, [loading, router]);
+
   if (loading) {
     return (
       <p className="py-12 text-center text-sm text-muted-foreground">
@@ -32,15 +42,15 @@ export function ShiftLock({
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {!active
-            ? "Check-in dulu di Shift Saya untuk membuka layanan."
-            : `Shift ini untuk layanan ${needService === "TABUNGAN" ? "Keuangan" : "Tabungan"}. Check-out lalu check-in ulang dengan layanan ${needService === "TABUNGAN" ? "Tabungan" : "Keuangan"} untuk membuka halaman ini.`}
+            ? "Mengalihkan ke Shift Saya untuk check-in..."
+            : `Shift ini untuk layanan ${needService === "TABUNGAN" ? "Keuangan" : "Tabungan"}. Mengalihkan...`}
         </p>
       </div>
       <Link
         href="/dashboard/kpak/shift"
         className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
       >
-        Ke Shift Saya
+        Ke Shift Saya Sekarang
       </Link>
     </div>
   );

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { usePageGuard } from "@/lib/use-page-guard";
 
 const formatCurrency = (amount: number) =>
@@ -188,23 +189,36 @@ export default function KpakShiftPage() {
           ? "Waktu pelaporan (s/d 17:00)"
           : "Shift selesai";
 
-  const doCheck = async (action: "check-in" | "check-out") => {
+  const router = useRouter();
+
+  // Satu ketuk: check-in + langsung diantar ke halaman layanannya.
+  // Check-out: tetap di sini (menu menyesuaikan otomatis).
+  const doCheck = async (
+    action: "check-in" | "check-out",
+    svc: "TABUNGAN" | "KEUANGAN" = service,
+  ) => {
     setActing(true);
     try {
       const res = await fetch("/api/kpak/shift", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, service }),
+        body: JSON.stringify({ action, service: svc }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal");
-      toast.success(
-        action === "check-in"
-          ? "Check-in tercatat — selamat bertugas"
-          : "Check-out tercatat — terima kasih",
-      );
-      fetchShift();
-      fetchHistory();
+      if (action === "check-in") {
+        setService(svc);
+        toast.success("Check-in tercatat — selamat bertugas");
+        fetchShift();
+        fetchHistory();
+        router.push(
+          svc === "TABUNGAN" ? "/dashboard/savings" : "/dashboard/kpak/finance",
+        );
+      } else {
+        toast.success("Check-out tercatat — terima kasih");
+        fetchShift();
+        fetchHistory();
+      }
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -298,54 +312,40 @@ export default function KpakShiftPage() {
             </p>
           </div>
 
-          {/* Check-in/out + layanan */}
+          {/* Mulai shift: 1 ketuk = pilih layanan + check-in + antar */}
           <div className="rounded-xl border bg-card p-5">
             <h2 className="mb-3 text-sm font-semibold">
-              1. Pilih layanan shift
+              {shiftOn ? "Shift berjalan" : "Mulai shift hari ini"}
             </h2>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setService("TABUNGAN")}
-                className={`rounded-lg border px-4 py-3 text-sm font-semibold ${
-                  service === "TABUNGAN"
-                    ? "border-primary bg-primary/5"
-                    : "border-border text-muted-foreground"
-                }`}
-              >
-                Layanan Tabungan
-              </button>
-              <button
-                type="button"
-                onClick={() => setService("KEUANGAN")}
-                className={`rounded-lg border px-4 py-3 text-sm font-semibold ${
-                  service === "KEUANGAN"
-                    ? "border-primary bg-primary/5"
-                    : "border-border text-muted-foreground"
-                }`}
-              >
-                Layanan Keuangan
-              </button>
-            </div>
-
-            <h2 className="mb-3 mt-5 text-sm font-semibold">2. Check-in / out</h2>
             {loading ? (
               <p className="py-4 text-center text-sm text-muted-foreground">
                 <Loader2 size={16} className="mx-auto animate-spin" />
               </p>
             ) : !shiftOn ? (
-              <button
-                onClick={() => doCheck("check-in")}
-                disabled={acting}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-              >
-                {acting ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <LogIn size={16} />
-                )}
-                Check-in ({service === "TABUNGAN" ? "Tabungan" : "Keuangan"})
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => doCheck("check-in", "TABUNGAN")}
+                  disabled={acting}
+                  className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-center transition-colors hover:border-primary disabled:opacity-50"
+                >
+                  <LogIn size={20} className="mx-auto mb-1 text-primary" />
+                  <p className="text-sm font-bold">Tabungan</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Setor / tarik
+                  </p>
+                </button>
+                <button
+                  onClick={() => doCheck("check-in", "KEUANGAN")}
+                  disabled={acting}
+                  className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-center transition-colors hover:border-primary disabled:opacity-50"
+                >
+                  <LogIn size={20} className="mx-auto mb-1 text-primary" />
+                  <p className="text-sm font-bold">Keuangan</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    HER, daful, internal
+                  </p>
+                </button>
+              </div>
             ) : (
               <div className="flex flex-wrap items-center gap-3">
                 <p className="inline-flex items-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
@@ -368,7 +368,7 @@ export default function KpakShiftPage() {
             {shiftOn && (
               <p className="mt-2 text-xs text-muted-foreground">
                 Masuk {fmtTime(mine?.checkInAt)} · layanan{" "}
-                {serviceLabel(mine?.service || service)}
+                {serviceLabel(mine?.service)}
               </p>
             )}
           </div>
