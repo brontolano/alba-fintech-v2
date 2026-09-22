@@ -22,6 +22,8 @@ interface StudentData {
 }
 
 import { usePageGuard } from "@/lib/use-page-guard";
+import { useShiftGate } from "@/components/kpak/useShiftGate";
+import { ShiftLock } from "@/components/kpak/ShiftLock";
 
 export default function SavingsPage() {
   usePageGuard([], {
@@ -31,6 +33,7 @@ export default function SavingsPage() {
       ((u?.role === "MANAGER" || u?.role === "STAFF") &&
         u?.unitIsRetail !== true),
   });
+  const gate = useShiftGate();
   const [lookupValue, setLookupValue] = useState("");
   const [student, setStudent] = useState<StudentData | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
@@ -163,6 +166,30 @@ export default function SavingsPage() {
     setStudent(result.data);
     toast.success("Santri dan rekening tabungan berhasil dibuat");
   };
+
+  // Staff KPAK: layanan tabungan hanya saat shift Tabungan aktif
+  if (gate.gated && gate.loading) {
+    return (
+      <div className="mx-auto max-w-5xl space-y-5">
+        <ShiftLock loading active={false} needService="TABUNGAN" />
+      </div>
+    );
+  }
+  if (
+    gate.gated &&
+    !gate.loading &&
+    (!gate.active || gate.service !== "TABUNGAN")
+  ) {
+    return (
+      <div className="mx-auto max-w-5xl space-y-5">
+        <ShiftLock
+          loading={false}
+          active={gate.active}
+          needService="TABUNGAN"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">

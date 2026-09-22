@@ -4,6 +4,7 @@ import { Prisma } from "../../../../generated/prisma/client";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
+import { hasActiveShift, isStaffKpak } from "@/lib/kpak-shift-gate";
 
 const mutationSchema = z.object({
   accountId: z.string().min(1),
@@ -34,6 +35,20 @@ export async function POST(request: NextRequest) {
       { error: "Data mutasi tidak valid", details: parsed.error.flatten() },
       { status: 400 },
     );
+
+  // Staff KPAK wajib shift Tabungan aktif (cek di server agar tak bisa bypass UI)
+  if (isStaffKpak(session.user)) {
+    const ok = await hasActiveShift(
+      session.user.unitId!,
+      session.user.id!,
+      "TABUNGAN",
+    );
+    if (!ok)
+      return NextResponse.json(
+        { error: "Check-in shift Tabungan dulu untuk melayani tabungan" },
+        { status: 403 },
+      );
+  }
 
   try {
     const result = await prisma.$transaction(

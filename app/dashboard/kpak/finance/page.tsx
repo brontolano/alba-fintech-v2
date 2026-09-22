@@ -19,6 +19,8 @@ import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { usePageGuard } from "@/lib/use-page-guard";
 import { uploadProof } from "@/lib/upload-proof";
+import { useShiftGate } from "@/components/kpak/useShiftGate";
+import { ShiftLock } from "@/components/kpak/ShiftLock";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -110,6 +112,7 @@ export default function KpakFinancePage() {
   const [seeding, setSeeding] = useState(false);
 
   const { data: session } = useSession();
+  const gate = useShiftGate();
   const canManageCategories =
     session?.user?.role === "SUPERADMIN" ||
     session?.user?.role === "PIMPINAN" ||
@@ -243,6 +246,26 @@ export default function KpakFinancePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, unitCats, canManageCategories]);
+
+  // Staff KPAK: layanan keuangan hanya saat shift Keuangan aktif
+  if (gate.gated && gate.loading) {
+    return (
+      <div className="space-y-6">
+        <ShiftLock loading active={false} needService="KEUANGAN" />
+      </div>
+    );
+  }
+  if (
+    gate.gated &&
+    !gate.loading &&
+    (!gate.active || gate.service !== "KEUANGAN")
+  ) {
+    return (
+      <div className="space-y-6">
+        <ShiftLock loading={false} active={gate.active} needService="KEUANGAN" />
+      </div>
+    );
+  }
 
   const lookupSantri = async () => {
     if (!nis.trim()) return;

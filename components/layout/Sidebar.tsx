@@ -29,6 +29,7 @@ import {
   CalendarCheck,
 } from "lucide-react";
 import Image from "next/image";
+import { useShiftGate } from "@/components/kpak/useShiftGate";
 
 interface SidebarProps {
   user: {
@@ -279,6 +280,9 @@ export function Sidebar({
   const canUseRetailModules =
     role === "SUPERADMIN" || user?.unitIsRetail === true;
 
+  const shiftGate = useShiftGate();
+  const isStaffKpak = shiftGate.gated;
+
   const canSeeItem = (item: NavItem) => {
     if (item.roles && !item.roles.includes(role)) return false;
     if (item.nonRetailOnly && canUseRetailModules) return false;
@@ -286,6 +290,23 @@ export function Sidebar({
     if (item.kpakOnly && user?.unitType !== "KPAK" && role !== "SUPERADMIN")
       return false;
     if (item.hideForKpak && user?.unitType === "KPAK") return false;
+    // Staff KPAK: tanpa check-in hanya Shift/Data/Rekap; ikut layanan shift
+    if (isStaffKpak) {
+      const tabunganOnly = ["/dashboard/savings"];
+      const keuanganOnly = ["/dashboard/kpak/finance"];
+      const lockedForAll = ["/dashboard/kpak/budget"];
+      if (lockedForAll.includes(item.href)) {
+        if (!shiftGate.active || shiftGate.loading) return false;
+      }
+      if (!shiftGate.active || shiftGate.loading) {
+        if (tabunganOnly.includes(item.href) || keuanganOnly.includes(item.href))
+          return false;
+      } else if (shiftGate.service === "TABUNGAN") {
+        if (keuanganOnly.includes(item.href)) return false;
+      } else if (shiftGate.service === "KEUANGAN") {
+        if (tabunganOnly.includes(item.href)) return false;
+      }
+    }
     return true;
   };
 

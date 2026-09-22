@@ -8,6 +8,7 @@ import {
   resolveApprover,
   notifyPendingApproval,
 } from "@/lib/approvalRouting";
+import { hasActiveShift, isStaffKpak } from "@/lib/kpak-shift-gate";
 
 const paySchema = z.object({
   categoryId: z.string().min(1),
@@ -53,6 +54,16 @@ export async function POST(request: NextRequest) {
     unitId = parsed.data.unitId;
   if (!unitId)
     return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 400 });
+
+  // Staff KPAK wajib shift Keuangan aktif (cek di server agar tak bisa bypass UI)
+  if (isStaffKpak(session.user)) {
+    const ok = await hasActiveShift(unitId, session.user.id!, "KEUANGAN");
+    if (!ok)
+      return NextResponse.json(
+        { error: "Check-in shift Keuangan dulu untuk melayani pembayaran" },
+        { status: 403 },
+      );
+  }
 
   try {
     // Kategori harus INCOME dan terlihat oleh unit ini

@@ -12,8 +12,10 @@ import {
   Clock,
   ClipboardList,
   Monitor,
+  BookOpen,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+import { useShiftGate } from "@/components/kpak/useShiftGate";
 
 interface MobileNavProps {
   user: {
@@ -34,6 +36,8 @@ type NavItem = {
 export function MobileNav({ user }: MobileNavProps) {
   const router = useRouter();
   const pathname = usePathname();
+
+  const shiftGate = useShiftGate();
 
   const getNavItems = (): NavItem[] => {
     const role = user?.role;
@@ -225,32 +229,70 @@ export function MobileNav({ user }: MobileNavProps) {
           ];
         }
         // ── STAFF KPAK ────────────────────────────
-        // Pusat: Tabungan — cek saldo, setor, tarik
-        // Sisa: Beranda, Layanan, Rekap harian, Profil
+        // Tanpa check-in: hanya Beranda, Shift, Profil.
+        // Shift Tabungan: Tabungan (+Santri, Rekap). Keuangan: Layanan (+Santri, Rekap).
         if (isKpak) {
+          const home = {
+            label: "Beranda",
+            href: "/dashboard",
+            icon: <Home size={24} />,
+          };
+          const profile = {
+            label: "Profil",
+            href: "/dashboard/profile",
+            icon: <User size={24} />,
+          };
+          const santri = {
+            label: "Santri",
+            href: "/dashboard/kpak/students",
+            icon: <BookOpen size={24} />,
+          };
+          const rekap = {
+            label: "Rekap",
+            href: "/dashboard/kpak/reports",
+            icon: <BarChart2 size={24} />,
+          };
+          if (
+            shiftGate.loading ||
+            !shiftGate.active ||
+            !shiftGate.service
+          ) {
+            return [
+              home,
+              {
+                label: "Shift",
+                href: "/dashboard/kpak/shift",
+                icon: <Clock size={24} />,
+                isPrimary: true,
+              },
+              profile,
+            ];
+          }
+          if (shiftGate.service === "TABUNGAN") {
+            return [
+              home,
+              {
+                label: "Tabungan",
+                href: "/dashboard/savings",
+                icon: <Wallet size={24} />,
+                isPrimary: true,
+              },
+              santri,
+              rekap,
+              profile,
+            ];
+          }
           return [
-            { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
+            home,
             {
               label: "Layanan",
               href: "/dashboard/kpak/finance",
               icon: <Receipt size={24} />,
-            },
-            {
-              label: "Tabungan",
-              href: "/dashboard/savings",
-              icon: <Wallet size={24} />,
               isPrimary: true,
             },
-            {
-              label: "Rekap",
-              href: "/dashboard/kpak/reports",
-              icon: <BarChart2 size={24} />,
-            },
-            {
-              label: "Profil",
-              href: "/dashboard/profile",
-              icon: <User size={24} />,
-            },
+            santri,
+            rekap,
+            profile,
           ];
         }
         // ── STAFF NON-RETAIL ──────────────────────
