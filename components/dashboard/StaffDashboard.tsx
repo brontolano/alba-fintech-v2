@@ -10,9 +10,6 @@ import {
   ArrowDownRight,
   Package,
   BarChart3,
-  BookOpen,
-  CreditCard,
-  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -100,44 +97,8 @@ export default function StaffDashboard() {
     },
   ];
 
-  const isKpak = session?.user?.unitType === "KPAK";
-
-  const kpakActions: QuickAccessAction[] = [
-    {
-      href: "/dashboard/kpak/students",
-      icon: BookOpen,
-      label: "Santri",
-      color: "blue",
-    },
-    {
-      href: "/dashboard/savings",
-      icon: Wallet,
-      label: "Tabungan",
-      color: "green",
-    },
-    {
-      href: "/dashboard/kpak/finance",
-      icon: CreditCard,
-      label: "Layanan",
-      color: "orange",
-    },
-    {
-      href: "/dashboard/kpak/internal",
-      icon: FileText,
-      label: "Internal",
-      color: "amber",
-    },
-    {
-      href: "/dashboard/kpak/reports",
-      icon: BarChart3,
-      label: "Rekap",
-      color: "purple",
-    },
-  ];
-
-  const quickActions: QuickAccessAction[] = isKpak
-    ? kpakActions
-    : [
+  // Staff KPAK punya dashboard khusus (KpakStaffDashboard)
+  const quickActions: QuickAccessAction[] = [
         {
           href: "/dashboard/transactions/create",
           icon: Receipt,

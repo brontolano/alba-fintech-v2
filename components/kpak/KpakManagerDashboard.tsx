@@ -45,6 +45,8 @@ const isCashSv = (x: any) => !x.channel || x.channel === "CASH";
 export function KpakManagerDashboard() {
   const [loading, setLoading] = useState(true);
   const [shiftOn, setShiftOn] = useState<boolean | null>(null);
+  const [pendingReports, setPendingReports] = useState(0);
+  const [handoverStatus, setHandoverStatus] = useState<string | null>(null);
   const [stats, setStats] = useState({
     masuk: 0,
     keluar: 0,
@@ -66,14 +68,30 @@ export function KpakManagerDashboard() {
       setLoading(true);
       try {
         const today = todayLocal();
-        const [txRes, svRes, catRes, shiftRes] = await Promise.all([
+        const [txRes, svRes, catRes, shiftRes, repRes, hoRes] = await Promise.all([
           fetch(
             `/api/transactions?startDate=${today}&endDate=${today}&limit=100`,
           ),
           fetch("/api/savings/transactions"),
           fetch("/api/financial-categories"),
           fetch("/api/kpak/shift").catch(() => null),
+          fetch("/api/kpak/shift-reports").catch(() => null),
+          fetch(`/api/handovers?date=${today}`).catch(() => null),
         ]);
+        if (repRes && repRes.ok) {
+          const r = await repRes.json();
+          const list = r.data?.reports || [];
+          setPendingReports(
+            list.filter((x: any) => x.status !== "ACCEPTED").length,
+          );
+        }
+        if (hoRes && hoRes.ok) {
+          const h = await hoRes.json();
+          const list = h.data || [];
+          setHandoverStatus(
+            list.length > 0 ? list[0].status : null,
+          );
+        }
         let txs: any[] = [];
         let svs: any[] = [];
         let cats: any[] = [];
@@ -282,13 +300,44 @@ export function KpakManagerDashboard() {
         </Link>
       </div>
 
+      {pendingReports > 0 && (
+        <Link
+          href="/dashboard/kpak/shift"
+          className="flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm"
+        >
+          <span className="font-medium">
+            {pendingReports} laporan shift menunggu diterima
+          </span>
+          <span className="font-semibold text-primary">Periksa →</span>
+        </Link>
+      )}
+
       <PendingApprovalsWidget formatCurrency={formatCurrency} />
 
       <Link
         href="/dashboard/handovers"
         className="flex items-center justify-between rounded-xl border border-primary/25 bg-primary/[0.04] px-4 py-3 text-sm"
       >
-        <span className="font-medium">Serah terima kas ke pimpinan</span>
+        <span className="font-medium">
+          Serah terima kas ke pimpinan
+          {handoverStatus && (
+            <span
+              className={`ml-2 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                handoverStatus === "ACCEPTED"
+                  ? "bg-emerald-500/10 text-emerald-600"
+                  : handoverStatus === "PENDING"
+                    ? "bg-amber-500/10 text-amber-600"
+                    : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {handoverStatus === "ACCEPTED"
+                ? "diterima"
+                : handoverStatus === "PENDING"
+                  ? "menunggu"
+                  : handoverStatus.toLowerCase()}
+            </span>
+          )}
+        </span>
         <span className="font-semibold text-primary">Buka →</span>
       </Link>
 
