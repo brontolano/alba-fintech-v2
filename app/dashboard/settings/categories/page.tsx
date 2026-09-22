@@ -491,8 +491,8 @@ export default function CategorySettingsPage() {
             </form>
           )}
 
-          {/* ── Kategori Umum ── */}
-          {(canManageLembaga || lembagaCategories.length > 0) && (
+          {/* ── Kategori Umum: hanya tampil di level lembaga ── */}
+          {canManageLembaga && (
             <section>
               <div className="mb-2 flex items-center gap-2">
                 <Building2 size={18} className="text-primary" />

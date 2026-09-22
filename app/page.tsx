@@ -1,7 +1,9 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/options';
-import HomeClient from '@/components/auth/HomeClient';
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/options";
 
+// Landing & anjungan dinonaktifkan sementara — root langsung arahkan
+// ke dashboard (sudah login) atau halaman login.
 export default async function HomePage() {
   let session = null;
   try {
@@ -10,5 +12,5 @@ export default async function HomePage() {
     // Invalid JWT / DB error — treat as no session
   }
 
-  return <HomeClient hasSession={!!session} />;
+  redirect(session ? "/dashboard" : "/login");
 }

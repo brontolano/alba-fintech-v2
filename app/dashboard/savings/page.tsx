@@ -5,7 +5,6 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   CreditCard,
-  ExternalLink,
   Search,
   UserPlus,
 } from "lucide-react";
@@ -155,13 +154,6 @@ export default function SavingsPage() {
             className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
           >
             Data Santri
-          </Link>
-          <Link
-            href="/kiosk"
-            target="_blank"
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
-          >
-            <ExternalLink size={16} /> Buka Anjungan
           </Link>
           <button
             onClick={() => setShowRegister((value) => !value)}
