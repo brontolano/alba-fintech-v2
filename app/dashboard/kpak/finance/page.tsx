@@ -6,9 +6,7 @@ import {
   Search,
   Loader2,
   Wallet,
-  Banknote,
   Settings2,
-  Receipt,
   TrendingUp,
   TrendingDown,
   ArrowDownRight,
@@ -200,6 +198,27 @@ export default function KpakFinancePage() {
   // Ref kategori admin untuk filter internal (hindari stale closure)
   const adminCatIdsRef = useRef<Set<string>>(new Set());
   adminCatIdsRef.current = adminCatIds;
+
+  // List bersih: santri = pemasukan administrasi; internal = sisanya.
+  // Tanpa kategori (legacy) ikut santri agar tidak hilang.
+  const santriList = useMemo(
+    () =>
+      santriRecent.filter(
+        (t) => !t.categoryId || adminCatIds.has(t.categoryId),
+      ),
+    [santriRecent, adminCatIds],
+  );
+  const internalList = useMemo(
+    () =>
+      intRecent.filter(
+        (t) =>
+          t.type === "EXPENSE" ||
+          (t.type === "INCOME" &&
+            !!t.categoryId &&
+            !adminCatIds.has(t.categoryId)),
+      ),
+    [intRecent, adminCatIds],
+  );
 
   useEffect(() => {
     fetchData();
@@ -498,171 +517,168 @@ export default function KpakFinancePage() {
 
       {tab === "santri" ? (
         <>
-          <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
-            <div className="rounded-xl border bg-card p-5">
-              <h2 className="mb-3 text-sm font-semibold">
-                1. Pilih Layanan (HER / Daftar Ulang)
-              </h2>
-              {loading ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  <Loader2 size={16} className="mx-auto mb-1 animate-spin" />
-                  Memuat...
-                </p>
-              ) : incomeCats.length === 0 ? (
-                emptySeedBox("layanan")
-              ) : (
-                <div className="grid gap-2">
-                  {incomeCats
-                    .filter((c) => adminCatIds.has(c.id))
-                    .map((c) => (
+          <form
+            onSubmit={handleSantriSubmit}
+            className="mx-auto w-full max-w-2xl space-y-4 rounded-xl border bg-card p-5"
+          >
+            {loading ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                <Loader2 size={16} className="mx-auto mb-1 animate-spin" />
+                Memuat...
+              </p>
+            ) : incomeCats.filter((c) => adminCatIds.has(c.id)).length ===
+              0 ? (
+              emptySeedBox("layanan")
+            ) : (
+              <>
+                <div>
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">
+                    Layanan
+                  </p>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {incomeCats
+                      .filter((c) => adminCatIds.has(c.id))
+                      .map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setSelectedCat(c)}
+                          className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-colors ${
+                            selectedCat?.id === c.id
+                              ? "border-primary bg-primary font-semibold text-primary-foreground"
+                              : "hover:bg-muted/50"
+                          }`}
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">
+                    Santri {method !== "TABUNGAN" && "(opsional)"}
+                  </p>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search
+                        size={15}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      />
+                      <input
+                        value={nis}
+                        onChange={(e) => setNis(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && lookupSantri()}
+                        placeholder="NIS atau UID NFC"
+                        className="w-full rounded-lg border bg-background py-2.5 pl-9 pr-3 text-sm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={lookupSantri}
+                      disabled={lookupLoading}
+                      className="rounded-lg bg-muted px-4 text-sm font-medium hover:bg-muted/70 disabled:opacity-50"
+                    >
+                      {lookupLoading ? "..." : "Cek"}
+                    </button>
+                  </div>
+                  {santri && (
+                    <p className="mt-2 rounded-lg bg-muted/60 p-2.5 text-sm">
+                      <span className="font-medium">{santri.name}</span>{" "}
+                      <span className="text-muted-foreground">
+                        ({santri.studentNumber}) · saldo{" "}
+                        {formatCurrency(Number(santri.account?.balance || 0))}
+                      </span>
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">
+                    Cara bayar
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {methods.map((m) => (
                       <button
-                        key={c.id}
+                        key={m.id}
                         type="button"
-                        onClick={() => setSelectedCat(c)}
-                        className={`rounded-lg border px-4 py-3 text-left text-sm transition-colors ${
-                          selectedCat?.id === c.id
+                        onClick={() => setMethod(m.id)}
+                        className={`rounded-lg border px-2 py-2.5 text-center transition-colors ${
+                          method === m.id
                             ? "border-primary bg-primary/5 font-semibold"
-                            : "hover:bg-muted/50"
+                            : "border-border text-muted-foreground"
                         }`}
                       >
-                        {c.name}
+                        <p className="text-sm">{m.label}</p>
                       </button>
                     ))}
+                  </div>
+                  {method === "TABUNGAN" && !santri && (
+                    <p className="mt-2 rounded-lg bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-400">
+                      Cari santri dulu (wajib untuk potong tabungan).
+                    </p>
+                  )}
                 </div>
-              )}
 
-              <h2 className="mb-2 mt-5 text-sm font-semibold">
-                2. Santri{" "}
-                <span className="font-normal text-muted-foreground">
-                  (wajib untuk Tabungan)
-                </span>
-              </h2>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search
-                    size={15}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  />
-                  <input
-                    value={nis}
-                    onChange={(e) => setNis(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && lookupSantri()}
-                    placeholder="NIS atau UID NFC"
-                    className="w-full rounded-lg border bg-background py-2.5 pl-9 pr-3 text-sm"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={lookupSantri}
-                  disabled={lookupLoading}
-                  className="rounded-lg bg-muted px-4 text-sm font-medium hover:bg-muted/70 disabled:opacity-50"
-                >
-                  {lookupLoading ? "..." : "Cek"}
-                </button>
-              </div>
-              {santri && (
-                <div className="mt-2 rounded-lg bg-muted/60 p-3 text-sm">
-                  <p className="font-medium">
-                    {santri.name}{" "}
-                    <span className="font-normal text-muted-foreground">
-                      ({santri.studentNumber})
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Saldo tabungan:{" "}
-                    {formatCurrency(Number(santri.account?.balance || 0))}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <form
-              onSubmit={handleSantriSubmit}
-              className="space-y-4 rounded-xl border bg-card p-5"
-            >
-              <h2 className="text-sm font-semibold">3. Bayar via</h2>
-              <div className="grid grid-cols-3 gap-2">
-                {methods.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setMethod(m.id)}
-                    className={`rounded-lg border px-2 py-3 text-center transition-colors ${
-                      method === m.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border text-muted-foreground"
-                    }`}
-                  >
-                    <p className="text-sm font-semibold">{m.label}</p>
-                    <p className="text-[10px]">{m.hint}</p>
-                  </button>
-                ))}
-              </div>
-              {method === "BANK" && (
-                <p className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 text-xs text-blue-700 dark:text-blue-400">
-                  Transfer via rekening — tidak menambah cash fisik laci.
-                  Lampirkan bukti transfer di bawah.
-                </p>
-              )}
-              {method === "TABUNGAN" && !santri && (
-                <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
-                  Isi NIS/UID santri di langkah 2 dulu.
-                </p>
-              )}
-              <input
-                required
-                type="number"
-                min="1"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Nominal pembayaran (Rp)"
-                className="w-full rounded-lg border bg-background px-3 py-3 text-sm"
-              />
-              <input
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Keterangan (contoh: HER September)"
-                className="w-full rounded-lg border bg-background px-3 py-3 text-sm"
-              />
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Bukti transfer (bila via bank/rekening)
-                </label>
                 <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                  className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium"
+                  required
+                  type="number"
+                  min="1"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="Nominal (Rp)"
+                  className="w-full rounded-lg border bg-background px-3 py-3 text-center text-xl font-bold"
                 />
-                {proofFile && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {proofFile.name}
-                  </p>
+                <input
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Keterangan (mis. HER September)"
+                  className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm"
+                />
+                {method === "BANK" && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Foto bukti transfer *
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(e) =>
+                        setProofFile(e.target.files?.[0] || null)
+                      }
+                      className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium"
+                    />
+                    {proofFile && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {proofFile.name}
+                      </p>
+                    )}
+                  </div>
                 )}
-              </div>
-              <button
-                disabled={saving || !selectedCat}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-              >
-                {saving ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <CreditCard size={16} />
-                )}
-                {saving ? "Memproses..." : "Catat Pembayaran"}
-              </button>
-            </form>
-          </div>
+                <button
+                  disabled={saving || !selectedCat}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                >
+                  {saving ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <CreditCard size={16} />
+                  )}
+                  {saving ? "Memproses..." : "Catat Pembayaran"}
+                </button>
+              </>
+            )}
+          </form>
 
           <div className="rounded-xl border bg-card p-5">
             <h2 className="mb-3 text-sm font-semibold">Pembayaran Terakhir</h2>
-            {santriRecent.length === 0 ? (
+            {santriList.length === 0 ? (
               <p className="py-4 text-center text-sm text-muted-foreground">
                 Belum ada pembayaran tercatat
               </p>
             ) : (
               <div className="divide-y">
-                {santriRecent.map((t) => (
+                {santriList.map((t) => (
                   <div
                     key={t.id}
                     className="flex items-center justify-between gap-3 py-2.5 text-sm"
@@ -702,130 +718,116 @@ export default function KpakFinancePage() {
         </>
       ) : (
         <>
-          <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
-            <div className="rounded-xl border bg-card p-5">
-              <h2 className="mb-3 text-sm font-semibold">
-                1. Masuk / Keluar? (tunai saja)
-              </h2>
-              <div className="mb-4 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTxType("INCOME")}
-                  className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold ${
-                    txType === "INCOME"
-                      ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                      : "border-border text-muted-foreground"
-                  }`}
-                >
-                  <ArrowDownRight size={16} /> Uang Masuk
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTxType("EXPENSE")}
-                  className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold ${
-                    txType === "EXPENSE"
-                      ? "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                      : "border-border text-muted-foreground"
-                  }`}
-                >
-                  <ArrowUpRight size={16} /> Pengeluaran
-                </button>
-              </div>
-              <h2 className="mb-3 text-sm font-semibold">2. Pilih Kategori</h2>
-              {loading ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  <Loader2 size={16} className="mx-auto mb-1 animate-spin" />
-                  Memuat...
-                </p>
-              ) : intCats.length === 0 ? (
-                emptySeedBox(
-                  txType === "INCOME" ? "uang masuk" : "pengeluaran",
-                )
-              ) : (
-                <div className="grid gap-2">
-                  {intCats.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setIntCat(c)}
-                      className={`rounded-lg border px-4 py-3 text-left text-sm transition-colors ${
-                        intCat?.id === c.id
-                          ? "border-primary bg-primary/5 font-semibold"
-                          : "hover:bg-muted/50"
-                      }`}
-                    >
-                      {c.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <p className="mt-3 flex items-center gap-2 rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
-                <Banknote size={14} /> Internal hanya tunai (cash) — transfer
-                bank dicatat di Administrasi Santri bila terkait santri.
+          <form
+            onSubmit={handleInternalSubmit}
+            className="mx-auto w-full max-w-2xl space-y-4 rounded-xl border bg-card p-5"
+          >
+            {loading ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                <Loader2 size={16} className="mx-auto mb-1 animate-spin" />
+                Memuat...
               </p>
-            </div>
-
-            <form
-              onSubmit={handleInternalSubmit}
-              className="space-y-4 rounded-xl border bg-card p-5"
-            >
-              <h2 className="text-sm font-semibold">3. Nominal & Keterangan</h2>
-              <div className="rounded-lg bg-primary/5 p-3 text-sm">
-                {txType === "INCOME" ? "Uang masuk" : "Pengeluaran"}:{" "}
-                <span className="font-semibold">
-                  {intCat?.name || "— pilih di kiri —"}
-                </span>
-              </div>
-              <input
-                required
-                type="number"
-                min="1"
-                value={intAmount}
-                onChange={(e) => setIntAmount(e.target.value)}
-                placeholder="Nominal (Rp)"
-                className="w-full rounded-lg border bg-background px-3 py-3 text-sm"
-              />
-              <textarea
-                required
-                value={intNote}
-                onChange={(e) => setIntNote(e.target.value)}
-                placeholder={
-                  txType === "INCOME"
-                    ? "Uang apa? (contoh: kembalian belanja ATK)"
-                    : "Untuk apa? (contoh: beli ATK, gaji cleaning)"
-                }
-                rows={3}
-                className="w-full resize-none rounded-lg border bg-background px-3 py-3 text-sm"
-              />
-              <button
-                disabled={intSaving || !intCat}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-              >
-                {intSaving ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Wallet size={16} />
-                )}
-                {intSaving
-                  ? "Memproses..."
-                  : txType === "INCOME"
-                    ? "Catat Uang Masuk"
-                    : "Catat Pengeluaran"}
-              </button>
-            </form>
-          </div>
+            ) : intCats.length === 0 ? (
+              emptySeedBox(
+                txType === "INCOME" ? "uang masuk" : "pengeluaran",
+              )
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTxType("INCOME")}
+                    className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold ${
+                      txType === "INCOME"
+                        ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    <ArrowDownRight size={16} /> Masuk
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTxType("EXPENSE")}
+                    className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold ${
+                      txType === "EXPENSE"
+                        ? "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                        : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    <ArrowUpRight size={16} /> Keluar
+                  </button>
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">
+                    Kategori (tunai saja)
+                  </p>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {intCats.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setIntCat(c)}
+                        className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-colors ${
+                          intCat?.id === c.id
+                            ? "border-primary bg-primary font-semibold text-primary-foreground"
+                            : "hover:bg-muted/50"
+                        }`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  value={intAmount}
+                  onChange={(e) => setIntAmount(e.target.value)}
+                  placeholder="Nominal (Rp)"
+                  className="w-full rounded-lg border bg-background px-3 py-3 text-center text-xl font-bold"
+                />
+                <input
+                  required
+                  value={intNote}
+                  onChange={(e) => setIntNote(e.target.value)}
+                  placeholder={
+                    txType === "INCOME"
+                      ? "Uang apa? (mis. kembalian ATK)"
+                      : "Untuk apa? (mis. beli ATK)"
+                  }
+                  className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm"
+                />
+                <button
+                  disabled={intSaving || !intCat}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                >
+                  {intSaving ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Wallet size={16} />
+                  )}
+                  {intSaving
+                    ? "Memproses..."
+                    : txType === "INCOME"
+                      ? "Catat Uang Masuk"
+                      : "Catat Pengeluaran"}
+                </button>
+              </>
+            )}
+          </form>
 
           <div className="rounded-xl border bg-card p-5">
             <h2 className="mb-3 text-sm font-semibold">
               Transaksi Internal Terakhir
             </h2>
-            {intRecent.length === 0 ? (
+            {internalList.length === 0 ? (
               <p className="py-4 text-center text-sm text-muted-foreground">
                 Belum ada transaksi tercatat
               </p>
             ) : (
               <div className="divide-y">
-                {intRecent.map((t) => (
+                {internalList.map((t) => (
                   <div
                     key={t.id}
                     className="flex items-center justify-between gap-3 py-2.5 text-sm"

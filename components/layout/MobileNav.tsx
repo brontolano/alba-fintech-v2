@@ -13,9 +13,9 @@ import {
   ClipboardList,
   Monitor,
   BookOpen,
+  CalendarCheck,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
-import { useShiftGate } from "@/components/kpak/useShiftGate";
 
 interface MobileNavProps {
   user: {
@@ -36,8 +36,6 @@ type NavItem = {
 export function MobileNav({ user }: MobileNavProps) {
   const router = useRouter();
   const pathname = usePathname();
-
-  const shiftGate = useShiftGate();
 
   const getNavItems = (): NavItem[] => {
     const role = user?.role;
@@ -137,21 +135,21 @@ export function MobileNav({ user }: MobileNavProps) {
             },
           ];
         }
-        // ── MANAGER KPAK ──────────────────────────
-        // Pusat: Tabungan — setor/tarik harian
-        // Sisa: Beranda, Layanan (HER/SPP/daful), Rekap KPAK, Profil
+        // ── MANAGER & STAFF KPAK ──────────────────
+        // Beranda | Santri | Shift Saya (pusat) | Rekap | Profil
+        // Layanan dibuka dari Shift Saya (otomatis sesuai shift).
         if (isKpak) {
           return [
             { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
             {
-              label: "Layanan",
-              href: "/dashboard/kpak/finance",
-              icon: <Receipt size={24} />,
+              label: "Santri",
+              href: "/dashboard/kpak/students",
+              icon: <BookOpen size={24} />,
             },
             {
-              label: "Tabungan",
-              href: "/dashboard/savings",
-              icon: <Wallet size={24} />,
+              label: "Shift Saya",
+              href: "/dashboard/kpak/shift",
+              icon: <CalendarCheck size={24} />,
               isPrimary: true,
             },
             {
@@ -229,70 +227,32 @@ export function MobileNav({ user }: MobileNavProps) {
           ];
         }
         // ── STAFF KPAK ────────────────────────────
-        // Tanpa check-in: hanya Beranda, Shift, Profil.
-        // Shift Tabungan: Tabungan (+Santri, Rekap). Keuangan: Layanan (+Santri, Rekap).
+        // Beranda | Santri | Shift Saya (pusat) | Rekap | Profil.
+        // Layanan dibuka dari Shift Saya (otomatis sesuai shift).
         if (isKpak) {
-          const home = {
-            label: "Beranda",
-            href: "/dashboard",
-            icon: <Home size={24} />,
-          };
-          const profile = {
-            label: "Profil",
-            href: "/dashboard/profile",
-            icon: <User size={24} />,
-          };
-          const santri = {
-            label: "Santri",
-            href: "/dashboard/kpak/students",
-            icon: <BookOpen size={24} />,
-          };
-          const rekap = {
-            label: "Rekap",
-            href: "/dashboard/kpak/reports",
-            icon: <BarChart2 size={24} />,
-          };
-          if (
-            shiftGate.loading ||
-            !shiftGate.active ||
-            !shiftGate.service
-          ) {
-            return [
-              home,
-              {
-                label: "Shift",
-                href: "/dashboard/kpak/shift",
-                icon: <Clock size={24} />,
-                isPrimary: true,
-              },
-              profile,
-            ];
-          }
-          if (shiftGate.service === "TABUNGAN") {
-            return [
-              home,
-              {
-                label: "Tabungan",
-                href: "/dashboard/savings",
-                icon: <Wallet size={24} />,
-                isPrimary: true,
-              },
-              santri,
-              rekap,
-              profile,
-            ];
-          }
           return [
-            home,
+            { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
             {
-              label: "Layanan",
-              href: "/dashboard/kpak/finance",
-              icon: <Receipt size={24} />,
+              label: "Santri",
+              href: "/dashboard/kpak/students",
+              icon: <BookOpen size={24} />,
+            },
+            {
+              label: "Shift Saya",
+              href: "/dashboard/kpak/shift",
+              icon: <CalendarCheck size={24} />,
               isPrimary: true,
             },
-            santri,
-            rekap,
-            profile,
+            {
+              label: "Rekap",
+              href: "/dashboard/kpak/reports",
+              icon: <BarChart2 size={24} />,
+            },
+            {
+              label: "Profil",
+              href: "/dashboard/profile",
+              icon: <User size={24} />,
+            },
           ];
         }
         // ── STAFF NON-RETAIL ──────────────────────
