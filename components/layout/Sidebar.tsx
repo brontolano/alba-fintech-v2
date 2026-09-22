@@ -27,6 +27,7 @@ import {
   Send,
   CreditCard,
   Tags,
+  CalendarCheck,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -181,6 +182,13 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Layanan KPAK",
     items: [
+      {
+        label: "Shift Petugas",
+        href: "/dashboard/kpak/shift",
+        icon: <CalendarCheck size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+        kpakOnly: true,
+      },
       {
         label: "Tabungan Santri",
         href: "/dashboard/savings",

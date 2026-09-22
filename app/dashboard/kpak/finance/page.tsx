@@ -122,8 +122,9 @@ export default function KpakFinancePage() {
       ]);
       if (catRes.ok) {
         const c = await catRes.json();
+        // Hanya kategori unit — kategori lembaga khusus pimpinan
         const list: Category[] = (c.data || []).filter(
-          (x: any) => x.isActive !== false,
+          (x: any) => x.isActive !== false && x.unitId,
         );
         setCategories(list);
         if (!selectedCat && list.length > 0) setSelectedCat(list[0]);

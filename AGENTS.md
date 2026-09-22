@@ -82,6 +82,9 @@ cp .env.example .env.local
 #   Produksi hPanel : mysql://USER:PASS@localhost:3306/u826712707_alba
 # Runtime Node Hostinger TIDAK bisa konek ke srv594.hstgr.io (pool timeout
 # active=0/idle=0) — wajib pakai localhost di Environment Variables hPanel.
+# DILARANG `npx prisma db push` ke remote (drift: errno 150 FK cash_handovers
+# beda collation). Tabel baru dibuat manual via SQL (CREATE TABLE IF NOT
+# EXISTS + ALTER CONVERT utf8mb4_uca1400_ai_ci + ADD CONSTRAINT FK).
 
 # 3. Generate Prisma Client
 npx prisma generate

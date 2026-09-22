@@ -29,16 +29,18 @@ export function KpakCashSummary() {
   const [santriCount, setSantriCount] = useState(0);
   const [todayIn, setTodayIn] = useState(0);
   const [todayOut, setTodayOut] = useState(0);
+  const [shiftOn, setShiftOn] = useState<boolean | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
         const today = todayLocal();
-        const [stuRes, txRes] = await Promise.all([
+        const [stuRes, txRes, shiftRes] = await Promise.all([
           fetch("/api/savings/students"),
           fetch(
             `/api/transactions?startDate=${today}&endDate=${today}&limit=100`,
           ),
+          fetch("/api/kpak/shift").catch(() => null),
         ]);
         if (stuRes.ok) {
           const s = await stuRes.json();
@@ -65,6 +67,11 @@ export function KpakCashSummary() {
               .reduce((s: number, x: any) => s + Number(x.amount || 0), 0),
           );
         }
+        if (shiftRes && shiftRes.ok) {
+          const s = await shiftRes.json();
+          const mine = s.data?.mine;
+          setShiftOn(!!mine && !mine.checkOutAt);
+        }
       } catch {
         // ringkasan gagal — dashboard utama tetap tampil
       }
@@ -73,6 +80,16 @@ export function KpakCashSummary() {
   }, []);
 
   return (
+    <div className="space-y-4">
+    {shiftOn === false && (
+      <Link
+        href="/dashboard/kpak/shift"
+        className="flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm"
+      >
+        <span className="font-medium">Belum check-in shift hari ini</span>
+        <span className="font-semibold text-primary">Check-in →</span>
+      </Link>
+    )}
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <Link
         href="/dashboard/kpak/students"
@@ -123,6 +140,7 @@ export function KpakCashSummary() {
           </div>
         </div>
       </Link>
+    </div>
     </div>
   );
 }

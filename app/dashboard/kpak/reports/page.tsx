@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -9,6 +9,7 @@ import {
   Loader2,
   Printer,
   Scale,
+  GraduationCap,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -21,11 +22,12 @@ const formatCurrency = (amount: number) =>
     minimumFractionDigits: 0,
   }).format(amount);
 
-// Tanggal lokal (WIB) — jangan pakai toISOString (UTC) agar default
-// harian tidak meleset pada 00:00–07:00 WIB
+// Tanggal lokal (WIB)
 const todayStr = (d: Date = new Date()) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
+
+type Tab = "tabungan" | "administrasi" | "internal";
 
 interface Tx {
   id: string;
@@ -34,6 +36,8 @@ interface Tx {
   description: string;
   date: string;
   status: string;
+  categoryId?: string | null;
+  categoryName?: string | null;
   category?: { name: string } | null;
 }
 
@@ -45,6 +49,15 @@ interface SavingTx {
   createdAt: string;
 }
 
+interface Category {
+  id: string;
+  code: string;
+  type: string;
+}
+
+const catName = (t: Tx) =>
+  t.categoryName || t.category?.name || "Tanpa kategori";
+
 export default function KpakReportsPage() {
   usePageGuard([], {
     allow: (u) =>
@@ -54,20 +67,23 @@ export default function KpakReportsPage() {
         u?.unitIsRetail !== true),
   });
 
+  const [tab, setTab] = useState<Tab>("tabungan");
   const [startDate, setStartDate] = useState(todayStr());
   const [endDate, setEndDate] = useState(todayStr());
   const [txs, setTxs] = useState<Tx[]>([]);
   const [savings, setSavings] = useState<SavingTx[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [txRes, svRes] = await Promise.all([
+      const [txRes, svRes, catRes] = await Promise.all([
         fetch(
           `/api/transactions?startDate=${startDate}&endDate=${endDate}&limit=200`,
         ),
         fetch(`/api/savings/transactions?limit=200`),
+        fetch("/api/financial-categories"),
       ]);
       if (txRes.ok) {
         const t = await txRes.json();
@@ -83,6 +99,10 @@ export default function KpakReportsPage() {
           }),
         );
       }
+      if (catRes.ok) {
+        const c = await catRes.json();
+        setCategories(c.data || []);
+      }
     } catch {
       toast.error("Gagal memuat laporan");
     } finally {
@@ -94,19 +114,45 @@ export default function KpakReportsPage() {
     fetchData();
   }, [fetchData]);
 
-  const income = txs
-    .filter((t) => t.type === "INCOME" && t.status !== "REJECTED")
-    .reduce((s, t) => s + Number(t.amount || 0), 0);
-  const expense = txs
-    .filter((t) => t.type === "EXPENSE" && t.status !== "REJECTED")
-    .reduce((s, t) => s + Number(t.amount || 0), 0);
-  const savingsIn = savings
-    .filter((t) => t.type === "DEPOSIT")
-    .reduce((s, t) => s + Number(t.amount || 0), 0);
-  const savingsOut = savings
-    .filter((t) => t.type === "WITHDRAWAL")
-    .reduce((s, t) => s + Number(t.amount || 0), 0);
-  const net = income - expense;
+  // Kategori administrasi santri = INCOME kecuali Uang Masuk Internal (IN-IN)
+  const adminCatIds = useMemo(
+    () =>
+      new Set(
+        categories
+          .filter((c) => c.type === "INCOME" && !c.code.endsWith("-IN-IN"))
+          .map((c) => c.id),
+      ),
+    [categories],
+  );
+
+  const valid = useMemo(
+    () => txs.filter((t) => t.status !== "REJECTED"),
+    [txs],
+  );
+  const adminTxs = useMemo(
+    () =>
+      valid.filter(
+        (t) => t.type === "INCOME" && t.categoryId && adminCatIds.has(t.categoryId),
+      ),
+    [valid, adminCatIds],
+  );
+  const internalTxs = useMemo(
+    () =>
+      valid.filter(
+        (t) =>
+          t.type === "EXPENSE" ||
+          (t.type === "INCOME" && !(t.categoryId && adminCatIds.has(t.categoryId))),
+      ),
+    [valid, adminCatIds],
+  );
+
+  const sum = (list: { amount: number | string }[]) =>
+    list.reduce((s, x) => s + Number(x.amount || 0), 0);
+  const savingsIn = sum(savings.filter((t) => t.type === "DEPOSIT"));
+  const savingsOut = sum(savings.filter((t) => t.type === "WITHDRAWAL"));
+  const adminTotal = sum(adminTxs);
+  const internalIn = sum(internalTxs.filter((t) => t.type === "INCOME"));
+  const internalOut = sum(internalTxs.filter((t) => t.type === "EXPENSE"));
 
   const setPreset = (preset: "today" | "week" | "month") => {
     const end = new Date();
@@ -117,14 +163,49 @@ export default function KpakReportsPage() {
     setEndDate(todayStr(end));
   };
 
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "tabungan", label: "Laporan Tabungan" },
+    { id: "administrasi", label: "HER & Daftar Ulang" },
+    { id: "internal", label: "Dana Internal" },
+  ];
+
+  const txRow = (t: Tx) => (
+    <div
+      key={t.id}
+      className="flex items-center justify-between gap-3 py-2.5 text-sm"
+    >
+      <div className="min-w-0">
+        <p className="truncate font-medium">{t.description}</p>
+        <p className="text-xs text-muted-foreground">
+          {catName(t)} ·{" "}
+          {new Date(t.date).toLocaleDateString("id-ID", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })}{" "}
+          · {t.status}
+        </p>
+      </div>
+      <p
+        className={`shrink-0 font-semibold ${
+          t.type === "INCOME"
+            ? "text-emerald-600 dark:text-emerald-400"
+            : "text-rose-600 dark:text-rose-400"
+        }`}
+      >
+        {t.type === "INCOME" ? "+" : "-"}
+        {formatCurrency(Number(t.amount))}
+      </p>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Rekap & Laporan</h1>
           <p className="text-sm text-muted-foreground">
-            Rekap transaksi KPAK — default harian, siap dibawa manghadap
-            pimpinan
+            Laporan SOP harian KPAK — siap dibawa manghadap pimpinan
           </p>
         </div>
         <button
@@ -135,7 +216,6 @@ export default function KpakReportsPage() {
         </button>
       </div>
 
-      {/* Filter */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-4">
         <div className="flex gap-1">
           <button
@@ -172,6 +252,22 @@ export default function KpakReportsPage() {
         />
       </div>
 
+      <div className="flex gap-2">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium ${
+              tab === t.id
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted hover:bg-muted/70"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <p className="py-10 text-center text-sm text-muted-foreground">
           <Loader2 size={18} className="mx-auto mb-2 animate-spin" />
@@ -179,145 +275,156 @@ export default function KpakReportsPage() {
         </p>
       ) : (
         <>
-          {/* Ringkasan */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <div className="rounded-xl border bg-card p-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp size={16} className="text-emerald-600" />
-                <p className="text-xs text-muted-foreground">Pemasukan</p>
+          {tab === "tabungan" && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-xl border bg-card p-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={16} className="text-emerald-600" />
+                    <p className="text-xs text-muted-foreground">Setoran</p>
+                  </div>
+                  <p className="mt-1 text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(savingsIn)}
+                  </p>
+                </div>
+                <div className="rounded-xl border bg-card p-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown size={16} className="text-rose-600" />
+                    <p className="text-xs text-muted-foreground">Penarikan</p>
+                  </div>
+                  <p className="mt-1 text-lg font-bold text-rose-600 dark:text-rose-400">
+                    {formatCurrency(savingsOut)}
+                  </p>
+                </div>
               </div>
-              <p className="mt-1 text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                {formatCurrency(income)}
-              </p>
-            </div>
-            <div className="rounded-xl border bg-card p-4">
-              <div className="flex items-center gap-2">
-                <TrendingDown size={16} className="text-rose-600" />
-                <p className="text-xs text-muted-foreground">Pengeluaran</p>
+              <div className="rounded-xl border bg-card p-5">
+                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <PiggyBank size={15} /> Mutasi Tabungan ({savings.length})
+                </h2>
+                {savings.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    Tidak ada mutasi pada periode ini
+                  </p>
+                ) : (
+                  <div className="divide-y">
+                    {savings.map((t) => (
+                      <div
+                        key={t.id}
+                        className="flex items-center justify-between py-2.5 text-sm"
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {t.type === "DEPOSIT" ? "Setoran" : "Penarikan"}
+                            {t.description ? ` — ${t.description}` : ""}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(t.createdAt).toLocaleDateString("id-ID", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        <p
+                          className={`font-semibold ${
+                            t.type === "DEPOSIT"
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {t.type === "DEPOSIT" ? "+" : "-"}
+                          {formatCurrency(Number(t.amount))}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <p className="mt-1 text-lg font-bold text-rose-600 dark:text-rose-400">
-                {formatCurrency(expense)}
-              </p>
-            </div>
-            <div className="rounded-xl border bg-card p-4">
-              <div className="flex items-center gap-2">
-                <Scale size={16} className="text-primary" />
-                <p className="text-xs text-muted-foreground">Selisih (Net)</p>
-              </div>
-              <p className="mt-1 text-lg font-bold">{formatCurrency(net)}</p>
-            </div>
-            <div className="rounded-xl border bg-card p-4">
-              <div className="flex items-center gap-2">
-                <PiggyBank size={16} className="text-blue-600" />
-                <p className="text-xs text-muted-foreground">Tabungan</p>
-              </div>
-              <p className="mt-1 text-sm font-bold">
-                <span className="text-emerald-600">+{formatCurrency(savingsIn)}</span>{" "}
-                <span className="text-rose-600">-{formatCurrency(savingsOut)}</span>
-              </p>
-            </div>
-          </div>
+            </>
+          )}
 
-          {/* Rincian transaksi kas */}
-          <div className="rounded-xl border bg-card p-5">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <Wallet size={15} /> Rincian Transaksi Kas ({txs.length})
-            </h2>
-            {txs.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">
-                Tidak ada transaksi pada periode ini
-              </p>
-            ) : (
-              <div className="divide-y">
-                {txs.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center justify-between py-2.5 text-sm"
-                  >
-                    <div>
-                      <p className="font-medium">{t.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {t.category?.name || t.type} ·{" "}
-                        {new Date(t.date).toLocaleDateString("id-ID", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}{" "}
-                        · {t.status}
-                      </p>
-                    </div>
-                    <p
-                      className={`font-semibold ${
-                        t.type === "INCOME"
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-rose-600 dark:text-rose-400"
-                      }`}
-                    >
-                      {t.type === "INCOME" ? "+" : "-"}
-                      {formatCurrency(Number(t.amount))}
+          {tab === "administrasi" && (
+            <>
+              <div className="rounded-xl border bg-card p-5">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-emerald-500/10 p-2.5">
+                    <GraduationCap
+                      size={20}
+                      className="text-emerald-600 dark:text-emerald-400"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Total HER, Daftar Ulang & Pendaftaran
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {formatCurrency(adminTotal)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {adminTxs.length} pembayaran
                     </p>
                   </div>
-                ))}
+                </div>
               </div>
-            )}
-          </div>
+              <div className="rounded-xl border bg-card p-5">
+                <h2 className="mb-3 text-sm font-semibold">Rincian Pembayaran</h2>
+                {adminTxs.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    Tidak ada pembayaran administrasi pada periode ini
+                  </p>
+                ) : (
+                  <div className="divide-y">{adminTxs.map(txRow)}</div>
+                )}
+              </div>
+            </>
+          )}
 
-          {/* Mutasi tabungan */}
-          <div className="rounded-xl border bg-card p-5">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <PiggyBank size={15} /> Mutasi Tabungan Santri ({savings.length})
-            </h2>
-            {savings.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">
-                Tidak ada mutasi tabungan pada periode ini
-              </p>
-            ) : (
-              <div className="divide-y">
-                {savings.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center justify-between py-2.5 text-sm"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {t.type === "DEPOSIT" ? "Setoran" : "Penarikan"}
-                        {t.description ? ` — ${t.description}` : ""}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(t.createdAt).toLocaleDateString("id-ID", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                    <p
-                      className={`font-semibold ${
-                        t.type === "DEPOSIT"
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-rose-600 dark:text-rose-400"
-                      }`}
-                    >
-                      {t.type === "DEPOSIT" ? "+" : "-"}
-                      {formatCurrency(Number(t.amount))}
-                    </p>
+          {tab === "internal" && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-xl border bg-card p-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={16} className="text-emerald-600" />
+                    <p className="text-xs text-muted-foreground">Masuk</p>
                   </div>
-                ))}
+                  <p className="mt-1 text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(internalIn)}
+                  </p>
+                </div>
+                <div className="rounded-xl border bg-card p-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown size={16} className="text-rose-600" />
+                    <p className="text-xs text-muted-foreground">Keluar</p>
+                  </div>
+                  <p className="mt-1 text-lg font-bold text-rose-600 dark:text-rose-400">
+                    {formatCurrency(internalOut)}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
+              <div className="rounded-xl border bg-card p-5">
+                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <Wallet size={15} /> Dana Internal ({internalTxs.length})
+                </h2>
+                {internalTxs.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    Tidak ada transaksi internal pada periode ini
+                  </p>
+                ) : (
+                  <div className="divide-y">{internalTxs.map(txRow)}</div>
+                )}
+              </div>
+            </>
+          )}
 
-          {/* Rekonsiliasi shortcut */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed bg-card p-5">
             <div className="text-sm">
-              <p className="font-semibold">
-                Samakan catatan dengan uang cash sebelum manghadap pimpinan
+              <p className="flex items-center gap-2 font-semibold">
+                <Scale size={15} /> Samakan catatan dengan uang cash
               </p>
               <p className="text-muted-foreground">
-                Buka Rekonsiliasi untuk mencocokkan sistem vs cash fisik, lalu
-                serahkan via Serah Terima Kas.
+                Rekonsiliasi dulu, lalu serahkan kas + laporan ini ke pimpinan.
               </p>
             </div>
             <div className="flex gap-2">

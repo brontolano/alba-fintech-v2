@@ -44,6 +44,9 @@ model Unit {
   cash_handovers      CashHandover[]
   inventory_items     InventoryItem[]
   transactions        Transaction[]
+  shift_attendances   ShiftAttendance[]
+  shift_reports       ShiftReport[]
+  budget_allocations  BudgetAllocation[]
   lembaga             Lembaga?             @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "units_ibfk_1")
   users               User[]
 
@@ -77,6 +80,10 @@ model User {
   transactions_transactions_approvedByIdTousers         Transaction[]        @relation("transactions_approvedByIdTousers")
   handoverSubmitted                                      CashHandover[]       @relation("handoverSubmitted")
   handoverAccepted                                       CashHandover[]       @relation("handoverAccepted")
+  shiftAttendanceUser                                    ShiftAttendance[]    @relation("shiftAttendanceUser")
+  shiftReportStaff                                       ShiftReport[]        @relation("shiftReportStaff")
+  shiftReportReviewer                                    ShiftReport[]        @relation("shiftReportReviewer")
+  allocationCreator                                      BudgetAllocation[]   @relation("allocationCreator")
   units                                                 Unit?                @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "users_ibfk_1")
   lembagas                                              Lembaga?             @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "users_ibfk_2")
 
@@ -157,6 +164,7 @@ model FinancialCategory {
   unit                       Unit?               @relation(fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "financial_categories_ibfk_3")
   financial_notes            FinancialNote[]
   transactions               Transaction[]
+  budget_allocations         BudgetAllocation[]
 
   @@index([lembagaId], map: "lembagaId")
   @@index([unitId], map: "unitId")
@@ -535,4 +543,71 @@ enum BroadcastStatus {
   FAILED
 
   @@map("broadcast_status")
+}
+
+model ShiftAttendance {
+  id         String    @id @default(cuid()) @db.VarChar(36)
+  unitId     String    @db.VarChar(36)
+  userId     String    @db.VarChar(36)
+  date       DateTime  @db.DateTime(0)
+  checkInAt  DateTime  @db.DateTime(0)
+  checkOutAt DateTime? @db.DateTime(0)
+  late       Boolean   @default(false)
+  note       String?   @db.Text
+  createdAt  DateTime? @default(now()) @db.DateTime(0)
+  units      Unit      @relation(fields: [unitId], references: [id], onUpdate: Restrict)
+  user       User      @relation("shiftAttendanceUser", fields: [userId], references: [id], onUpdate: Restrict)
+
+  @@unique([unitId, userId, date], map: "shift_attendance_unit_user_date_key")
+  @@index([unitId], map: "shift_attendance_unitId")
+  @@index([userId], map: "shift_attendance_userId")
+  @@map("shift_attendances")
+}
+
+model ShiftReport {
+  id                 String            @id @default(cuid()) @db.VarChar(36)
+  unitId             String            @db.VarChar(36)
+  userId             String            @db.VarChar(36)
+  date               DateTime          @db.DateTime(0)
+  cashIncomeCounted  Decimal           @db.Decimal(15, 2)
+  cashExpenseCounted Decimal           @db.Decimal(15, 2)
+  note               String?           @db.Text
+  status             ShiftReportStatus @default(SUBMITTED)
+  submittedAt        DateTime          @default(now()) @db.DateTime(0)
+  reviewedById       String?           @db.VarChar(36)
+  reviewedAt         DateTime?         @db.DateTime(0)
+  units              Unit              @relation(fields: [unitId], references: [id], onUpdate: Restrict)
+  staff              User              @relation("shiftReportStaff", fields: [userId], references: [id], onUpdate: Restrict)
+  reviewer           User?             @relation("shiftReportReviewer", fields: [reviewedById], references: [id], onUpdate: Restrict)
+
+  @@unique([unitId, userId, date], map: "shift_reports_unit_user_date_key")
+  @@index([unitId], map: "shift_reports_unitId")
+  @@index([status], map: "shift_reports_status")
+  @@map("shift_reports")
+}
+
+model BudgetAllocation {
+  id          String            @id @default(cuid()) @db.VarChar(36)
+  unitId      String            @db.VarChar(36)
+  categoryId  String            @db.VarChar(36)
+  period      String            @db.VarChar(7)
+  amount      Decimal           @db.Decimal(15, 2)
+  note        String?           @db.Text
+  isActive    Boolean?          @default(true)
+  createdById String            @db.VarChar(36)
+  createdAt   DateTime?         @default(now()) @db.DateTime(0)
+  units       Unit              @relation(fields: [unitId], references: [id], onUpdate: Restrict)
+  category    FinancialCategory @relation(fields: [categoryId], references: [id], onUpdate: Restrict)
+  creator     User              @relation("allocationCreator", fields: [createdById], references: [id], onUpdate: Restrict)
+
+  @@unique([unitId, categoryId, period], map: "budget_allocations_unit_cat_period_key")
+  @@index([unitId], map: "budget_allocations_unitId")
+  @@map("budget_allocations")
+}
+
+enum ShiftReportStatus {
+  SUBMITTED
+  ACCEPTED
+
+  @@map("shift_report_status")
 }
