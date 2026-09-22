@@ -26,6 +26,7 @@ import {
   FileText,
   Send,
   CreditCard,
+  Tags,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -166,6 +167,13 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/dashboard/kpak/students",
         icon: <BookOpen size={20} />,
         roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+        kpakOnly: true,
+      },
+      {
+        label: "Kategori Layanan",
+        href: "/dashboard/settings/categories",
+        icon: <Tags size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
         kpakOnly: true,
       },
     ],
