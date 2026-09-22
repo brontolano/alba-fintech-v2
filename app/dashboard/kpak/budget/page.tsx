@@ -56,8 +56,7 @@ export default function KpakBudgetPage() {
     allow: (u) =>
       u?.role === "SUPERADMIN" ||
       u?.role === "PIMPINAN" ||
-      ((u?.role === "MANAGER" || u?.role === "STAFF") &&
-        u?.unitIsRetail !== true),
+      (u?.role === "MANAGER" && u?.unitIsRetail !== true),
   });
 
   const [categories, setCategories] = useState<Category[]>([]);

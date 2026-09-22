@@ -4,18 +4,12 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
 
 const DEFAULTS: { name: string; suffix: string; type: "INCOME" | "EXPENSE" }[] = [
-  // Pemasukan layanan santri
+  // Administrasi santri (masuk)
   { name: "HER / SPP", suffix: "HER", type: "INCOME" },
   { name: "Daftar Ulang", suffix: "DAFUL", type: "INCOME" },
-  { name: "Pendaftaran Santri", suffix: "DAFTAR", type: "INCOME" },
-  // Pemasukan internal (kembalian, pengembalian, dll)
-  { name: "Uang Masuk Internal", suffix: "IN-IN", type: "INCOME" },
-  // Pengeluaran internal
-  { name: "Operasional", suffix: "OPS", type: "EXPENSE" },
-  { name: "Belanja", suffix: "BELANJA", type: "EXPENSE" },
-  { name: "Gaji & Honor", suffix: "GAJI", type: "EXPENSE" },
-  { name: "Pemeliharaan", suffix: "HARWAT", type: "EXPENSE" },
-  { name: "Pengeluaran Internal", suffix: "IN-OUT", type: "EXPENSE" },
+  // Keuangan internal (masuk/keluar)
+  { name: "Transaksi Internal", suffix: "IN-IN", type: "INCOME" },
+  { name: "Transaksi Internal", suffix: "IN-OUT", type: "EXPENSE" },
 ];
 
 /**
@@ -64,7 +58,16 @@ export async function POST(request: NextRequest) {
     const exists = await prisma.financialCategory.findUnique({
       where: { code },
     });
-    if (exists) continue;
+    if (exists) {
+      // Sinkronkan nama default bila kode cocok tapi nama diubah manual
+      if (exists.name !== d.name || exists.type !== d.type) {
+        await prisma.financialCategory.update({
+          where: { code },
+          data: { name: d.name, type: d.type },
+        });
+      }
+      continue;
+    }
     await prisma.financialCategory.create({
       data: {
         name: d.name,

@@ -207,7 +207,7 @@ const NAV_GROUPS: NavGroup[] = [
         label: "Pengajuan Anggaran",
         href: "/dashboard/kpak/budget",
         icon: <Send size={20} />,
-        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER"],
         kpakOnly: true,
       },
       {
