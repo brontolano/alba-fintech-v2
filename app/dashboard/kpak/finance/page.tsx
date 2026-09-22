@@ -7,8 +7,6 @@ import {
   Loader2,
   Wallet,
   Settings2,
-  TrendingUp,
-  TrendingDown,
   ArrowDownRight,
   ArrowUpRight,
 } from "lucide-react";
@@ -464,6 +462,30 @@ export default function KpakFinancePage() {
     { id: "TABUNGAN", label: "Tabungan", hint: "Potong saldo" },
   ];
 
+  // Ringkasan hari ini — tampil SETELAH form pencatatan
+  const summaryCards = (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="rounded-xl border bg-card p-4">
+        <p className="text-xs text-muted-foreground">Layanan hari ini</p>
+        <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">
+          {formatCurrency(santriToday)}
+        </p>
+      </div>
+      <div className="rounded-xl border bg-card p-4">
+        <p className="text-xs text-muted-foreground">Internal masuk</p>
+        <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">
+          {formatCurrency(todayIn)}
+        </p>
+      </div>
+      <div className="rounded-xl border bg-card p-4">
+        <p className="text-xs text-muted-foreground">Internal keluar</p>
+        <p className="mt-1 text-xl font-bold text-rose-600 dark:text-rose-400">
+          {formatCurrency(todayOut)}
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -481,27 +503,6 @@ export default function KpakFinancePage() {
             <Settings2 size={16} /> Kelola Kategori
           </Link>
         )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Layanan hari ini</p>
-          <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">
-            {formatCurrency(santriToday)}
-          </p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Internal masuk</p>
-          <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">
-            {formatCurrency(todayIn)}
-          </p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Internal keluar</p>
-          <p className="mt-1 text-xl font-bold text-rose-600 dark:text-rose-400">
-            {formatCurrency(todayOut)}
-          </p>
-        </div>
       </div>
 
       <div className="flex gap-2">
@@ -674,11 +675,13 @@ export default function KpakFinancePage() {
                   ) : (
                     <CreditCard size={16} />
                   )}
-                  {saving ? "Memproses..." : "Catat Pembayaran"}
-                </button>
+                {saving ? "Memproses..." : "Catat Pembayaran"}
+              </button>
               </>
             )}
           </form>
+
+          {summaryCards}
 
           <div className="rounded-xl border bg-card p-5">
             <h2 className="mb-3 text-sm font-semibold">Pembayaran Terakhir</h2>
@@ -817,15 +820,17 @@ export default function KpakFinancePage() {
                   ) : (
                     <Wallet size={16} />
                   )}
-                  {intSaving
-                    ? "Memproses..."
-                    : txType === "INCOME"
-                      ? "Catat Uang Masuk"
-                      : "Catat Pengeluaran"}
-                </button>
+                {intSaving
+                  ? "Memproses..."
+                  : txType === "INCOME"
+                    ? "Catat Uang Masuk"
+                    : "Catat Pengeluaran"}
+              </button>
               </>
             )}
           </form>
+
+          {summaryCards}
 
           <div className="rounded-xl border bg-card p-5">
             <h2 className="mb-3 text-sm font-semibold">
@@ -872,16 +877,6 @@ export default function KpakFinancePage() {
                 ))}
               </div>
             )}
-            <div className="mt-3 flex items-center gap-4 rounded-lg bg-muted/50 p-3 text-sm">
-              <span className="inline-flex items-center gap-1">
-                <TrendingUp size={14} className="text-emerald-600" />
-                Masuk hari ini: {formatCurrency(todayIn)}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <TrendingDown size={14} className="text-rose-600" />
-                Keluar: {formatCurrency(todayOut)}
-              </span>
-            </div>
           </div>
         </>
       )}
