@@ -273,3 +273,18 @@ API + DB + UI) per iterasi ketiga (Sept 2026):
   (relasi Transaction), limits memakai `unitId IN (unit lembaga)`.
 
 Verifikasi: `npx tsc --noEmit` bersih, `npm test` 67/67 hijau.
+
+### Inventaris: pemisahan Barang Pondok vs Barang Titipan
+Inventory retail membedakan dua jenis barang agar stok tidak kotor:
+
+| Jenis | Sumber stok | Kelola di | API |
+|-------|-------------|-----------|-----|
+| **Barang Pondok** (unit) | stok ritel non-titipan | `app/dashboard/retail/inventory` (halaman beku) | `GET /api/inventory` + `POST /api/retail/inventory?action=stock-in\|stocktake` (scoped unit, stok tak boleh negatif) |
+| **Barang Titipan** (UMKM) | stok milik pemilik titipan | `app/dashboard/retail/inventory/barang-titipan` (file baru) | `GET/POST /api/retail/consignments/items`, `PATCH /items/[id]`, `DELETE /items/[id]`, `GET /api/retail/consignments/owners` |
+
+- `InventoryItem` memiliki relasi one-to-one ke `ConsignmentItem` (field `consignment_item`). Barang Titipan = InventoryItem yang mempunyai `consignment_item`; Barang Pondok = InventoryItem tanpa `consignment_item`.
+- Karena `app/dashboard/retail/inventory/page.tsx` dan `/api/inventory` termasuk **permukaan beku** (`RETAIL-STAFF-FREEZE.md`), pemisahan dilakukan lewat **file halaman baru** — bukan perubahan pada yang beku.
+- Di halaman Barang Titipan, setiap baris menampilkan `inventory.currentStock` (sumber stok tunggal yang diperbarui oleh stock-in/stocktake retail dan penerimaan barang titipan via consignment item upsert).
+- Flow harian: 1) Terima barang titipan → buat `InventoryItem` + `ConsignmentItem` (harga pakai agreed); 2) Jual via POS memakai `InventoryItem.currentStock`; 3) Stocktake pada halaman inventory beku menyesuaikan stok secara konsisten; 4) Laporan & serah terima ke pemilik di `konsinyasi`.
+
+Catatan: agar konsisten, sebaiknya semua stok ditambahkan melalui satu kanal (`POST /api/retail/inventory?action=stock-in`) sehingga `currentStock` tunggal selalu konsisten antara pondok dan titipan.
