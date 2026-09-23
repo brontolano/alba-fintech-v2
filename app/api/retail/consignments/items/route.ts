@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     include: {
       owners: { select: { id: true, name: true } },
       inventoryItems: {
-        select: { id: true, name: true, sku: true, currentStock: true, unitPrice: true },
+        select: { id: true, name: true, sku: true, currentStock: true, unitPrice: true, imageUrl: true },
       },
     },
     orderBy: { createdAt: "desc" },

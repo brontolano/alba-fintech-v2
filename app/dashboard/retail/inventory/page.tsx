@@ -223,17 +223,26 @@ export default function RetailInventoryPage() {
         {countingMode ? (
           <>
             <div className="max-h-80 space-y-2 overflow-y-auto">
-              {items.map((i) => (
-                <div key={i.id} className="flex items-center justify-between gap-3 text-sm">
-                  <div className="min-w-0">
-                  <p className="truncate font-medium">
-                    {i.name}
-                    {(i as any).isConsignment && (
-                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
-                        UMKM
-                      </span>
-                    )}
-                  </p>
+             {items.map((i) => (
+               <div key={i.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                 <div className="min-w-0">
+                   <p className="truncate font-medium">
+                     {i.name}
+                     {(i as any).isConsignment && (
+                       <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                         UMKM
+                       </span>
+                     )}
+                   </p>
+                   {(i as any).imageUrl ? (
+                     <img
+                       src={(i as any).imageUrl}
+                       alt={i.name}
+                       className="mt-0.5 h-8 w-8 rounded border object-cover"
+                     />
+                   ) : (
+                     <span className="mt-0.5 block h-8 w-8 shrink-0 rounded border bg-muted" />
+                   )}
                     <p className="text-xs text-muted-foreground">catat: {i.currentStock}</p>
                   </div>
                   <input

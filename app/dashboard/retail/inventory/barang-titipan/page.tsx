@@ -39,6 +39,7 @@ type ConsItem = {
     sku?: string;
     currentStock?: number;
     unitPrice?: number;
+    imageUrl?: string;
   } | null;
 };
 
@@ -508,9 +509,20 @@ export default function BarangTitipanPage() {
                 }`}
               >
                 <div className="min-w-0">
-                  <p className="font-medium">
-                    {it.inventory?.name || "—"} ({it.ownerName})
-                  </p>
+                  <div className="flex items-center gap-2">
+                    {it.inventory?.imageUrl ? (
+                      <img
+                        src={it.inventory?.imageUrl}
+                        alt={it.inventory?.name || "barang"}
+                        className="h-8 w-8 rounded border object-cover"
+                      />
+                    ) : (
+                      <span className="h-8 w-8 shrink-0 rounded border bg-muted" />
+                    )}
+                    <p className="truncate font-medium">
+                      {it.inventory?.name || "—"} ({it.ownerName})
+                    </p>
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     SKU {it.inventory?.sku ?? "—"} · stok{" "}
                     {it.inventory?.currentStock ?? 0}
