@@ -13,6 +13,7 @@ import {
   Receipt,
   Package,
   ScanLine,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
@@ -550,6 +551,13 @@ export default function POSPage() {
         <p className="text-sm text-muted-foreground">
           Penjualan - Unit Toko/Retail
         </p>
+        <button
+          onClick={() => router.push("/dashboard/pos/shift")}
+          className="flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
+        >
+          <Clock size={16} />
+          Shift Kasir
+        </button>
       </div>
 
       {isManager && (
