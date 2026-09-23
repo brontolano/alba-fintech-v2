@@ -72,6 +72,7 @@ export default function CloseDayPage() {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [cashCounted, setCashCounted] = useState("");
   const [closing, setClosing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [done, setDone] = useState(false);
   const [handoverStatus, setHandoverStatus] = useState<string | null>(null);
 
@@ -125,13 +126,18 @@ export default function CloseDayPage() {
   const variance =
     preview && cashCounted !== "" ? Number(cashCounted) - preview.expected : null;
 
+  // Konfirmasi dua ketuk (tanpa dialog browser) agar ramah di HP.
   const doClose = async () => {
     if (cashCounted === "" || Number(cashCounted) < 0 || Number.isNaN(Number(cashCounted))) {
       toast.error("Isi hitung fisik laci dulu (angka ≥ 0)");
       return;
     }
-    if (!confirm(`Tutup hari ini dengan kas fisik ${formatCurrency(Number(cashCounted))}?`))
+    if (!confirming) {
+      setConfirming(true);
+      setTimeout(() => setConfirming(false), 4000);
       return;
+    }
+    setConfirming(false);
     setClosing(true);
     try {
       const res = await fetch("/api/kpak/reconcile", {
@@ -315,14 +321,20 @@ export default function CloseDayPage() {
               type="button"
               onClick={doClose}
               disabled={closing}
-              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+              className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50 ${
+                confirming ? "bg-rose-600" : "bg-primary"
+              }`}
             >
               {closing ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 <ClipboardCheck size={16} />
               )}
-              {closing ? "Menutup..." : "Tutup Hari Ini"}
+              {closing
+                ? "Menutup..."
+                : confirming
+                  ? `Ketuk lagi: tutup dengan ${formatCurrency(Number(cashCounted || 0))}?`
+                  : "Tutup Hari Ini"}
             </button>
           </div>
         </div>

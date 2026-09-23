@@ -9,12 +9,10 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Loader2,
-  BookOpen,
-  CreditCard,
-  FileText,
   BarChart3,
-  Send,
-  Scale,
+  LayoutDashboard,
+  Clock,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -192,13 +190,14 @@ export function KpakManagerDashboard() {
     load();
   }, []);
 
+  // Akses cepat mengikuti IA final: 1 nama 1 tujuan (lihat Pusat Kerja).
   const actions: QuickAccessAction[] = [
-    { href: "/dashboard/kpak/students", icon: BookOpen, label: "Santri", color: "blue" },
-    { href: "/dashboard/savings", icon: Wallet, label: "Tabungan", color: "green" },
-    { href: "/dashboard/kpak/finance", icon: CreditCard, label: "Layanan", color: "orange" },
-    { href: "/dashboard/kpak/budget", icon: Send, label: "Anggaran", color: "purple" },
-    { href: "/dashboard/kpak/reports", icon: BarChart3, label: "Rekap", color: "accent" },
-    { href: "/dashboard/reconciliation", icon: Scale, label: "Rekonsiliasi", color: "amber" },
+    { href: "/dashboard/kpak/workflow", icon: LayoutDashboard, label: "Pusat Kerja", color: "accent" },
+    { href: "/dashboard/kpak/review", icon: ClipboardList, label: "Perlu Keputusan", color: "amber" },
+    { href: "/dashboard/kpak/close-day", icon: Clock, label: "Tutup Hari", color: "blue" },
+    { href: "/dashboard/kpak/crew", icon: Users, label: "Kru & Kinerja", color: "islamic" },
+    { href: "/dashboard/kpak/my-budget", icon: Wallet, label: "Anggaran Saya", color: "green" },
+    { href: "/dashboard/kpak/reports", icon: BarChart3, label: "Rekap", color: "slate" },
   ];
 
   return (
@@ -302,7 +301,7 @@ export function KpakManagerDashboard() {
 
       {pendingReports > 0 && (
         <Link
-          href="/dashboard/kpak/shift"
+          href="/dashboard/kpak/review"
           className="flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm"
         >
           <span className="font-medium">
