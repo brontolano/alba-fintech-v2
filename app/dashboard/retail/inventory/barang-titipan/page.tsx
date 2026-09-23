@@ -100,6 +100,9 @@ export default function BarangTitipanPage() {
 
   const unitParam =
     r === "SUPERADMIN" || r === "PIMPINAN" ? selUnit : undefined;
+  // PIMPINAN/SUPERADMIN wajib pilih unit dulu; MANAGER/STAFF pakai unit sendiri secara implisit.
+  const needsUnitSelect =
+    (r === "SUPERADMIN" || r === "PIMPINAN") && !unitParam;
 
   const loadOwners = async () => {
     if (!unitParam) {
@@ -114,6 +117,12 @@ export default function BarangTitipanPage() {
   };
 
   const load = async () => {
+    if (needsUnitSelect) {
+      setItems([]);
+      setErr(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setErr(null);
     try {
@@ -134,15 +143,16 @@ export default function BarangTitipanPage() {
 
   useEffect(() => {
     loadOwners().catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unitParam]);
-
-  useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unitParam]);
 
   const openNew = () => {
+    if (needsUnitSelect) return;
+    if (owners.length === 0) {
+      setErr("Pilih unit / Daftar pemilik kosong — tambahkan pemilik dulu di Konsinyasi");
+      return;
+    }
     setMode("new");
     setForm({
       itemId: "",
@@ -296,37 +306,43 @@ export default function BarangTitipanPage() {
         pemilik ada di menu Konsinyasi.
       </p>
 
-      {(r === "SUPERADMIN" || r === "PIMPINAN") && (
-        <div className="flex items-end gap-2">
-          <label className="block text-xs font-medium">Unit</label>
-          <select
-            value={selUnit}
-            onChange={(e) => {
-              setSelUnit(e.target.value);
-              setItems([]);
-              setOwners([]);
-            }}
-            className="rounded-lg border bg-background px-3 py-2 text-sm"
-          >
-            <option value="">— Semua —</option>
-            {units.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={() => {
-              setSelUnit("");
-              setItems([]);
-              setOwners([]);
-            }}
-            className="rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold"
-          >
-            <RefreshCw size={13} /> Reset
-          </button>
-        </div>
-      )}
+        {(r === "SUPERADMIN" || r === "PIMPINAN") && (
+          <div className="flex items-end gap-2">
+            <label className="block text-xs font-medium">Unit</label>
+            <select
+              value={selUnit}
+              onChange={(e) => {
+                setSelUnit(e.target.value);
+                setItems([]);
+                setOwners([]);
+              }}
+              className="rounded-lg border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">— Pilih unit —</option>
+              {units.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => {
+                setSelUnit("");
+                setItems([]);
+                setOwners([]);
+              }}
+              className="rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold"
+            >
+              <RefreshCw size={13} /> Reset
+            </button>
+          </div>
+        )}
+
+        {needsUnitSelect && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-600">
+            Pilih unit dulu untuk melihat barang titipan di unit tersebut.
+          </div>
+        )}
 
       {err && (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-sm text-rose-600">
