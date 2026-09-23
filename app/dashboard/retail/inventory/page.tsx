@@ -36,6 +36,9 @@ export default function RetailInventoryPage() {
   // Form stock-in
   const [stockIn, setStockIn] = useState({ itemId: "", qty: "", unitPrice: "" });
 
+  // Filter: semua / pondok / titipan — menata inventory per-unit dengan jelas.
+  const [filter, setFilter] = useState<"all" | "pondok" | "titipan">("all");
+
   // Mode stocktake
   const [counting, setCounting] = useState<Record<string, number>>({});
   const [countingMode, setCountingMode] = useState(false);
@@ -44,7 +47,10 @@ export default function RetailInventoryPage() {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch("/api/inventory?limit=500");
+      const params = new URLSearchParams({ limit: "500" });
+      if (filter === "pondok") params.set("isConsignment", "false");
+      if (filter === "titipan") params.set("isConsignment", "true");
+      const res = await fetch(`/api/inventory?${params.toString()}`);
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Gagal memuat stok");
       const list = (body.data && Array.isArray(body.data) ? body.data : body.items || []) as Item[];
@@ -214,7 +220,14 @@ export default function RetailInventoryPage() {
               {items.map((i) => (
                 <div key={i.id} className="flex items-center justify-between gap-3 text-sm">
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{i.name}</p>
+                  <p className="truncate font-medium">
+                    {i.name}
+                    {(i as any).isConsignment && (
+                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                        UMKM
+                      </span>
+                    )}
+                  </p>
                     <p className="text-xs text-muted-foreground">catat: {i.currentStock}</p>
                   </div>
                   <input
@@ -245,9 +258,39 @@ export default function RetailInventoryPage() {
         )}
       </div>
 
+      {/* Filter Pondok / Titipan */}
+      <div className="flex items-center justify-end gap-1 text-xs">
+        <button
+          onClick={() => setFilter("all")}
+          className={`rounded-lg border bg-background px-2 py-1 ${
+            filter === "all" ? "border-primary bg-primary/10" : ""
+          }`}
+        >
+          Semua
+        </button>
+        <button
+          onClick={() => setFilter("pondok")}
+          className={`rounded-lg border bg-background px-2 py-1 ${
+            filter === "pondok" ? "border-primary bg-primary/10" : ""
+          }`}
+        >
+          Pondok
+        </button>
+        <button
+          onClick={() => setFilter("titipan")}
+          className={`rounded-lg border bg-background px-2 py-1 ${
+            filter === "titipan" ? "border-primary bg-primary/10" : ""
+          }`}
+        >
+          Titipan (UMKM)
+        </button>
+      </div>
+
       {/* Daftar stok */}
       <div className="rounded-xl border bg-card p-4">
-        <h2 className="mb-2 text-sm font-semibold">Daftar Barang ({items.length})</h2>
+        <h2 className="mb-2 text-sm font-semibold">
+          Daftar Barang ({items.length})
+        </h2>
         {loading ? (
           <div className="py-8 text-center text-muted-foreground">
             <Loader2 size={18} className="mx-auto animate-spin" />

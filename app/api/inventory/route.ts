@@ -26,6 +26,7 @@ const querySchema = z.object({
   category: z.string().optional(),
   search: z.string().optional(),
   isActive: z.string().optional(),
+  isConsignment: z.string().optional(),
   page: z.string().optional().transform((val) => (val ? parseInt(val) : 1)),
   limit: z.string().optional().transform((val) => (val ? parseInt(val) : 10)),
 });
@@ -105,12 +106,20 @@ export async function GET(request: NextRequest) {
     if (parsed.data.isActive !== undefined) {
       where.isActive = parsed.data.isActive === 'true';
     }
+    if (parsed.data.isConsignment === 'true') {
+      where.consignment_item = { is: { id: { not: null } } };
+    } else if (parsed.data.isConsignment === 'false') {
+      where.consignment_item = null;
+    }
 
     // Fetch inventory items (orderItems excluded to avoid heavy joins)
     const items = await prisma.inventoryItem.findMany({
       where,
       include: {
         units: true,
+        consignment_item: {
+          select: { id: true, ownerId: true },
+        },
       },
       orderBy: {
         name: 'asc',
@@ -122,7 +131,11 @@ export async function GET(request: NextRequest) {
     const total = await prisma.inventoryItem.count({ where });
 
     return NextResponse.json({
-      data: items,
+      data: items.map((i) => ({
+        ...i,
+        isConsignment: Boolean(i.consignment_item),
+        isConsignmentOwner: i.consignment_item?.ownerId ?? null,
+      })),
       summary: {
         total,
         pages: Math.ceil(total / parsed.data.limit),
