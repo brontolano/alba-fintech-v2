@@ -15,7 +15,7 @@
     "build": "npm run prisma:generate && next build",
     "start": "next start",
     "type-check": "tsc --noEmit",
-    "test": "tsx --test lib/modules/transactions/summary.test.ts lib/modules/approvals/scope.test.ts lib/modules/reports/scope.test.ts lib/modules/kpak/staff-freeze.test.ts",
+    "test": "tsx --test lib/modules/transactions/summary.test.ts lib/modules/approvals/scope.test.ts lib/modules/reports/scope.test.ts lib/modules/kpak/staff-freeze.test.ts lib/modules/kpak/manager-freeze.test.ts",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",
