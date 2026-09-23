@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
+import { startOfWibDay } from "@/lib/savings-limit";
 
 /**
  * POST /api/smartpay
@@ -113,7 +114,15 @@ export async function POST(request: NextRequest) {
     const student = await prisma.student.findUnique({
       where: { cardUid },
       include: {
-        account: { select: { id: true, balance: true, status: true, unitId: true } },
+        account: {
+          select: {
+            id: true,
+            balance: true,
+            status: true,
+            unitId: true,
+            dailySpendLimit: true,
+          },
+        },
       },
     });
 
@@ -130,12 +139,21 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
-    // Pastikan akun tabungan milik unit tempat transaksi terjadi.
+    // Batas pemakaian: akun tabungan boleh dipakai di unit asalnya ATAU
+    // di unit retail lain yang masih satu lembaga (tabungan KPAK).
     if (account.unitId !== unitId) {
-      return NextResponse.json(
-        { error: "Tabungan santri bukan milik unit ini" },
-        { status: 403 },
-      );
+      const accountUnit = await prisma.unit.findUnique({
+        where: { id: account.unitId },
+        select: { lembagaId: true },
+      });
+      const sameLembaga =
+        !!accountUnit?.lembagaId && accountUnit.lembagaId === unit.lembagaId;
+      if (!sameLembaga) {
+        return NextResponse.json(
+          { error: "Tabungan santri bukan milik unit ini" },
+          { status: 403 },
+        );
+      }
     }
 
     // ---- Validasi item + hitung total dari DB ----
@@ -202,15 +220,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ---- Batas belanja harian (WIB), default NOL = tanpa batas ----
+    const dailySpendLimit = Number(account.dailySpendLimit ?? 0);
+    if (dailySpendLimit > 0) {
+      const spentTodayAgg = await prisma.savingsTransaction.aggregate({
+        where: {
+          accountId: account.id,
+          type: "WITHDRAWAL",
+          channel: "SMART_CARD",
+          createdAt: { gte: startOfWibDay() },
+        },
+        _sum: { amount: true },
+      });
+      const spentToday = Number(spentTodayAgg._sum.amount ?? 0);
+      if (spentToday + total > dailySpendLimit) {
+        return NextResponse.json(
+          {
+            error: `Batas belanja harian Rp ${dailySpendLimit.toLocaleString(
+              "id-ID",
+            )} terlampaui (hari ini sudah Rp ${spentToday.toLocaleString(
+              "id-ID",
+            )})`,
+          },
+          { status: 409 },
+        );
+      }
+    }
+
     // ---- Transaksi atomik: debit saldo + pembukuan + stok ----
     const result = await prisma.$transaction(async (tx) => {
       // Re-check saldo di dalam transaksi (guard terakhir, hindari race).
       const acct = await tx.savingsAccount.findUnique({
         where: { id: account.id },
-        select: { balance: true, status: true },
+        select: { balance: true, status: true, dailySpendLimit: true },
       });
       if (!acct || acct.status !== "ACTIVE" || Number(acct.balance) < total) {
         throw new Error("SALDO_TIDAK_CUKUP");
+      }
+      // Re-check batas belanja harian di dalam transaksi.
+      const inTxLimit = Number(acct.dailySpendLimit ?? 0);
+      if (inTxLimit > 0) {
+        const spentInTxAgg = await tx.savingsTransaction.aggregate({
+          where: {
+            accountId: account.id,
+            type: "WITHDRAWAL",
+            channel: "SMART_CARD",
+            createdAt: { gte: startOfWibDay() },
+          },
+          _sum: { amount: true },
+        });
+        const spentInTx = Number(spentInTxAgg._sum.amount ?? 0);
+        if (spentInTx + total > inTxLimit) {
+          throw new Error("BATAS_BELANJA_HARIAN");
+        }
       }
 
       const balanceBefore = Number(acct.balance);
@@ -297,6 +359,12 @@ export async function POST(request: NextRequest) {
     if (msg === "SALDO_TIDAK_CUKUP") {
       return NextResponse.json(
         { error: "Saldo tidak cukup (berubah saat proses)" },
+        { status: 409 },
+      );
+    }
+    if (msg === "BATAS_BELANJA_HARIAN") {
+      return NextResponse.json(
+        { error: "Batas belanja harian terlampaui" },
         { status: 409 },
       );
     }

@@ -234,3 +234,42 @@ utf8mb4_uca1400_ai_ci`; `ADD CONSTRAINT FK` unit/owner/user/transaction. TIDAK p
 ## Referensi modul KPAK yang ditiru (jangan diubah)
 `lib/kpak-phase.ts`, `lib/kpak-shift-gate.ts`, `app/api/kpak/shift/route.ts`,
 `components/kpak/KpakStaffDashboard.tsx`, `docs/KPAK-STAFF-FREEZE.md`.
+
+---
+
+## 10. Status Implementasi — Pengajuan Belanja Stok + Tabungan Lintas Unit
+
+Fitur-fitur berikut TIDAK lagi rancangan, melainkan sudah lengkap (rantai
+API + DB + UI) per iterasi ketiga (Sept 2026):
+
+### Schema & migrasi
+- `PurchaseItem` (tabel `purchase_items`) + `SavingsAccount.dailySpendLimit`
+  di `prisma/schema.prisma`.
+- SQL manual = `database-update-v3.sql` (JANGAN `prisma db push` ke remote).
+
+### API baru
+| Route | Fungsi | Role |
+|-------|--------|------|
+| `GET/POST /api/retail/reorder` | pengajuan belanja stok (EXPENSE + Approval) + riwayat | STAFF/MANAGER (unit sendiri), PIMPINAN (lembaga via `where.units`), SUPERADMIN |
+| `GET /api/retail/reorder/suggest?unitId=` | saran item stok < minStock + qty `minStock*2-current` | STAFF/MANAGER/PIMPINAN/SUPERADMIN |
+| `POST /api/retail/reorder/[id]/receive` | terima barang APPROVED → stock-in + `fulfilled`/status baris | MANAGER/STAFF unit, PIMPINAN lembaga |
+| `GET/PATCH /api/savings/limits` | lihat & set batas belanja harian per akun tabungan | SUPERADMIN, PIMPINAN (via unitId IN lembaga), MANAGER |
+| `GET /api/savings/cross-unit` | laporan penggunaan tabungan SMART_CARD di unit lain | SUPERADMIN, PIMPINAN, MANAGER |
+
+### Halaman baru
+- `app/dashboard/retail/belanja/page.tsx` — form pengajuan (saran otomatis,
+  pilih item, barang baru), riwayat + status, modal Terima Barang.
+- `app/dashboard/savings/limits/page.tsx` — daftar akun + spentToday vs limit,
+  input inline.
+- `app/dashboard/savings/cross-unit/page.tsx` — date range, ringkasan, grup
+  per unit retail & per santri.
+
+### Catatan perubahan perilaku (dokumentasi, bukan perubahan file beku)
+- `app/api/smartpay/route.ts` ditambah ADDITIVE: batas harian default-off
+  (`dailySpendLimit` 0/null = tanpa batas), relaksasi lintas unit (boleh beda
+  unit asal akun & unit retail **satu lembaga**), hitung sejak `startOfWibDay()`,
+  re-check di dalam `$transaction` (409 pesan rupiah `id-ID`).
+- Bug runtime diperbaiki: filter PIMPINAN reorder memakai `where.units`
+  (relasi Transaction), limits memakai `unitId IN (unit lembaga)`.
+
+Verifikasi: `npx tsc --noEmit` bersih, `npm test` 67/67 hijau.

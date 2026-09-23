@@ -162,12 +162,17 @@ Apps Script mencatat timestamp, nama file, ukuran, status, Drive file ID, URL Dr
 ```text
 app/
 ├── api/                 # Route handlers dan RBAC server-side
-├── dashboard/           # Halaman workflow aplikasi
+│   ├── retail/reorder/            # Pengajuan belanja stok (GET/POST, suggest, receive)
+│   └── savings/limits|cross-unit  # Batas belanja harian & laporan lintas unit
+├── dashboard/
+│   ├── retail/belanja/            # Form + riwayat pengajuan belanja stok retail
+│   └── savings/limits|cross-unit  # Pengaturan batas & laporan tabungan lintas unit
 components/              # Komponen UI dan dashboard
 lib/
 ├── prisma.ts            # Prisma singleton
-└── data-management.ts   # Backup, restore, reset, dan demo data
-prisma/schema.prisma     # Model dan relasi MySQL
+├── retail-guard.ts      # Guard unit retail + resolveUnitId
+└── savings-limit.ts     # startOfWibDay + helper batas harian WIB
+prisma/schema.prisma     # Model dan relasi MySQL (termasuk PurchaseItem, dailySpendLimit)
 scripts/                 # Seed dan utility operasional
 ```
 

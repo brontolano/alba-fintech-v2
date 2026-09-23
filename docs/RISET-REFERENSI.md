@@ -188,3 +188,8 @@ Tema tidak diubah; prioritas **mantap dipakai harian**, bukan fitur baru besar.
 - SAK EMKM & contoh pembukuan UMKM — https://www.bfi.co.id/id/blog/contoh-pembukuan-keuangan
 - Jurnal "Rancang Bangun Aplikasi Manajemen Keuangan di Pondok Pesantren
   Miftahul Hidayah Berbasis Web" — jurnal.itg.ac.id
+## Catatan implementasi (Sept 2026): Belanja Stok & Tabungan Lintas Unit
+Pola yang dipakai sesuai temuan riset:
+- Pengajuan belanja stok retail meng-ride sistem approval yang sudah ada (transaksi EXPENSE + resolveApprover), bukan duplikat flow baru.
+- Batas belanja harian per santri memakai basis tabungan SMART_CARD: default-off (0/null = tanpa batas), hanya WITHDRAWAL channel SMART_CARD dihitung sejak awal hari WIB (startOfWibDay).
+- Laporan lintas unit: mutasi WITHDRAWAL yang tempat belanja != unit asal tabungan, dikelompokkan per unit retail + per santri.

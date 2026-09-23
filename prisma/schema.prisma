@@ -50,6 +50,7 @@ model Unit {
   consignment_owners  ConsignmentOwner[]
   consignment_items   ConsignmentItem[]
   consignment_payouts ConsignmentPayout[]
+  purchase_items      PurchaseItem[]
   lembaga             Lembaga?            @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "units_ibfk_1")
   users               User[]
 
@@ -115,13 +116,14 @@ model Student {
 }
 
 model SavingsAccount {
-  id           String               @id @default(cuid()) @db.VarChar(36)
-  studentId    String               @unique(map: "studentId") @db.VarChar(36)
-  unitId       String               @db.VarChar(36)
-  balance      Decimal              @default(0.00) @db.Decimal(15, 2)
-  status       SavingsAccountStatus @default(ACTIVE)
-  createdAt    DateTime?            @default(now()) @db.DateTime(0)
-  updatedAt    DateTime?            @default(now()) @updatedAt @db.DateTime(0)
+  id               String               @id @default(cuid()) @db.VarChar(36)
+  studentId        String               @unique(map: "studentId") @db.VarChar(36)
+  unitId           String               @db.VarChar(36)
+  balance          Decimal              @default(0.00) @db.Decimal(15, 2)
+  status           SavingsAccountStatus @default(ACTIVE)
+  dailySpendLimit  Decimal?             @db.Decimal(15, 2)
+  createdAt        DateTime?            @default(now()) @db.DateTime(0)
+  updatedAt        DateTime?            @default(now()) @updatedAt @db.DateTime(0)
   student      Student              @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "savings_accounts_ibfk_1")
   transactions SavingsTransaction[]
 
@@ -220,6 +222,7 @@ model Transaction {
   approvals                              Approval[]
   order_items                            OrderItem[]
   consignment_payouts                    ConsignmentPayout[]
+  purchase_items                         PurchaseItem[]
   units                                  Unit                @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "transactions_ibfk_1")
   financial_categories                   FinancialCategory?  @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "transactions_ibfk_2")
   bank_accounts                          BankAccount?        @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "transactions_ibfk_3")
@@ -327,9 +330,34 @@ model InventoryItem {
   units            Unit             @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "inventory_items_ibfk_1")
   order_items      OrderItem[]
   consignment_item ConsignmentItem?
+  purchase_items   PurchaseItem[]
 
   @@index([unitId], map: "unitId")
   @@map("inventory_items")
+}
+
+model PurchaseItem {
+  id            String          @id @default(cuid()) @db.VarChar(36)
+  unitId        String          @db.VarChar(36)
+  transactionId String          @db.VarChar(36)
+  itemId        String?         @db.VarChar(36)
+  name          String          @db.VarChar(200)
+  qty           Int             @default(1)
+  estUnitCost   Decimal         @default(0.00) @db.Decimal(15, 2)
+  isNewItem     Boolean?        @default(false)
+  fulfilled     Int?            @default(0)
+  status        String?         @default("PENDING") @db.VarChar(20)
+  note          String?         @db.Text
+  createdAt     DateTime?       @default(now()) @db.DateTime(0)
+  updatedAt     DateTime?       @default(now()) @db.DateTime(0)
+  units         Unit            @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "purchase_items_ibfk_1")
+  transactions  Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "purchase_items_ibfk_2")
+  inventory_items InventoryItem? @relation(fields: [itemId], references: [id], onUpdate: Restrict, map: "purchase_items_ibfk_3")
+
+  @@index([transactionId], map: "purchase_items_transactionId_idx")
+  @@index([itemId], map: "purchase_items_itemId_idx")
+  @@index([unitId], map: "purchase_items_unitId_idx")
+  @@map("purchase_items")
 }
 
 model OrderItem {
