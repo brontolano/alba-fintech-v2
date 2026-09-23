@@ -21,6 +21,7 @@ import { id } from "date-fns/locale";
 interface CartItem {
   id: string;
   name: string;
+  sku?: string | null;
   price: number;
   quantity: number;
   image?: string;
@@ -82,6 +83,7 @@ export default function POSPage() {
         const mappedProducts: CartItem[] = inventoryItems.map((item) => ({
           id: item.id,
           name: item.name,
+          sku: item.sku,
           price: Number(item.unitPrice),
           quantity: item.currentStock ?? 0, // Handle null safely
           image: item.imageUrl || undefined,
@@ -102,12 +104,7 @@ export default function POSPage() {
         setCategories([{ value: "all", label: "Semua" }, ...uniqueCats]);
       } catch (err: any) {
         toast.error(err.message || "Gagal memuat produk");
-        // Fallback to mock data if API fails
-        setProducts([
-          { id: "1", name: "Nasi Goreng", price: 15000, quantity: 50 },
-          { id: "2", name: "Mie Goreng", price: 12000, quantity: 45 },
-          { id: "3", name: "Es Teh Manis", price: 5000, quantity: 100 },
-        ]);
+        setProducts([]);
       } finally {
         setLoadingProducts(false);
       }
@@ -156,11 +153,12 @@ export default function POSPage() {
   };
 
   const handleScanBarcode = () => {
-    if (!barcode.trim()) return;
-    const product = products.find((p) => {
-      const inv = products.find((pr) => pr.id === p.id);
-      return p.id === barcode || (inv && inv.category === barcode);
-    });
+    const term = barcode.trim().toLowerCase();
+    if (!term) return;
+    const product = products.find(
+      (p) =>
+        (p.sku && p.sku.toLowerCase() === term) || p.id.toLowerCase() === term,
+    );
     if (product) {
       addToCart(product);
       setBarcode("");

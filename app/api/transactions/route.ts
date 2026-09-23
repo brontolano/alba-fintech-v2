@@ -36,6 +36,7 @@ const createTransactionSchema = z.object({
   reference: z.string().optional(),
   date: z.string().optional(),
   photoUrl: z.string().optional(),
+  paymentMethod: z.string().optional(),
   orderItems: z
     .array(
       z.object({
@@ -455,6 +456,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalisasi paymentMethod ke uppercase (cash -> CASH, card -> CARD)
+    const normalizedBody = { ...parsed.data };
+    if (normalizedBody.paymentMethod) {
+      normalizedBody.paymentMethod = normalizedBody.paymentMethod
+        .toUpperCase()
+        .trim();
+    }
+
     // Use photoUrl from body or uploaded file
     const finalPhotoUrl = photoUrl || parsed.data.photoUrl || null;
 
@@ -638,6 +647,7 @@ export async function POST(request: NextRequest) {
           accountId: parsed.data.accountId,
           reference: parsed.data.reference,
           date: parsed.data.date ? new Date(parsed.data.date) : undefined,
+          paymentMethod: normalizedBody.paymentMethod || undefined,
           createdById: session.user.id!,
           status: initialStatus,
           isPimpinanNote: isLembagaScope ? true : undefined,
