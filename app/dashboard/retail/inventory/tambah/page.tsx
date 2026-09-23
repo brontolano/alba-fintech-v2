@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PackagePlus, ArrowLeft, Loader2 } from "lucide-react";
+import { ImageUpload } from "@/components/retail/ImageUpload";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -32,7 +33,9 @@ export default function TambahBarangPage() {
     unitPrice: string;
     purchasePrice: string;
     minStock: string;
+    isActive: boolean;
     unitId: string;
+    imageUrl: string;
   }>({
     name: "",
     sku: "",
@@ -40,7 +43,9 @@ export default function TambahBarangPage() {
     unitPrice: "",
     purchasePrice: "",
     minStock: "",
+    isActive: true,
     unitId: "",
+    imageUrl: "",
   });
 
   useEffect(() => {
@@ -93,12 +98,14 @@ export default function TambahBarangPage() {
             : undefined,
           minStock: form.minStock ? Number(form.minStock) : 0,
           isActive: true,
+          imageUrl: form.imageUrl || null,
           ...(form.unitId ? { unitId: form.unitId } : {}),
         }),
       });
       const b = await res.json();
       if (!res.ok) throw new Error(b.error || "Gagal menambah barang");
       setMsg("Barang ditambahkan");
+      const keepUnit = form.unitId;
       setForm({
         name: "",
         sku: "",
@@ -106,7 +113,9 @@ export default function TambahBarangPage() {
         unitPrice: "",
         purchasePrice: "",
         minStock: "",
-        unitId: form.unitId,
+        isActive: true,
+        unitId: keepUnit,
+        imageUrl: "",
       });
     } catch (e: any) {
       setErr(e.message);
@@ -164,23 +173,32 @@ export default function TambahBarangPage() {
             </div>
           )}
 
-          {r === "SUPERADMIN" || r === "PIMPINAN" ? (
-            <div>
-              <label className="block text-xs font-medium">Unit</label>
-              <select
-                value={form.unitId}
-                onChange={(e) => setForm({ ...form, unitId: e.target.value })}
-                className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
-              >
-                <option value="">— Pilih unit —</option>
-                {units.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : null}
+        {r === "SUPERADMIN" || r === "PIMPINAN" ? (
+          <div>
+            <label className="block text-xs font-medium">Unit</label>
+            <select
+              value={form.unitId}
+              onChange={(e) => setForm({ ...form, unitId: e.target.value })}
+              className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">— Pilih unit —</option>
+              {units.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+
+        <div className="sm:col-span-2">
+          <label className="block text-xs font-medium">Foto produk</label>
+          <ImageUpload
+            value={form.imageUrl}
+            onChange={(url) => setForm({ ...form, imageUrl: url ?? "" })}
+          />
+        </div>
+
 
           <div className="grid gap-3 sm:grid-cols-2">
             {fields.map((f) => (
@@ -195,10 +213,10 @@ export default function TambahBarangPage() {
                   type={f.type}
                   min={f.type === "number" ? "0" : undefined}
                   step={f.type === "number" ? "100" : undefined}
-                  value={form[f.key as keyof typeof form]}
-                  onChange={(e) =>
-                    setForm({ ...form, [f.key]: e.target.value })
-                  }
+                value={String(form[f.key as keyof typeof form])}
+                onChange={(e) =>
+                  setForm({ ...form, [f.key]: e.target.value })
+                }
                   className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
                   required={f.key === "name" || f.key === "sku" || f.key === "unitPrice"}
                 />

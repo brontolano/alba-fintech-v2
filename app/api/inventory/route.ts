@@ -205,9 +205,9 @@ export async function POST(request: NextRequest) {
         unitPrice: parsed.data.unitPrice,
         purchasePrice: parsed.data.purchasePrice,
         minStock: parsed.data.minStock || 0,
-        isActive: parsed.data.isActive,
-        unitId,
-      },
+         isActive: parsed.data.isActive,
+         unitId,
+       },
     });
 
     return NextResponse.json({ data: item }, { status: 201 });
