@@ -601,6 +601,8 @@ model BudgetAllocation {
   endDate     DateTime?         @db.DateTime(0)
   amount      Decimal           @db.Decimal(15, 2)
   note        String?           @db.Text
+  // Sumber dana alokasi: KPAK (kas unit) atau LEMBAGA (kas lembaga). Dipilih pimpinan saat budgeting.
+  source      String?           @default("KPAK") @db.VarChar(16)
   isActive    Boolean?          @default(true)
   createdById String            @db.VarChar(36)
   createdAt   DateTime?         @default(now()) @db.DateTime(0)

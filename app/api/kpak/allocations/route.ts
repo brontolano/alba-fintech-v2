@@ -50,6 +50,8 @@ const createSchema = z.object({
   amount: z.number().positive(),
   note: z.string().optional(),
   unitId: z.string().optional(),
+  // Sumber dana: KPAK (kas unit) atau LEMBAGA (kas lembaga). Dipilih pimpinan.
+  source: z.enum(["KPAK", "LEMBAGA"]).optional(),
 });
 
 function resolveRange(
@@ -220,6 +222,7 @@ export async function POST(request: NextRequest) {
       startDate: resolved.start,
       endDate: resolved.end,
       note: parsed.data.note?.trim() || null,
+      source: parsed.data.source || "KPAK",
       isActive: true,
     },
     create: {
@@ -232,6 +235,7 @@ export async function POST(request: NextRequest) {
       endDate: resolved.end,
       amount: parsed.data.amount,
       note: parsed.data.note?.trim() || null,
+      source: parsed.data.source || "KPAK",
       createdById: session.user.id!,
     },
   });

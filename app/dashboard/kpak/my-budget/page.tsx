@@ -57,6 +57,7 @@ interface Allocation {
   amount: number | string;
   used: number | string;
   remaining: number | string;
+  source?: string | null;
   category?: { name: string } | null;
   rangeStart?: string;
   rangeEnd?: string;
@@ -195,11 +196,20 @@ export default function MyBudgetPage() {
                   <p className="text-sm font-bold text-foreground">
                     {a.title || a.category?.name || "Alokasi"}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
                     {periodLabel(a.periodType)}
                     {a.rangeStart && a.rangeEnd
                       ? ` • ${fmtDate(a.rangeStart.slice(0, 10))} – ${fmtDate(a.rangeEnd.slice(0, 10))}`
                       : ""}
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                        (a.source || "KPAK") === "LEMBAGA"
+                          ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      }`}
+                    >
+                      {(a.source || "KPAK") === "LEMBAGA" ? "Kas Lembaga" : "Kas KPAK"}
+                    </span>
                   </p>
                 </div>
                 <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">

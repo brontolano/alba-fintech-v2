@@ -611,8 +611,17 @@ export async function POST(request: NextRequest) {
     // Approval hanya dipakai untuk pengajuan khusus / kasus exception.
     // (FILE BEKU staff-freeze: jangan tambah kasus khusus di sini.
     //  Pengajuan anggaran lewat endpoint khusus /api/kpak/budget-submit.)
+    // Aturan pemilik: pengeluaran Unit KPAK TIDAK butuh persetujuan —
+    // hanya pengajuan ke pimpinan + anggaran yang lewat approval.
+    const txUnit = await prisma.unit.findUnique({
+      where: { id: parsedData.unitId! },
+      select: { type: true },
+    });
+    const isKpakUnit = !isLembagaScope && txUnit?.type === "KPAK";
     const requiresApproval =
-      !isLembagaScope && (unitSettings?.requiresApproval ?? false);
+      !isLembagaScope &&
+      !isKpakUnit &&
+      (unitSettings?.requiresApproval ?? false);
     const isFinalAuthority = role === "PIMPINAN" || role === "SUPERADMIN";
     const initialStatus =
       isFinalAuthority || !requiresApproval ? "APPROVED" : "PENDING";

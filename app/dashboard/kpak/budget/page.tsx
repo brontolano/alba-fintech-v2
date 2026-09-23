@@ -122,6 +122,7 @@ export default function KpakBudgetPage() {
     title: "",
     startDate: "",
     endDate: "",
+    source: "KPAK",
   });
   const [allocSaving, setAllocSaving] = useState(false);
 
@@ -174,6 +175,7 @@ export default function KpakBudgetPage() {
           endDate: allocForm.endDate || undefined,
           amount: nominal,
           note: allocForm.note.trim() || undefined,
+          source: allocForm.source,
         }),
       });
       const json = await res.json();
@@ -189,6 +191,7 @@ export default function KpakBudgetPage() {
         title: "",
         startDate: "",
         endDate: "",
+        source: "KPAK",
       });
       fetchAllocations(viewMonth);
     } catch (e: any) {
@@ -509,21 +512,21 @@ export default function KpakBudgetPage() {
                 </button>
               ))}
             </div>
-            <div className="grid gap-2 sm:grid-cols-[1fr_140px]">
-              <select
-                value={allocForm.categoryId}
-                onChange={(e) =>
-                  setAllocForm({ ...allocForm, categoryId: e.target.value })
-                }
-                className="rounded-lg border bg-background px-3 py-2 text-sm"
-              >
-                <option value="">Pilih kategori...</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+            <select
+              value={allocForm.categoryId}
+              onChange={(e) =>
+                setAllocForm({ ...allocForm, categoryId: e.target.value })
+              }
+              className="rounded-lg border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">Pilih kategori...</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <div className="grid gap-2 sm:grid-cols-2">
               <input
                 type="number"
                 min="1"
@@ -534,6 +537,31 @@ export default function KpakBudgetPage() {
                 placeholder="Nominal (Rp)"
                 className="rounded-lg border bg-background px-3 py-2 text-sm"
               />
+              <div
+                role="group"
+                aria-label="Sumber dana"
+                className="grid grid-cols-2 gap-1 rounded-lg border bg-background p-1"
+              >
+                {(
+                  [
+                    ["KPAK", "Kas KPAK"],
+                    ["LEMBAGA", "Kas Lembaga"],
+                  ] as [string, string][]
+                ).map(([v, l]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setAllocForm({ ...allocForm, source: v })}
+                    className={`rounded-md px-2 py-1.5 text-xs font-medium ${
+                      allocForm.source === v
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {allocType === "DAILY" && (
@@ -646,6 +674,15 @@ export default function KpakBudgetPage() {
                       {a.category?.name}{" "}
                       <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                         {typeLabel}
+                      </span>{" "}
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                          (a.source || "KPAK") === "LEMBAGA"
+                            ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        }`}
+                      >
+                        {(a.source || "KPAK") === "LEMBAGA" ? "Kas Lembaga" : "Kas KPAK"}
                       </span>
                     </p>
                     <div className="flex items-center gap-2">
