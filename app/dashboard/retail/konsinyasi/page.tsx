@@ -100,25 +100,39 @@ export default function KonsinyasiPage() {
   );
 
   async function reloadOwners() {
-    const res = await fetch("/api/retail/consignments/owners");
-    const body = await res.json();
-    if (!res.ok) {
-      setErr(body.error || "Gagal memuat pemilik");
-      return;
+    setLoading(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/retail/consignments/owners");
+      const body = await res.json();
+      if (!res.ok) {
+        setErr(body.error || "Gagal memuat pemilik");
+        return;
+      }
+      setOwners(body.data || []);
+    } catch (e: any) {
+      setErr(e.message || "Gagal memuat pemilik");
+    } finally {
+      setLoading(false);
     }
-    setOwners(body.data || []);
-    setLoading(false);
   }
 
   async function reloadItems() {
-    const res = await fetch("/api/retail/consignments/items");
-    const body = await res.json();
-    if (!res.ok) {
-      setErr(body.error || "Gagal memuat barang");
-      return;
+    setLoading(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/retail/consignments/items");
+      const body = await res.json();
+      if (!res.ok) {
+        setErr(body.error || "Gagal memuat barang");
+        return;
+      }
+      setItems(body.data || []);
+    } catch (e: any) {
+      setErr(e.message || "Gagal memuat barang");
+    } finally {
+      setLoading(false);
     }
-    setItems(body.data || []);
-    setLoading(false);
   }
 }
 

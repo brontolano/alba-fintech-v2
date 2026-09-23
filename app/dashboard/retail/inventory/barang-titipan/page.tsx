@@ -105,15 +105,21 @@ export default function BarangTitipanPage() {
     (r === "SUPERADMIN" || r === "PIMPINAN") && !unitParam;
 
   const loadOwners = async () => {
-    if (!unitParam) {
+    if (needsUnitSelect) {
       setOwners([]);
       return;
     }
-    const res = await fetch(
-      `/api/retail/consignments/owners?unitId=${unitParam}`,
-    );
-    const b = await res.json();
-    setOwners(b.data || []);
+    try {
+      const url = new URL("/api/retail/consignments/owners", window.location.origin);
+      if (unitParam) url.searchParams.set("unitId", unitParam);
+      const res = await fetch(url.toString());
+      const b = await res.json();
+      if (!res.ok) throw new Error(b.error || "Gagal memuat pemilik");
+      setOwners(b.data || []);
+    } catch (e: any) {
+      setOwners([]);
+      setErr(e.message || "Gagal memuat pemilik");
+    }
   };
 
   const load = async () => {
@@ -142,7 +148,7 @@ export default function BarangTitipanPage() {
   };
 
   useEffect(() => {
-    loadOwners().catch(() => {});
+    loadOwners();
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unitParam]);
