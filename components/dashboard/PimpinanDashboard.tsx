@@ -159,13 +159,20 @@ export default function PimpinanDashboard() {
             {`${netMargin.toFixed(1)}%`}
           </div>
         </div>
-        <div className="rounded-[22px] border border-border bg-card/90 p-4">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Arus Kas Hari Ini
+        <div className="rounded-[22px] border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">
+            <TrendingUp size={13} /> Masuk Hari Ini
           </div>
-          <div className="mt-2 text-2xl font-bold text-foreground">
-            {formatCurrency(summary.todayIncome)} masuk /{" "}
-            {formatCurrency(summary.todayExpense)} keluar
+          <div className="mt-2 text-xl font-bold text-emerald-600 dark:text-emerald-400 sm:text-2xl">
+            {formatCurrency(summary.todayIncome)}
+          </div>
+        </div>
+        <div className="rounded-[22px] border border-rose-500/20 bg-rose-500/[0.04] p-4">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-600 dark:text-rose-400">
+            <TrendingDown size={13} /> Keluar Hari Ini
+          </div>
+          <div className="mt-2 text-xl font-bold text-rose-600 dark:text-rose-400 sm:text-2xl">
+            {formatCurrency(summary.todayExpense)}
           </div>
         </div>
       </div>
