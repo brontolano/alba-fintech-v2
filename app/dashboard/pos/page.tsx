@@ -72,7 +72,37 @@ export default function POSPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [todaySales, setTodaySales] = useState<{
+    count: number;
+    income: number;
+  } | null>(null);
   const PAGE_SIZE = 100;
+  const LOW_STOCK_THRESHOLD = 5;
+  const isManager = session?.user?.role === "MANAGER";
+
+  useEffect(() => {
+    if (session?.user?.role !== "MANAGER") return;
+    const fetchTodaySales = async () => {
+      try {
+        const res = await fetch(
+          "/api/transactions?range=today&limit=1&type=INCOME",
+        );
+        if (!res.ok) throw new Error("Gagal memuat ringkasan");
+        const data = await res.json();
+        setTodaySales({
+          count: data?.summary?.todayCount ?? 0,
+          income: data?.summary?.todayIncome ?? 0,
+        });
+      } catch {
+        setTodaySales({ count: 0, income: 0 });
+      }
+    };
+    fetchTodaySales();
+  }, [session?.user?.role]);
+
+  const lowStockCount = products.filter(
+    (p) => p.quantity <= LOW_STOCK_THRESHOLD,
+  ).length;
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -436,6 +466,39 @@ export default function POSPage() {
           Penjualan - Unit Toko/Retail
         </p>
       </div>
+
+      {isManager && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-[22px] border border-border bg-card p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Penjualan Hari Ini
+            </p>
+            <p className="mt-1 text-xl font-bold text-emerald-600">
+              {todaySales
+                ? formatCurrency(todaySales.income)
+                : formatCurrency(0)}
+            </p>
+          </div>
+          <div className="rounded-[22px] border border-border bg-card p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Transaksi Hari Ini
+            </p>
+            <p className="mt-1 text-xl font-bold text-foreground">
+              {todaySales ? todaySales.count : 0} transaksi
+            </p>
+          </div>
+          <div className="rounded-[22px] border border-border bg-card p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Stok Menipis
+            </p>
+            <p
+              className={`mt-1 text-xl font-bold ${lowStockCount > 0 ? "text-amber-600" : "text-foreground"}`}
+            >
+              {products.length === 0 ? "—" : `${lowStockCount} produk`}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[2fr_1fr]">
         <div className="space-y-5">
