@@ -236,7 +236,7 @@ export default function MyBudgetPage() {
           <h2 className="text-sm font-bold text-foreground">Pengajuan Saya</h2>
           <Link
             href="/dashboard/kpak/budget"
-            className="inline-flex min-h-9 items-center gap-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:brightness-110 active:scale-95"
+            className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground transition hover:brightness-110 active:scale-95"
           >
             <Plus size={13} /> Ajukan Baru
           </Link>

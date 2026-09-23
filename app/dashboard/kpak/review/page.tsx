@@ -41,6 +41,16 @@ const fmtDateTime = (iso: string) =>
     minute: "2-digit",
   });
 
+// Umur antrean — pola review queue: tampilkan sudah berapa lama menunggu.
+const ageLabel = (iso: string) => {
+  const min = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  if (min < 1) return "baru saja";
+  if (min < 60) return `${min} mnt lalu`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h} jam lalu`;
+  return `${Math.floor(h / 24)} hari lalu`;
+};
+
 interface ShiftReport {
   id: string;
   cashIncomeCounted: number | string;
@@ -213,7 +223,7 @@ export default function ManagerReviewPage() {
                       {r.staff?.name || "Staff"}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {fmtDateTime(r.submittedAt)} • {r.staff?.role}
+                      {fmtDateTime(r.submittedAt)} • {r.staff?.role} • menunggu {ageLabel(r.submittedAt)}
                     </p>
                   </div>
                   <span
@@ -245,7 +255,7 @@ export default function ManagerReviewPage() {
                   type="button"
                   disabled={busy}
                   onClick={() => acceptReport(r.id)}
-                  className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                  className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                 >
                   {busy ? (
                     <Loader2 size={16} className="animate-spin" />
@@ -308,17 +318,17 @@ export default function ManagerReviewPage() {
                         {isBudget ? "Anggaran" : "Operasional"}
                       </span>
                       <span className="text-[11px] text-muted-foreground">
-                        {by} • {fmtDateTime(a.createdAt)}
+                        {by} • {fmtDateTime(a.createdAt)} • menunggu {ageLabel(a.createdAt)}
                       </span>
                     </p>
                   </div>
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => decideApproval(a.id, "reject")}
-                    className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-600 transition active:scale-[0.98] disabled:opacity-50 dark:text-rose-400"
+                    className="inline-flex min-h-12 items-center justify-center gap-1 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-600 transition active:scale-[0.98] disabled:opacity-50 dark:text-rose-400"
                   >
                     {busy ? <Loader2 size={15} className="animate-spin" /> : <X size={15} />}
                     Tolak
@@ -327,7 +337,7 @@ export default function ManagerReviewPage() {
                     type="button"
                     disabled={busy}
                     onClick={() => decideApproval(a.id, "approve")}
-                    className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                    className="inline-flex min-h-12 items-center justify-center gap-1 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                   >
                     {busy ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
                     Setujui

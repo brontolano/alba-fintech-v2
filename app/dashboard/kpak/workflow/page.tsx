@@ -25,6 +25,7 @@ import { usePageGuard } from "@/lib/use-page-guard";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { QuickAccessGrid } from "@/components/dashboard/QuickAccessGrid";
 import type { QuickAccessAction } from "@/components/dashboard/QuickAccessGrid";
+import { getKpakPhase, type KpakPhaseKey } from "@/lib/kpak-phase";
 
 /**
  * Pusat Kerja Manager KPAK — alur harian dalam 5 langkah:
@@ -63,7 +64,15 @@ interface Step {
   statusLabel: string;
   facts: string[];
   actions: StepAction[];
+  phase: KpakPhaseKey;
 }
+
+const PHASE_META: { key: KpakPhaseKey; title: string; time: string }[] = [
+  { key: "pagi", title: "Pagi", time: "sebelum 08:00" },
+  { key: "operasi", title: "Operasional", time: "08:00–16:00" },
+  { key: "tutup", title: "Penutupan", time: "16:00–17:00" },
+  { key: "selesai", title: "Selesai", time: "setelah 17:00" },
+];
 
 const statusStyle: Record<StepStatus, string> = {
   done: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
@@ -163,6 +172,7 @@ export default function ManagerWorkflowPage() {
     {
       no: 1,
       title: "Awasi Shift & Kru",
+      phase: "pagi",
       desc: "Check-in pengawasan, pantau siapa sedang bertugas.",
       icon: <Users size={22} />,
       status: shiftOn ? "done" : "action",
@@ -175,6 +185,7 @@ export default function ManagerWorkflowPage() {
     {
       no: 2,
       title: "Layani Transaksi",
+      phase: "operasi",
       desc: "Keuangan santri, tabungan, dan data santri.",
       icon: <CreditCard size={22} />,
       status: !shiftOn ? "locked" : "info",
@@ -187,6 +198,7 @@ export default function ManagerWorkflowPage() {
     {
       no: 3,
       title: "Perlu Keputusan",
+      phase: "operasi",
       desc: "Satu antrean: laporan shift, operasional, dan anggaran.",
       icon: <Send size={22} />,
       status: pendingApprovals > 0 ? "action" : "info",
@@ -201,6 +213,7 @@ export default function ManagerWorkflowPage() {
     {
       no: 4,
       title: "Tutup Hari",
+      phase: "tutup",
       desc: "Cocokkan kas, lalu serahkan ke pimpinan.",
       icon: <ArrowRightLeft size={22} />,
       status:
@@ -226,6 +239,7 @@ export default function ManagerWorkflowPage() {
     {
       no: 5,
       title: "Rekap & Lapor",
+      phase: "selesai",
       desc: "Rekap harian tabungan, administrasi, dan internal.",
       icon: <BarChart3 size={22} />,
       status: "info",
@@ -236,9 +250,9 @@ export default function ManagerWorkflowPage() {
   ];
 
   const quickAccess: QuickAccessAction[] = [
+    { href: "/dashboard/kpak/crew", icon: Users, label: "Kru & Kinerja", color: "islamic" },
     { href: "/dashboard/kpak/review", icon: ClipboardList, label: "Perlu Keputusan", color: "amber" },
     { href: "/dashboard/kpak/close-day", icon: Clock, label: "Tutup Hari", color: "blue" },
-    { href: "/dashboard/kpak/crew", icon: Users, label: "Kru & Kinerja", color: "islamic" },
     { href: "/dashboard/kpak/my-budget", icon: Wallet, label: "Anggaran Saya", color: "green" },
     { href: "/dashboard/kpak/finance", icon: CreditCard, label: "Layanan Keuangan", color: "purple" },
     { href: "/dashboard/savings", icon: PiggyBank, label: "Tabungan", color: "orange" },
@@ -247,6 +261,7 @@ export default function ManagerWorkflowPage() {
   ];
 
   const nextStep = steps.find((s) => s.status === "action") || null;
+  const phase = getKpakPhase();
 
   if (loading) {
     return (
@@ -275,6 +290,22 @@ export default function ManagerWorkflowPage() {
         </button>
       </div>
 
+      {/* Fase operasional berjalan — linimasa kerja hari ini */}
+      <div className="rounded-[22px] border border-primary/25 bg-primary/[0.05] p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
+          Sekarang: {phase.label}
+        </p>
+        <p className="mt-0.5 text-sm text-muted-foreground">{phase.hint}</p>
+        <div className="mt-2 flex gap-1">
+          {PHASE_META.map((m) => (
+            <div
+              key={m.key}
+              className={`h-1.5 flex-1 rounded-full ${m.key === phase.key ? "bg-primary" : "bg-border"}`}
+            />
+          ))}
+        </div>
+      </div>
+
       {nextStep && (
         <Link
           href={nextStep.actions[0].href}
@@ -301,7 +332,22 @@ export default function ManagerWorkflowPage() {
         <QuickAccessGrid actions={quickAccess} />
       </div>
 
-      <ol className="space-y-3">        {steps.map((s) => (
+      {PHASE_META.map((m) => {
+        const group = steps.filter((s) => s.phase === m.key);
+        if (group.length === 0) return null;
+        const current = m.key === phase.key;
+        return (
+          <section key={m.key} className="space-y-3">
+            <div className="flex items-baseline justify-between px-1">
+              <h2
+                className={`text-sm font-bold ${current ? "text-primary" : "text-muted-foreground"}`}
+              >
+                {current ? "● " : ""}{m.title}
+              </h2>
+              <p className="text-[11px] text-muted-foreground">{m.time}</p>
+            </div>
+            <ol className="space-y-3">
+              {group.map((s) => (
           <li
             key={s.no}
             className="rounded-[22px] border border-border bg-card/90 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
@@ -334,7 +380,7 @@ export default function ManagerWorkflowPage() {
                     <Link
                       key={a.href + a.label}
                       href={a.href}
-                      className="inline-flex min-h-10 items-center gap-1 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 active:scale-95"
+                      className="inline-flex min-h-12 items-center gap-1 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 active:scale-95"
                     >
                       {a.label} <ChevronRight size={14} />
                     </Link>
@@ -343,8 +389,11 @@ export default function ManagerWorkflowPage() {
               </div>
             </div>
           </li>
-        ))}
-      </ol>
+              ))}
+            </ol>
+          </section>
+        );
+      })}
 
       <div className="rounded-[22px] border border-border bg-muted/40 p-4">
         <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">

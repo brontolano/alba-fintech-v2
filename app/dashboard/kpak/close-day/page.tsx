@@ -256,7 +256,7 @@ export default function CloseDayPage() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 active:scale-[0.98]"
+                className="inline-flex min-h-12 w-full items-center justify-center gap-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 active:scale-[0.98]"
               >
                 Lanjut hitung fisik <ChevronRight size={16} />
               </button>
@@ -313,7 +313,7 @@ export default function CloseDayPage() {
             <button
               type="button"
               onClick={() => setStep(0)}
-              className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground transition hover:text-foreground"
+              className="inline-flex min-h-12 items-center gap-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground transition hover:text-foreground"
             >
               <ChevronLeft size={16} /> Kembali
             </button>
@@ -321,7 +321,7 @@ export default function CloseDayPage() {
               type="button"
               onClick={doClose}
               disabled={closing}
-              className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50 ${
+              className={`inline-flex min-h-12 items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50 ${
                 confirming ? "bg-rose-600" : "bg-primary"
               }`}
             >
