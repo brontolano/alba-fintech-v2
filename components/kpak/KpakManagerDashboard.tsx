@@ -19,6 +19,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { QuickAccessGrid } from "@/components/dashboard/QuickAccessGrid";
 import type { QuickAccessAction } from "@/components/dashboard/QuickAccessGrid";
 import { PendingApprovalsWidget } from "@/components/dashboard/PendingApprovalsWidget";
+import { getKpakPhase } from "@/lib/kpak-phase";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -193,9 +194,9 @@ export function KpakManagerDashboard() {
   // Akses cepat mengikuti IA final: 1 nama 1 tujuan (lihat Pusat Kerja).
   const actions: QuickAccessAction[] = [
     { href: "/dashboard/kpak/workflow", icon: LayoutDashboard, label: "Pusat Kerja", color: "accent" },
+    { href: "/dashboard/kpak/crew", icon: Users, label: "Kru & Kinerja", color: "islamic" },
     { href: "/dashboard/kpak/review", icon: ClipboardList, label: "Perlu Keputusan", color: "amber" },
     { href: "/dashboard/kpak/close-day", icon: Clock, label: "Tutup Hari", color: "blue" },
-    { href: "/dashboard/kpak/crew", icon: Users, label: "Kru & Kinerja", color: "islamic" },
     { href: "/dashboard/kpak/my-budget", icon: Wallet, label: "Anggaran Saya", color: "green" },
     { href: "/dashboard/kpak/reports", icon: BarChart3, label: "Rekap", color: "slate" },
   ];
@@ -203,6 +204,21 @@ export function KpakManagerDashboard() {
   return (
     <div className="space-y-4">
       <DashboardHeader title="Dashboard KPAK" subtitle="Manager" />
+
+      {(() => {
+        const phase = getKpakPhase();
+        return (
+          <Link
+            href="/dashboard/kpak/workflow"
+            className="block rounded-xl border border-primary/25 bg-primary/[0.04] px-4 py-3"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
+              Sekarang: {phase.label}
+            </p>
+            <p className="mt-0.5 text-sm text-muted-foreground">{phase.hint}</p>
+          </Link>
+        );
+      })()}
 
       {shiftOn === false && !loading && (
         <Link
