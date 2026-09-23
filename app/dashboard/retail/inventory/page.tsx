@@ -118,6 +118,12 @@ export default function RetailInventoryPage() {
           <p className="text-sm text-muted-foreground">Stok masuk & stocktake</p>
         </div>
         <Link
+          href="/dashboard/retail/inventory/tambah"
+          className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
+        >
+          <PackagePlus size={15} /> Tambah Barang
+        </Link>
+        <Link
           href="/dashboard/retail/inventory/barang-titipan"
           className="inline-flex items-center gap-1 rounded-lg border bg-background px-3 py-1.5 text-sm font-semibold hover:bg-accent"
         >
