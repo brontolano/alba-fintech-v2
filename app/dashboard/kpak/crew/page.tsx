@@ -186,6 +186,8 @@ export default function CrewPage() {
 
   useEffect(() => {
     load();
+    // Tanpa auto-refresh: data diambil dari backend saat halaman dibuka;
+    // pembaruan via tombol Segarkan.
   }, [load]);
 
   const onDuty = perf.filter((p) => p.onDuty);

@@ -58,6 +58,8 @@ type NavItem = {
   retailOnly?: boolean;
   kpakOnly?: boolean;
   hideForKpak?: boolean;
+  /** Kunci badge pantau live (khusus menu Manager KPAK) */
+  badgeKey?: "review" | "crew";
 };
 
 type NavGroup = {
@@ -273,6 +275,94 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+/**
+ * Menu khusus MANAGER unit KPAK — disederhanakan fokus pekerjaan manager.
+ * Pelayanan (Shift/Tabungan/Layanan Keuangan) milik STAFF dan tidak tampil
+ * di sini; route-nya tetap hidup untuk keadaan darurat.
+ * Menu generik (Pengajuan/Rekonsiliasi/Serah Terima/Pengajuan Anggaran)
+ * melebur ke halaman alur kerja manager.
+ * (Perubahan atas persetujuan pemilik; jalur STAFF di NAV_GROUPS tak tersentuh.)
+ */
+const MANAGER_KPAK_GROUPS: NavGroup[] = [
+  {
+    title: "Kerja Harian",
+    items: [
+      {
+        label: "Pusat Kerja",
+        href: "/dashboard/kpak/workflow",
+        icon: <LayoutDashboard size={20} />,
+        roles: ["MANAGER"],
+        kpakOnly: true,
+      },
+      {
+        label: "Perlu Keputusan",
+        href: "/dashboard/kpak/review",
+        icon: <ClipboardList size={20} />,
+        roles: ["MANAGER"],
+        kpakOnly: true,
+        badgeKey: "review",
+      },
+      {
+        label: "Tutup Hari",
+        href: "/dashboard/kpak/close-day",
+        icon: <Clock size={20} />,
+        roles: ["MANAGER"],
+        kpakOnly: true,
+      },
+      {
+        label: "Kru & Kinerja",
+        href: "/dashboard/kpak/crew",
+        icon: <Users size={20} />,
+        roles: ["MANAGER"],
+        kpakOnly: true,
+        badgeKey: "crew",
+      },
+    ],
+  },
+  {
+    title: "Kelola",
+    items: [
+      {
+        label: "Anggaran Saya",
+        href: "/dashboard/kpak/my-budget",
+        icon: <Wallet size={20} />,
+        roles: ["MANAGER"],
+        kpakOnly: true,
+      },
+      {
+        label: "Rekap & Laporan",
+        href: "/dashboard/kpak/reports",
+        icon: <BarChart3 size={20} />,
+        roles: ["MANAGER"],
+        kpakOnly: true,
+      },
+      {
+        label: "Data Santri",
+        href: "/dashboard/kpak/students",
+        icon: <BookOpen size={20} />,
+        roles: ["MANAGER"],
+        kpakOnly: true,
+      },
+    ],
+  },
+  {
+    items: [
+      {
+        label: "Profil",
+        href: "/dashboard/profile",
+        icon: <User size={20} />,
+        roles: ["MANAGER"],
+      },
+      {
+        label: "Keluar",
+        href: "#",
+        icon: <LogOut size={20} />,
+        roles: ["MANAGER"],
+      },
+    ],
+  },
+];
+
 export function Sidebar({
   user,
   expanded,
@@ -289,6 +379,52 @@ export function Sidebar({
 
   const shiftGate = useShiftGate();
   const isStaffKpak = shiftGate.gated;
+  const isManagerKpak = role === "MANAGER" && user?.unitType === "KPAK";
+
+  // Badge pantau live khusus Manager KPAK: antrean keputusan + kru bertugas.
+  const [badges, setBadges] = useState<{ review: number; crew: number }>({
+    review: 0,
+    crew: 0,
+  });
+  useEffect(() => {
+    if (!isManagerKpak) return;
+    let on = true;
+    const fetchBadges = async () => {
+      try {
+        const [apprRes, repRes, shiftRes] = await Promise.all([
+          fetch("/api/approvals").catch(() => null),
+          fetch("/api/kpak/shift-reports").catch(() => null),
+          fetch("/api/kpak/shift").catch(() => null),
+        ]);
+        let review = 0;
+        let crew = 0;
+        if (apprRes && apprRes.ok) {
+          const j = await apprRes.json();
+          review += ((j.data ?? []) as any[]).filter((a) => a.status === "PENDING").length;
+        }
+        if (repRes && repRes.ok) {
+          const j = await repRes.json();
+          review += ((j?.data?.reports ?? []) as any[]).filter(
+            (r) => r.status !== "ACCEPTED",
+          ).length;
+        }
+        if (shiftRes && shiftRes.ok) {
+          const j = await shiftRes.json();
+          crew = ((j?.data?.crew ?? []) as any[]).filter(
+            (c) => c.attendance && !c.attendance.checkOutAt,
+          ).length;
+        }
+        if (on) setBadges({ review, crew });
+      } catch {
+        // abaikan — badge opsional
+      }
+    };
+    fetchBadges();
+    // Tanpa polling: badge dimuat ulang dari backend setiap navigasi (pathname).
+    return () => {
+      on = false;
+    };
+  }, [isManagerKpak, pathname]);
 
   const canSeeItem = (item: NavItem) => {
     if (item.roles && !item.roles.includes(role)) return false;
@@ -317,7 +453,7 @@ export function Sidebar({
     return true;
   };
 
-  const visibleGroups = NAV_GROUPS.map((g) => ({
+  const visibleGroups = (isManagerKpak ? MANAGER_KPAK_GROUPS : NAV_GROUPS).map((g) => ({
     ...g,
     items: g.items.filter(canSeeItem),
   })).filter((g) => g.items.length > 0);
@@ -448,6 +584,7 @@ export function Sidebar({
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const activeItem = isActive(item.href);
+                  const badgeCount = item.badgeKey ? badges[item.badgeKey] : 0;
                   return (
                     <button
                       key={item.href}
@@ -469,6 +606,17 @@ export function Sidebar({
                       {expanded && (
                         <span className="font-medium text-sm whitespace-nowrap truncate flex-1 text-left">
                           {item.label}
+                        </span>
+                      )}
+                      {expanded && badgeCount > 0 && (
+                        <span
+                          className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
+                            item.badgeKey === "review"
+                              ? "bg-amber-500 text-white"
+                              : "bg-emerald-500 text-white"
+                          }`}
+                        >
+                          {badgeCount > 99 ? "99+" : badgeCount}
                         </span>
                       )}
                     </button>
