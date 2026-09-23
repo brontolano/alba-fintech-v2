@@ -165,7 +165,7 @@ Model utama:
 1. **Fase 1 (Audit & Wiring)**: Pengecekan halaman mock/hilang, penyambungan UI ke API.
 2. **Fase 2 (RBAC & Keamanan)**: Proteksi rute UI & API, review `proxy.ts`.
 3. **Fase 3 (End-to-End Testing)**: Uji transaksi POS, inventori, rekonsiliasi.
-4. **Fase 4 (Deploy)**: `npm run build` → `scripts/deploy-prepare.mjs` → Hostinger.
+4. **Fase 4 (Deploy)**: commit & push `main` → auto-deploy Hostinger (panduan di `docs/DEPLOY.md`).
 
 ---
 

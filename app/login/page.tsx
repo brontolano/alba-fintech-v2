@@ -5,7 +5,7 @@ import LoginForm from "@/components/auth/LoginForm";
 import Image from "next/image";
 
 export const metadata = {
-  title: "Login - ALBA Finance v3",
+  title: "Login - ALBA Finance v7",
   description: "Masuk ke Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
 };
 

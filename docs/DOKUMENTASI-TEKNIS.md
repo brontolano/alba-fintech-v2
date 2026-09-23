@@ -4,6 +4,8 @@
 
 Dokumentasi ini berisi detail teknis untuk developer yang ingin mengembangkan, memodifikasi, atau mendeploy aplikasi ini.
 
+> ⚠️ **Catatan struktur/deploy**: beberapa bagian bawah (pipeline `deploy-prepare.mjs`, `server.js`, Docker, SSH) menggambarkan skema lama yang kini **historis**. Deploy resmi = `git push` ke `main` → Hostinger build otomatis (lihat [docs/DEPLOY.md](DEPLOY.md)). Kode berjalan di root (tanpa folder `src/`).
+
 ---
 
 ## 🛠️ Tech Stack
@@ -80,12 +82,9 @@ alba-fintech-v2/
 ├── scripts/
 │   ├── seed.ts                # Seed script
 │   ├── reset-users.ts         # Reset all users & create superadmin
-│   └── deploy-prepare.mjs     # Build deploy package
-├── proxy.ts                   # Next.js Middleware (RBAC route guard)
-├── server.js                  # Custom entry point for Hostinger
-├── next.config.mjs            # Next.js config (standalone, Turbopack)
-├── Dockerfile                 # Multi-stage Docker build
-└── docker-compose.yml         # MySQL + Next.js
+│   └── backup-database.ts     # Backup DB (npm run db:backup)
+├── proxy.ts                   # Next.js request proxy / auth middleware (RBAC route guard)
+└── .env.production.example    # Template env produksi (lihat docs/DEPLOY.md)
 ```
 
 ---
@@ -285,12 +284,7 @@ docker-compose logs -f nextjs
 - Buat superadmin: `admin@brontolano.com` / `bismillah`
 - **Jalankan:** `npm run reset:users`
 
-### `scripts/deploy-prepare.mjs`
-
-- Build deploy-package/ dari .next/standalone
-- Copy Prisma runtime, .next/static, public, prisma schema
-- Remove .env leaks, copy package-lock.json
-- **Jalankan:** `node scripts/deploy-prepare.mjs` (setelah `npm run build`)
+> ℹ️ `scripts/deploy-prepare.mjs` (deploy-package) sudah dihapus — deploy via git push ke `main`, lihat [docs/DEPLOY.md](DEPLOY.md).
 
 ---
 
@@ -401,9 +395,7 @@ npm run lint            # (optional) linting
 | `lib/prisma.ts`              | Prisma client singleton (global cache)                    |
 | `app/api/auth/options.ts`    | NextAuth config (CredentialsProvider, bcrypt, JWT)        |
 | `proxy.ts`                   | Middleware RBAC (route protection)                        |
-| `server.js`                  | Entry point custom (loads .env.production, validates env) |
 | `prisma/schema.prisma`       | Database schema (14 models)                               |
-| `scripts/deploy-prepare.mjs` | Build deploy-package untuk Hostinger                      |
 
 ---
 

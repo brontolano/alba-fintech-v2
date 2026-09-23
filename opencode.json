@@ -1,0 +1,18 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "serena": {
+      "type": "local",
+      "command": ["serena", "start-mcp-server", "--context=ide", "--project-from-cwd"],
+      "enabled": true
+    },
+    "hostinger": {
+      "type": "local",
+      "command": ["hostinger-api-mcp"],
+      "enabled": true,
+      "environment": {
+        "HOSTINGER_API_TOKEN": "{env:HOSTINGER_API_TOKEN}"
+      }
+    }
+  }
+}

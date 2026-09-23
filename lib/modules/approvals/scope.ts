@@ -7,8 +7,17 @@ export type ApprovalScopeInput = {
   lembagaUnitIds?: string[];
 };
 
-export function buildApprovalScope(input: ApprovalScopeInput): Record<string, unknown> {
-  const { role, userId, userUnitId, lembagaId, requestedUnitId, lembagaUnitIds = [] } = input;
+export function buildApprovalScope(
+  input: ApprovalScopeInput,
+): Record<string, unknown> {
+  const {
+    role,
+    userId,
+    userUnitId,
+    lembagaId,
+    requestedUnitId,
+    lembagaUnitIds = [],
+  } = input;
   const scope: Record<string, unknown> = { status: "PENDING" };
 
   if (role === "MANAGER") {
@@ -36,7 +45,11 @@ export function buildApprovalScope(input: ApprovalScopeInput): Record<string, un
   }
 
   if (role === "STAFF") {
-    const unitIds = requestedUnitId ? [requestedUnitId] : userUnitId ? [userUnitId] : [];
+    const unitIds = requestedUnitId
+      ? [requestedUnitId]
+      : userUnitId
+        ? [userUnitId]
+        : [];
     scope.OR = [
       ...(unitIds.length > 0 ? [{ unitId: unitIds[0] }] : []),
       ...(userId ? [{ transactions: { createdById: userId } }] : []),
