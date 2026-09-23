@@ -69,12 +69,16 @@ export default function POSPage() {
     Array<{ value: string; label: string }>
   >([{ value: "all", label: "Semua" }]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 100;
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         // Fetch inventory items to use as POS products
-        const res = await fetch("/api/inventory?isActive=true&limit=100");
+        const res = await fetch(`/api/inventory?isActive=true&limit=${PAGE_SIZE}&page=1`);
         if (!res.ok) throw new Error("Gagal memuat produk");
         const data: InventoryResponse = await res.json();
         const inventoryItems = data.data ?? [];
@@ -91,6 +95,8 @@ export default function POSPage() {
         }));
 
         setProducts(mappedProducts);
+        setPage(1);
+        setTotalPages(data.summary?.pages ?? 1);
 
         // Build categories from inventory
         const uniqueCats = Array.from(
@@ -112,6 +118,53 @@ export default function POSPage() {
 
     fetchProducts();
   }, []);
+
+  const loadMoreProducts = async () => {
+    if (loadingMore || page >= totalPages) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const res = await fetch(
+        `/api/inventory?isActive=true&limit=${PAGE_SIZE}&page=${nextPage}`,
+      );
+      if (!res.ok) throw new Error("Gagal memuat produk lainnya");
+      const data: InventoryResponse = await res.json();
+      const inventoryItems = data.data ?? [];
+
+      const mappedProducts: CartItem[] = inventoryItems.map((item) => ({
+        id: item.id,
+        name: item.name,
+        sku: item.sku,
+        price: Number(item.unitPrice),
+        quantity: item.currentStock ?? 0,
+        image: item.imageUrl || undefined,
+        category: item.category ?? undefined,
+      }));
+
+      setProducts((prev) => {
+        const seen = new Set(prev.map((p) => p.id));
+        return [...prev, ...mappedProducts.filter((p) => !seen.has(p.id))];
+      });
+      setPage(nextPage);
+      setTotalPages(data.summary?.pages ?? nextPage);
+
+      setCategories((prev) => {
+        const existing = new Set(prev.map((c) => c.value));
+        const fresh = Array.from(
+          new Set(
+            inventoryItems
+              .map((item) => item.category)
+              .filter((c): c is string => c !== null && !existing.has(c)),
+          ),
+        ).map((cat) => ({ value: cat, label: cat }));
+        return fresh.length > 0 ? [...prev, ...fresh] : prev;
+      });
+    } catch (err: any) {
+      toast.error(err.message || "Gagal memuat produk lainnya");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name
@@ -152,13 +205,48 @@ export default function POSPage() {
     }
   };
 
-  const handleScanBarcode = () => {
+  const handleScanBarcode = async () => {
     const term = barcode.trim().toLowerCase();
     if (!term) return;
-    const product = products.find(
+    let product = products.find(
       (p) =>
         (p.sku && p.sku.toLowerCase() === term) || p.id.toLowerCase() === term,
     );
+
+    if (!product) {
+      // Produk mungkin belum ter-load (pagination). Cari langsung ke API.
+      try {
+        const res = await fetch(
+          `/api/inventory?isActive=true&limit=1&search=${encodeURIComponent(term)}`,
+        );
+        if (!res.ok) throw new Error("Gagal mencari produk");
+        const data: InventoryResponse = await res.json();
+        const match = (data.data ?? []).find(
+          (item) =>
+            item.id.toLowerCase() === term ||
+            (item.sku && item.sku.toLowerCase() === term),
+        );
+        if (match) {
+          product = {
+            id: match.id,
+            name: match.name,
+            sku: match.sku,
+            price: Number(match.unitPrice),
+            quantity: match.currentStock ?? 0,
+            image: match.imageUrl || undefined,
+            category: match.category ?? undefined,
+          };
+          setProducts((prev) =>
+            prev.some((p) => p.id === product!.id)
+              ? prev
+              : [...prev, product!],
+          );
+        }
+      } catch {
+        product = undefined;
+      }
+    }
+
     if (product) {
       addToCart(product);
       setBarcode("");
@@ -430,6 +518,19 @@ export default function POSPage() {
               </button>
             ))}
           </div>
+
+          {page < totalPages && (
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={loadMoreProducts}
+                disabled={loadingMore}
+                className="flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-6 py-3 text-sm font-medium text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Package size={16} />
+                <span>{loadingMore ? "Memuat..." : "Muat Lebih Banyak"}</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="space-y-5">
