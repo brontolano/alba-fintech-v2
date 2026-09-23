@@ -7,6 +7,11 @@ import {
   Plus,
   Loader2,
   PackagePlus,
+  Pencil,
+  Save,
+  X,
+  Power,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -24,6 +29,7 @@ type Item = {
   agreedPrice: number;
   marginType: string;
   marginValue: number;
+  isActive?: boolean;
   owners: { name: string };
   inventory: { name: string; currentStock: number; unitPrice: number } | null;
 };
@@ -128,6 +134,7 @@ function OwnersPanel({
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
 
   useEffect(() => {
     onReload();
@@ -147,6 +154,44 @@ function OwnersPanel({
       if (!res.ok) throw new Error(body.error || "Gagal menyimpan");
       setName("");
       setPhone("");
+      await onReload();
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const update = async (id: string, payload: any) => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/retail/consignments/owners/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Gagal menyimpan");
+      setEditing(null);
+      await onReload();
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!window.confirm("Hapus pemilik? Barang titipannya ikut dikeluarkan.")) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/retail/consignments/owners/${id}`, {
+        method: "DELETE",
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Gagal menghapus");
       await onReload();
     } catch (e: any) {
       setErr(e.message);
@@ -202,23 +247,99 @@ function OwnersPanel({
           </p>
         ) : (
           <div className="divide-y">
-            {owners.map((o) => (
-              <div key={o.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <div className="min-w-0">
-                  <p className="font-medium">
-                    {o.name}
-                    {!o.isActive && (
-                      <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                        nonaktif
-                      </span>
-                    )}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {o.phone || "—"} · {o.itemCount ?? 0} barang
-                  </p>
+            {owners.map((o) =>
+              editing === o.id ? (
+                <div key={o.id} className="grid gap-2 py-3 sm:grid-cols-[1fr_auto]">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <input
+                      defaultValue={o.name}
+                      id={`owner-name-${o.id}`}
+                      placeholder="Nama"
+                      className="rounded-lg border bg-background px-3 py-1.5 text-sm"
+                    />
+                    <input
+                      defaultValue={o.phone || ""}
+                      id={`owner-phone-${o.id}`}
+                      placeholder="No. HP"
+                      className="rounded-lg border bg-background px-3 py-1.5 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        update(o.id, {
+                          name:
+                            (
+                              document.getElementById(
+                                `owner-name-${o.id}`,
+                              ) as HTMLInputElement
+                            )?.value?.trim() || o.name,
+                          phone:
+                            (
+                              document.getElementById(
+                                `owner-phone-${o.id}`,
+                              ) as HTMLInputElement
+                            )?.value?.trim() || null,
+                        })
+                      }
+                      disabled={busy}
+                      className="inline-flex items-center gap-1 rounded-lg bg-primary px-2 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                    >
+                      <Save size={13} /> Simpan
+                    </button>
+                    <button
+                      onClick={() => setEditing(null)}
+                      className="inline-flex items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-semibold disabled:opacity-50"
+                    >
+                      <X size={13} /> Batal
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ) : (
+                <div key={o.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium">
+                      {o.name}
+                      {!o.isActive && (
+                        <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                          nonaktif
+                        </span>
+                      )}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {o.phone || "—"} · {o.itemCount ?? 0} barang
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <button
+                      onClick={() => setEditing(o.id)}
+                      title="Ubah"
+                      className="rounded-lg border p-1.5 hover:bg-muted"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      onClick={() => update(o.id, { isActive: !o.isActive })}
+                      disabled={busy}
+                      title={o.isActive ? "Nonaktifkan" : "Aktifkan"}
+                      className={`rounded-lg border p-1.5 hover:bg-muted disabled:opacity-50 ${
+                        o.isActive ? "" : "text-emerald-600"
+                      }`}
+                    >
+                      <Power size={13} />
+                    </button>
+                    <button
+                      onClick={() => remove(o.id)}
+                      disabled={busy}
+                      title="Hapus"
+                      className="rounded-lg border p-1.5 text-rose-600 hover:bg-muted disabled:opacity-50"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ),
+            )}
           </div>
         )}
       </div>
@@ -247,6 +368,7 @@ function ItemsPanel({
     startingStock: "1",
   });
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
 
   useEffect(() => {
     onReload();
@@ -273,6 +395,26 @@ function ItemsPanel({
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Gagal menyimpan");
       setForm({ ...form, name: "", sku: "", startingStock: "1" });
+      await onReload();
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const update = async (id: string, payload: any) => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/retail/consignments/items/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Gagal menyimpan");
+      setEditing(null);
       await onReload();
     } catch (e: any) {
       setErr(e.message);
@@ -376,21 +518,121 @@ function ItemsPanel({
           </p>
         ) : (
           <div className="divide-y">
-            {items.map((it) => (
-              <div key={it.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <div className="min-w-0">
-                  <p className="font-medium">{it.inventory?.name || it.id}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {it.owners?.name} · simpan {it.inventory?.currentStock ?? 0} ·{" "}
-                    {it.marginType === "PERCENT" ? `${it.marginValue}%` : `Rp ${it.marginValue}`}
-                  </p>
+            {items.map((it) =>
+              editing === it.id ? (
+                <div key={it.id} className="grid gap-2 py-3">
+                  <p className="text-sm font-medium">{it.inventory?.name || it.id}</p>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <input
+                      defaultValue={Number(it.costPrice)}
+                      id={`item-cost-${it.id}`}
+                      placeholder="Harga modal"
+                      type="number"
+                      min="0"
+                      className="rounded-lg border bg-background px-3 py-1.5 text-sm"
+                    />
+                    <select
+                      id={`item-margin-type-${it.id}`}
+                      defaultValue={it.marginType}
+                      className="rounded-lg border bg-background px-3 py-1.5 text-sm"
+                    >
+                      <option value="PERCENT">Margin %</option>
+                      <option value="FIXED">Margin Rp</option>
+                    </select>
+                    <input
+                      defaultValue={Number(it.marginValue)}
+                      id={`item-margin-value-${it.id}`}
+                      placeholder="Nilai margin"
+                      type="number"
+                      min="0"
+                      className="rounded-lg border bg-background px-3 py-1.5 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        update(it.id, {
+                          costPrice:
+                            Number(
+                              (
+                                document.getElementById(
+                                  `item-cost-${it.id}`,
+                                ) as HTMLInputElement
+                              )?.value,
+                            ) || 0,
+                          marginType:
+                            (
+                              document.getElementById(
+                                `item-margin-type-${it.id}`,
+                              ) as HTMLSelectElement
+                            )?.value || "PERCENT",
+                          marginValue:
+                            Number(
+                              (
+                                document.getElementById(
+                                  `item-margin-value-${it.id}`,
+                                ) as HTMLInputElement
+                              )?.value,
+                            ) || 0,
+                        })
+                      }
+                      disabled={busy}
+                      className="inline-flex items-center gap-1 rounded-lg bg-primary px-2 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                    >
+                      <Save size={13} /> Simpan
+                    </button>
+                    <button
+                      onClick={() => setEditing(null)}
+                      className="inline-flex items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-semibold disabled:opacity-50"
+                    >
+                      <X size={13} /> Batal
+                    </button>
+                  </div>
                 </div>
-                <p className="shrink-0 text-right text-xs">
-                  <span className="block text-muted-foreground">jual {fmt(Number(it.agreedPrice))}</span>
-                  <span className="block">modal {fmt(Number(it.costPrice))}</span>
-                </p>
-              </div>
-            ))}
+              ) : (
+                <div key={it.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium">
+                      {it.inventory?.name || it.id}
+                      {it.isActive === false && (
+                        <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                          nonaktif
+                        </span>
+                      )}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {it.owners?.name} · simpan {it.inventory?.currentStock ?? 0} ·{" "}
+                      {it.marginType === "PERCENT" ? `${it.marginValue}%` : `Rp ${it.marginValue}`}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2 text-right">
+                    <div className="text-xs">
+                      <span className="block text-muted-foreground">jual {fmt(Number(it.agreedPrice))}</span>
+                      <span className="block">modal {fmt(Number(it.costPrice))}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setEditing(it.id)}
+                        title="Ubah margin"
+                        className="rounded-lg border p-1.5 hover:bg-muted"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => update(it.id, { isActive: it.isActive === false })}
+                        disabled={busy}
+                        title={it.isActive === false ? "Aktifkan" : "Nonaktifkan"}
+                        className={`rounded-lg border p-1.5 hover:bg-muted disabled:opacity-50 ${
+                          it.isActive === false ? "text-emerald-600" : ""
+                        }`}
+                      >
+                        <Power size={13} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ),
+            )}
           </div>
         )}
       </div>
