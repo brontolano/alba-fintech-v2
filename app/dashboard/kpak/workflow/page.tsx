@@ -16,10 +16,15 @@ import {
   Loader2,
   Wallet,
   BookOpen,
+  ClipboardList,
+  Clock,
+  PiggyBank,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePageGuard } from "@/lib/use-page-guard";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { QuickAccessGrid } from "@/components/dashboard/QuickAccessGrid";
+import type { QuickAccessAction } from "@/components/dashboard/QuickAccessGrid";
 
 /**
  * Pusat Kerja Manager KPAK — alur harian dalam 5 langkah:
@@ -152,6 +157,8 @@ export default function ManagerWorkflowPage() {
     load();
   }, [load]);
 
+  // Tiap langkah SATU aksi utama — sisanya lewat Akses Cepat di bawah.
+  // (Aturan: nama tombol = nama halaman tujuan, tanpa nama ganda.)
   const steps: Step[] = [
     {
       no: 1,
@@ -163,10 +170,7 @@ export default function ManagerWorkflowPage() {
       facts: shiftOn
         ? [`${crewOn} kru sedang bertugas`]
         : ["Check-in dulu untuk membuka layanan hari ini"],
-      actions: [
-        { label: "Kru & Kinerja", href: "/dashboard/kpak/crew" },
-        { label: "Buka Shift Saya", href: "/dashboard/kpak/shift" },
-      ],
+      actions: [{ label: "Shift Saya", href: "/dashboard/kpak/shift" }],
     },
     {
       no: 2,
@@ -178,34 +182,25 @@ export default function ManagerWorkflowPage() {
       facts: shiftOn
         ? [`Layanan: ${formatCurrency(txTotal)} tercatat`, "Tabungan & keuangan terbuka"]
         : ["Menu layanan aktif setelah check-in"],
-      actions: [
-        { label: "Layanan Keuangan", href: "/dashboard/kpak/finance" },
-        { label: "Tabungan Santri", href: "/dashboard/savings" },
-        { label: "Data Santri", href: "/dashboard/kpak/students" },
-      ],
+      actions: [{ label: "Layanan Keuangan", href: "/dashboard/kpak/finance" }],
     },
     {
       no: 3,
-      title: "Pengajuan",
-      desc: "Putuskan pengajuan kru, ajukan anggaran ke pimpinan.",
+      title: "Perlu Keputusan",
+      desc: "Satu antrean: laporan shift, operasional, dan anggaran.",
       icon: <Send size={22} />,
       status: pendingApprovals > 0 ? "action" : "info",
       statusLabel:
         pendingApprovals > 0 ? `${pendingApprovals} menunggu keputusan` : "Tidak ada antrean",
       facts:
         pendingApprovals > 0
-          ? ["Ada pengajuan kru yang perlu diputuskan"]
+          ? ["Ada yang perlu diputuskan"]
           : ["Antrean persetujuan kosong"],
-      actions: [
-        { label: "Antrean Review", href: "/dashboard/kpak/review" },
-        { label: "Anggaran Saya", href: "/dashboard/kpak/my-budget" },
-        { label: "Putuskan Pengajuan", href: "/dashboard/approvals" },
-        { label: "Ajukan Anggaran", href: "/dashboard/kpak/budget" },
-      ],
+      actions: [{ label: "Perlu Keputusan", href: "/dashboard/kpak/review" }],
     },
     {
       no: 4,
-      title: "Rekonsiliasi + Serah Terima",
+      title: "Tutup Hari",
       desc: "Cocokkan kas, lalu serahkan ke pimpinan.",
       icon: <ArrowRightLeft size={22} />,
       status:
@@ -226,11 +221,7 @@ export default function ManagerWorkflowPage() {
         handover === "ACCEPTED"
           ? ["Tutup hari ini selesai"]
           : ["Rekonsiliasi dulu, baru serah terima"],
-      actions: [
-        { label: "Tutup Hari", href: "/dashboard/kpak/close-day" },
-        { label: "Rekonsiliasi", href: "/dashboard/reconciliation" },
-        { label: "Serah Terima Kas", href: "/dashboard/handovers" },
-      ],
+      actions: [{ label: "Tutup Hari", href: "/dashboard/kpak/close-day" }],
     },
     {
       no: 5,
@@ -240,8 +231,19 @@ export default function ManagerWorkflowPage() {
       status: "info",
       statusLabel: "Siap dibuka kapan saja",
       facts: [`Hari ini: ${txCount} layanan + ${savCount} tabungan`],
-      actions: [{ label: "Buka Rekap", href: "/dashboard/kpak/reports" }],
+      actions: [{ label: "Rekap & Laporan", href: "/dashboard/kpak/reports" }],
     },
+  ];
+
+  const quickAccess: QuickAccessAction[] = [
+    { href: "/dashboard/kpak/review", icon: ClipboardList, label: "Perlu Keputusan", color: "amber" },
+    { href: "/dashboard/kpak/close-day", icon: Clock, label: "Tutup Hari", color: "blue" },
+    { href: "/dashboard/kpak/crew", icon: Users, label: "Kru & Kinerja", color: "islamic" },
+    { href: "/dashboard/kpak/my-budget", icon: Wallet, label: "Anggaran Saya", color: "green" },
+    { href: "/dashboard/kpak/finance", icon: CreditCard, label: "Layanan Keuangan", color: "purple" },
+    { href: "/dashboard/savings", icon: PiggyBank, label: "Tabungan", color: "orange" },
+    { href: "/dashboard/kpak/reports", icon: BarChart3, label: "Rekap", color: "slate" },
+    { href: "/dashboard/kpak/students", icon: BookOpen, label: "Data Santri", color: "accent" },
   ];
 
   const nextStep = steps.find((s) => s.status === "action") || null;
@@ -291,8 +293,15 @@ export default function ManagerWorkflowPage() {
         </Link>
       )}
 
-      <ol className="space-y-3">
-        {steps.map((s) => (
+      {/* Akses cepat — semua halaman baru + utama, satu nama satu tujuan */}
+      <div className="rounded-[22px] border border-border bg-card/90 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Akses Cepat
+        </p>
+        <QuickAccessGrid actions={quickAccess} />
+      </div>
+
+      <ol className="space-y-3">        {steps.map((s) => (
           <li
             key={s.no}
             className="rounded-[22px] border border-border bg-card/90 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"

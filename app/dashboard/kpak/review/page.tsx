@@ -63,6 +63,7 @@ interface Approval {
   createdAt: string;
   users: { name?: string | null; email: string };
   submittedBy?: { name?: string | null; email: string };
+  transactions?: { reference?: string | null } | null;
 }
 
 export default function ManagerReviewPage() {
@@ -161,7 +162,7 @@ export default function ManagerReviewPage() {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-4 pb-24 md:pb-8">
       <DashboardHeader
-        title="Perlu Keputusan Saya"
+        title="Perlu Keputusan"
         subtitle={
           total > 0 ? `${total} menunggu — selesaikan satu per satu` : "Antrean kosong"
         }
@@ -267,6 +268,9 @@ export default function ManagerReviewPage() {
           {approvals.map((a) => {
             const busy = actingId === a.id;
             const by = a.submittedBy?.name || a.users?.name || a.users?.email || "—";
+            // Pengajuan anggaran mengalir ke antrean yang sama (reference ANGGARAN:)
+            const ref = a.reference || a.transactions?.reference || "";
+            const isBudget = ref.startsWith("ANGGARAN:");
             return (
               <div
                 key={a.id}
@@ -293,9 +297,19 @@ export default function ManagerReviewPage() {
                     <p className="truncate text-xs text-muted-foreground">
                       {a.description}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      Diajukan {by} • {fmtDateTime(a.createdAt)}
-                      {a.reference ? ` • ${a.reference}` : ""}
+                    <p className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          isBudget
+                            ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                            : "bg-sky-500/10 text-sky-600 dark:text-sky-400"
+                        }`}
+                      >
+                        {isBudget ? "Anggaran" : "Operasional"}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {by} • {fmtDateTime(a.createdAt)}
+                      </span>
                     </p>
                   </div>
                 </div>
