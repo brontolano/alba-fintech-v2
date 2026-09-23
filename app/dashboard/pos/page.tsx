@@ -12,6 +12,7 @@ import {
   Banknote,
   Receipt,
   Package,
+  ScanLine,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
@@ -76,6 +77,8 @@ export default function POSPage() {
     count: number;
     income: number;
   } | null>(null);
+  const [smartCardUid, setSmartCardUid] = useState("");
+  const [payingSmart, setPayingSmart] = useState(false);
   const PAGE_SIZE = 100;
   const LOW_STOCK_THRESHOLD = 5;
   const isManager = session?.user?.role === "MANAGER";
@@ -357,7 +360,7 @@ export default function POSPage() {
           <h2 style="text-align:center;">ALBA Finance - Struk Penjualan</h2>
           <p style="text-align:center;font-size:12px;">${format(new Date(), "dd MMM yyyy HH:mm", { locale: id })}</p>
           <p style="font-size:12px;">Pelanggan: ${customerName || "Umum"}</p>
-          <p style="font-size:12px;">Metode: ${paymentMethod === "cash" ? "Tunai" : "Kartu"}</p>
+          <p style="font-size:12px;">Metode: ${paymentMethod === "cash" ? "Tunai" : paymentMethod === "smartcard" ? "Kartu Santri" : "Kartu"}</p>
           <table className="rtable w-full">
             <thead><tr><th align="left">Produk</th><th align="right">Qty</th><th align="right">Total</th></tr></thead>
             <tbody>${itemsHtml}</tbody>
@@ -373,6 +376,69 @@ export default function POSPage() {
     receiptWindow.document.close();
     receiptWindow.focus();
     receiptWindow.print();
+  };
+
+  const handleSmartPay = async () => {
+    if (!session) {
+      toast.error("Anda harus login terlebih dahulu");
+      router.push("/login");
+      return;
+    }
+    if (cart.length === 0) {
+      toast.error("Keranjang kosong");
+      return;
+    }
+    const uid = smartCardUid.trim();
+    if (!uid) {
+      toast.error("Tempel/scan kartu terlebih dahulu");
+      return;
+    }
+
+    // Validasi stok di sisi klien sebelum kirim
+    for (const cartItem of cart) {
+      const product = products.find((p) => p.id === cartItem.id);
+      if (product && cartItem.quantity > product.quantity) {
+        toast.error(
+          `Stok tidak mencukupi untuk ${product.name}. Tersedia: ${product.quantity}`,
+        );
+        return;
+      }
+      if (cartItem.quantity <= 0) {
+        toast.error(`Quantity tidak valid untuk ${cartItem.name}`);
+        return;
+      }
+    }
+
+    setPayingSmart(true);
+    try {
+      const res = await fetch("/api/smartpay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardUid: uid,
+          unitId: session?.user?.unitId,
+          items: cart.map((item) => ({
+            itemId: item.id,
+            quantity: item.quantity,
+          })),
+          description: `Penjualan ${cart.length} item${customerName ? ` untuk ${customerName}` : ""}`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Gagal memproses pembayaran kartu");
+      }
+
+      toast.success(
+        `Pembayaran kartu berhasil! Sisa saldo ${formatCurrency(data?.data?.balanceAfter ?? 0)}`,
+      );
+      clearCart();
+      setSmartCardUid("");
+    } catch (err: any) {
+      toast.error(err.message || "Gagal memproses pembayaran kartu");
+    } finally {
+      setPayingSmart(false);
+    }
   };
 
   const handleSendWhatsApp = () => {
@@ -401,6 +467,25 @@ export default function POSPage() {
 
     if (cart.length === 0) {
       toast.error("Keranjang kosong");
+      return;
+    }
+
+    // Validasi uang bayar untuk transaksi tunai
+    if (paymentMethod === "cash") {
+      if (amountPaidNum <= 0) {
+        toast.error("Isi jumlah uang bayar terlebih dahulu");
+        return;
+      }
+      if (amountPaidNum < total) {
+        toast.error(
+          `Uang bayar kurang. Kurang ${formatCurrency(total - amountPaidNum)}`,
+        );
+        return;
+      }
+    }
+
+    if (paymentMethod === "smartcard") {
+      toast.error("Pembayaran kartu santri lewat tombol Bayar Kartu");
       return;
     }
 
@@ -624,18 +709,39 @@ export default function POSPage() {
                 <span>Tunai</span>
               </button>
               <button
-                onClick={() => setPaymentMethod("card")}
+                onClick={() => setPaymentMethod("smartcard")}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition ${
-                  paymentMethod === "card"
+                  paymentMethod === "smartcard"
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-foreground hover:bg-muted/80"
                 }`}
               >
                 <CreditCard size={16} />
-                <span>Kartu</span>
+                <span>Kartu Santri</span>
               </button>
             </div>
           </div>
+
+          {paymentMethod === "smartcard" && (
+            <div className="rounded-[22px] border border-primary/20 bg-primary/5 p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <label className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                <ScanLine size={16} className="text-primary" />
+                UID Kartu Santri
+              </label>
+              <input
+                type="text"
+                placeholder="Tempel / scan kartu, masukkan UID..."
+                value={smartCardUid}
+                onChange={(e) => setSmartCardUid(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSmartPay()}
+                autoFocus
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+              />
+              <p className="mt-2 text-xs text-muted-foreground">
+                Saldo akan didebit otomatis dari tabungan santri.
+              </p>
+            </div>
+          )}
 
           <div className="rounded-[22px] border border-border bg-card p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
@@ -699,7 +805,7 @@ export default function POSPage() {
                         onClick={() => removeFromCart(item.id)}
                         className="flex h-7 w-7 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
                       >
-                        <Trash2 size={12} />
+<Trash2 size={12} />
                       </button>
                     </div>
                   </div>
@@ -756,12 +862,28 @@ export default function POSPage() {
 
             <div className="mt-4 space-y-2">
               <button
-                onClick={handleCheckout}
-                disabled={cart.length === 0}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={
+                  paymentMethod === "smartcard"
+                    ? handleSmartPay
+                    : handleCheckout
+                }
+                disabled={
+                  cart.length === 0 ||
+                  (paymentMethod === "smartcard" && payingSmart)
+                }
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Receipt size={18} />
-                <span>Bayar</span>
+                {paymentMethod === "smartcard" ? (
+                  <>
+                    <CreditCard size={18} />
+                    <span>{payingSmart ? "Memproses..." : "Bayar dengan Kartu"}</span>
+                  </>
+                ) : (
+                  <>
+                    <Receipt size={18} />
+                    <span>Bayar</span>
+                  </>
+                )}
               </button>
               {cart.length > 0 && (
                 <>
