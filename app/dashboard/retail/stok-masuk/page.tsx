@@ -34,7 +34,94 @@ type Session = {
 };
 type Unit = { id: string; name: string };
 type Owner = { id: string; name: string; phone?: string | null };
-type StockItem = { id: string; name: string; sku: string; currentStock: number };
+type StockItem = {
+  id: string;
+  name: string;
+  sku: string;
+  currentStock: number;
+  isConsignment?: boolean;
+  ownerId?: string | null;
+};
+
+// Ketik + saran dari database (pengganti dropdown native).
+function ItemPicker({
+  items,
+  value,
+  onPick,
+  placeholder,
+}: {
+  items: StockItem[];
+  value: string;
+  onPick: (id: string) => void;
+  placeholder: string;
+}) {
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const selected = items.find((i) => i.id === value);
+  const query = q.trim().toLowerCase();
+  const matches = (query
+    ? items.filter(
+        (i) =>
+          i.name.toLowerCase().includes(query) ||
+          i.sku.toLowerCase().includes(query),
+      )
+    : items
+  ).slice(0, 6);
+
+  return (
+    <div className="relative">
+      <input
+        value={selected ? `${selected.name} (${selected.sku})` : q}
+        onChange={(e) => {
+          setQ(e.target.value);
+          if (value) onPick("");
+          setOpen(true);
+        }}
+        onFocus={() => {
+          setQ("");
+          setOpen(true);
+        }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder}
+        className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+      />
+      {open && matches.length > 0 && (
+        <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border bg-card shadow-lg">
+          {matches.map((i) => (
+            <button
+              key={i.id}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onPick(i.id);
+                setQ("");
+                setOpen(false);
+              }}
+              className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+            >
+              <span className="min-w-0">
+                <span className="block truncate font-medium">{i.name}</span>
+                <span className="block text-[11px] text-muted-foreground">
+                  {i.sku} · stok {i.currentStock}
+                </span>
+              </span>
+              {i.isConsignment && (
+                <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold text-amber-800">
+                  UMKM
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+      {open && query && matches.length === 0 && (
+        <div className="absolute z-20 mt-1 w-full rounded-lg border bg-card px-3 py-2 text-xs text-muted-foreground shadow-lg">
+          Tidak ketemu — pakai mode “Barang baru”.
+        </div>
+      )}
+    </div>
+  );
+}
 type ApprovalOpt = { id: string; description: string; transactionId: string };
 type Kind = "pondok" | "titipan";
 
@@ -160,6 +247,8 @@ export default function StokMasukPage() {
             name: i.name,
             sku: i.sku,
             currentStock: i.currentStock ?? 0,
+            isConsignment: Boolean(i.isConsignment),
+            ownerId: i.isConsignmentOwner ?? null,
           })),
         ),
       )
@@ -215,6 +304,13 @@ export default function StokMasukPage() {
     setNewOwner({ name: "", phone: "", address: "" });
     return created.id as string;
   };
+
+  // Pool saran: pondok → barang milik unit; titipan → barang UMKM terpilih.
+  const pool = stockItems.filter((i) =>
+    kind === "pondok"
+      ? !i.isConsignment
+      : i.isConsignment && (!ownerId || i.ownerId === ownerId),
+  );
 
   const totalQty = rows.reduce(
     (s, x) => s + (Number.isInteger(Number(x.qty)) ? Number(x.qty) : 0),
@@ -603,20 +699,18 @@ export default function StokMasukPage() {
                 </div>
 
                 {x.mode === "existing" ? (
-                  <select
+                  <ItemPicker
+                    items={pool}
                     value={x.inventoryItemId}
-                    onChange={(e) =>
-                      patchRow(x.key, { inventoryItemId: e.target.value })
+                    onPick={(id) => patchRow(x.key, { inventoryItemId: id })}
+                    placeholder={
+                      kind === "pondok"
+                        ? "Ketik nama / SKU barang pondok…"
+                        : ownerId
+                          ? "Ketik nama / SKU barang UMKM ini…"
+                          : "Ketik nama / SKU barang titipan…"
                     }
-                    className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="">— Pilih barang unit ini —</option>
-                    {stockItems.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.name} ({i.sku}) · stok {i.currentStock}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 ) : (
                   <div className="grid gap-2 sm:grid-cols-2">
                     <input
