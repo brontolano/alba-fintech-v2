@@ -1,123 +1,79 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   UserPlus,
-  Plus,
   Loader2,
+  ChevronRight,
+  Phone,
+  Package,
+  Plus,
   Pencil,
-  Save,
-  X,
   Power,
   Trash2,
-  ArrowRight,
+  X,
+  Save,
 } from "lucide-react";
-import Link from "next/link";
 
-type Owner = { id: string; name: string; phone?: string; isActive: boolean; itemCount?: number };
-
-// Pembagian halaman (anti-duplikat):
-// - Halaman ini: kelola PEMILIK titipan + payout/serah terima.
-// - Kelola BARANG titipan: tab Titipan di /dashboard/retail/inventory,
-//   input via /dashboard/retail/inventory/tambah.
+type Owner = {
+  id: string;
+  name: string;
+  phone?: string | null;
+  address?: string | null;
+  isActive: boolean;
+  itemCount?: number;
+  whatsappVerified?: boolean | null;
+};
 
 export default function KonsinyasiPage() {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: "", phone: "", address: "" });
 
-  return (
-    <main className="mx-auto max-w-3xl space-y-4 p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Titipan UMKM</h1>
-          <p className="text-sm text-muted-foreground">Kelola pemilik titipan</p>
-        </div>
-        <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Kembali
-        </Link>
-      </div>
-
-      <Link
-        href="/dashboard/retail/inventory"
-        className="flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-sm font-semibold hover:border-primary/50"
-      >
-        Kelola barang titipan di halaman Inventaris (tab Titipan)
-        <ArrowRight size={16} className="text-muted-foreground" />
-      </Link>
-
-      {err && (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-sm text-rose-600">
-          {err}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="py-12 text-center text-muted-foreground">
-          <Loader2 size={20} className="mx-auto animate-spin" />
-        </div>
-      ) : (
-        <OwnersPanel
-          owners={owners}
-          onReload={reloadOwners}
-          setErr={setErr}
-        />
-      )}
-    </main>
-  );
-
-  async function reloadOwners() {
+  const load = async () => {
     setLoading(true);
     setErr(null);
     try {
       const res = await fetch("/api/retail/consignments/owners");
       const body = await res.json();
-      if (!res.ok) {
-        setErr(body.error || "Gagal memuat pemilik");
-        return;
-      }
+      if (!res.ok) throw new Error(body.error || "Gagal memuat UMKM");
       setOwners(body.data || []);
     } catch (e: any) {
-      setErr(e.message || "Gagal memuat pemilik");
+      setErr(e.message);
     } finally {
       setLoading(false);
     }
-  }
-}
-
-function OwnersPanel({
-  owners,
-  onReload,
-  setErr,
-}: {
-  owners: Owner[];
-  onReload: () => Promise<void>;
-  setErr: (m: string | null) => void;
-}) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [editing, setEditing] = useState<string | null>(null);
+  };
 
   useEffect(() => {
-    onReload();
+    load();
   }, []);
 
-  const create = async () => {
-    if (!name.trim()) return;
+  const create = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
     setBusy(true);
     setErr(null);
     try {
       const res = await fetch("/api/retail/consignments/owners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), phone: phone.trim() || null }),
+        body: JSON.stringify({
+          name: form.name.trim(),
+          phone: form.phone.trim() || null,
+          address: form.address.trim() || null,
+        }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Gagal menyimpan");
-      setName("");
-      setPhone("");
-      await onReload();
+      setForm({ name: "", phone: "", address: "" });
+      setShowForm(false);
+      await load();
     } catch (e: any) {
       setErr(e.message);
     } finally {
@@ -137,7 +93,7 @@ function OwnersPanel({
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Gagal menyimpan");
       setEditing(null);
-      await onReload();
+      await load();
     } catch (e: any) {
       setErr(e.message);
     } finally {
@@ -145,8 +101,9 @@ function OwnersPanel({
     }
   };
 
-  const remove = async (id: string) => {
-    if (!window.confirm("Hapus pemilik? Barang titipannya ikut dikeluarkan.")) return;
+  const remove = async (id: string, name: string) => {
+    if (!window.confirm(`Hapus "${name}"? Barang titipannya ikut dikeluarkan.`))
+      return;
     setBusy(true);
     setErr(null);
     try {
@@ -155,7 +112,7 @@ function OwnersPanel({
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Gagal menghapus");
-      await onReload();
+      await load();
     } catch (e: any) {
       setErr(e.message);
     } finally {
@@ -164,148 +121,217 @@ function OwnersPanel({
   };
 
   return (
-    <div className="space-y-4">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          create();
-        }}
-        className="rounded-xl border bg-card p-4"
-      >
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-          <UserPlus size={16} /> Daftarkan Pemilik
-        </h2>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nama pemilik (mis. Ibu Siti)"
-            className="rounded-lg border bg-background px-3 py-2 text-sm"
-            required
-          />
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="No. HP (opsional)"
-            className="rounded-lg border bg-background px-3 py-2 text-sm"
-          />
+    <main className="mx-auto w-full max-w-3xl space-y-3 overflow-x-hidden p-3 sm:p-4">
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-bold">Titipan UMKM</h1>
+          <p className="text-xs text-muted-foreground">
+            {owners.length} UMKM · ketuk untuk detail
+          </p>
         </div>
         <button
-          type="submit"
-          disabled={busy || !name.trim()}
-          className="mt-3 inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+          onClick={() => setShowForm((v) => !v)}
+          className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground"
         >
-          {busy ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-          Simpan
+          {showForm ? <X size={14} /> : <Plus size={14} />}
+          {showForm ? "Tutup" : "UMKM"}
         </button>
-      </form>
-
-      <div className="rounded-xl border bg-card p-4">
-        <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          <UserPlus size={16} /> Pemilik Terdaftar
-        </h2>
-        {owners.length === 0 ? (
-          <p className="py-3 text-center text-sm text-muted-foreground">
-            Belum ada pemilik titipan
-          </p>
-        ) : (
-          <div className="divide-y">
-            {owners.map((o) =>
-              editing === o.id ? (
-                <div key={o.id} className="grid gap-2 py-3 sm:grid-cols-[1fr_auto]">
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <input
-                      defaultValue={o.name}
-                      id={`owner-name-${o.id}`}
-                      placeholder="Nama"
-                      className="rounded-lg border bg-background px-3 py-1.5 text-sm"
-                    />
-                    <input
-                      defaultValue={o.phone || ""}
-                      id={`owner-phone-${o.id}`}
-                      placeholder="No. HP"
-                      className="rounded-lg border bg-background px-3 py-1.5 text-sm"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() =>
-                        update(o.id, {
-                          name:
-                            (
-                              document.getElementById(
-                                `owner-name-${o.id}`,
-                              ) as HTMLInputElement
-                            )?.value?.trim() || o.name,
-                          phone:
-                            (
-                              document.getElementById(
-                                `owner-phone-${o.id}`,
-                              ) as HTMLInputElement
-                            )?.value?.trim() || null,
-                        })
-                      }
-                      disabled={busy}
-                      className="inline-flex items-center gap-1 rounded-lg bg-primary px-2 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
-                    >
-                      <Save size={13} /> Simpan
-                    </button>
-                    <button
-                      onClick={() => setEditing(null)}
-                      className="inline-flex items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-semibold disabled:opacity-50"
-                    >
-                      <X size={13} /> Batal
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div key={o.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                  <div className="min-w-0">
-                    <p className="font-medium">
-                      {o.name}
-                      {!o.isActive && (
-                        <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                          nonaktif
-                        </span>
-                      )}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {o.phone || "—"} · {o.itemCount ?? 0} barang
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <button
-                      onClick={() => setEditing(o.id)}
-                      title="Ubah"
-                      className="rounded-lg border p-1.5 hover:bg-muted"
-                    >
-                      <Pencil size={13} />
-                    </button>
-                    <button
-                      onClick={() => update(o.id, { isActive: !o.isActive })}
-                      disabled={busy}
-                      title={o.isActive ? "Nonaktifkan" : "Aktifkan"}
-                      className={`rounded-lg border p-1.5 hover:bg-muted disabled:opacity-50 ${
-                        o.isActive ? "" : "text-emerald-600"
-                      }`}
-                    >
-                      <Power size={13} />
-                    </button>
-                    <button
-                      onClick={() => remove(o.id)}
-                      disabled={busy}
-                      title="Hapus"
-                      className="rounded-lg border p-1.5 text-rose-600 hover:bg-muted disabled:opacity-50"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-              ),
-            )}
-          </div>
-        )}
       </div>
-    </div>
+
+      {err && (
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 px-3 py-2 text-xs text-rose-600">
+          {err}
+        </div>
+      )}
+
+      {showForm && (
+        <form
+          onSubmit={create}
+          className="space-y-2 rounded-xl border bg-card p-3"
+        >
+          <input
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="Nama UMKM (mis. Ibu Siti)"
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+            required
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              placeholder="No. WA (08…)"
+              inputMode="tel"
+              className="rounded-lg border bg-background px-3 py-2 text-sm"
+            />
+            <input
+              value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })}
+              placeholder="Alamat (opsional)"
+              className="rounded-lg border bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={busy || !form.name.trim()}
+            className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+          >
+            {busy ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <UserPlus size={14} />
+            )}
+            Simpan
+          </button>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="py-10 text-center text-muted-foreground">
+          <Loader2 size={18} className="mx-auto animate-spin" />
+        </div>
+      ) : owners.length === 0 ? (
+        <div className="rounded-xl border bg-card p-6 text-center">
+          <p className="text-sm font-medium">Belum ada UMKM</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Daftarkan pemilik titipan untuk mulai menerima barang.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {owners.map((o) =>
+            editing === o.id ? (
+              <div
+                key={o.id}
+                className="space-y-2 rounded-xl border bg-card p-3"
+              >
+                <input
+                  defaultValue={o.name}
+                  id={`owner-name-${o.id}`}
+                  placeholder="Nama"
+                  className="w-full rounded-lg border bg-background px-3 py-1.5 text-sm"
+                />
+                <input
+                  defaultValue={o.phone || ""}
+                  id={`owner-phone-${o.id}`}
+                  placeholder="No. WA"
+                  inputMode="tel"
+                  className="w-full rounded-lg border bg-background px-3 py-1.5 text-sm"
+                />
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() =>
+                      update(o.id, {
+                        name:
+                          (
+                            document.getElementById(
+                              `owner-name-${o.id}`,
+                            ) as HTMLInputElement
+                          )?.value?.trim() || o.name,
+                        phone:
+                          (
+                            document.getElementById(
+                              `owner-phone-${o.id}`,
+                            ) as HTMLInputElement
+                          )?.value?.trim() || null,
+                      })
+                    }
+                    disabled={busy}
+                    className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary px-2 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                  >
+                    <Save size={13} /> Simpan
+                  </button>
+                  <button
+                    onClick={() => setEditing(null)}
+                    className="inline-flex items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-semibold"
+                  >
+                    <X size={13} /> Batal
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                key={o.id}
+                className="flex items-center gap-2.5 rounded-xl border bg-card p-3"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-sm font-bold text-white">
+                  {o.name.charAt(0).toUpperCase()}
+                </span>
+                <Link
+                  href={`/dashboard/retail/konsinyasi/${o.id}`}
+                  className="min-w-0 flex-1"
+                >
+                  <p className="truncate text-sm font-semibold">
+                    {o.name}
+                    {!o.isActive && (
+                      <span className="ml-1.5 rounded-full bg-muted px-1.5 py-px align-middle text-[10px] font-medium text-muted-foreground">
+                        nonaktif
+                      </span>
+                    )}
+                  </p>
+                  <p className="mt-0.5 flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="inline-flex shrink-0 items-center gap-0.5">
+                      <Phone size={11} /> {o.phone || "—"}
+                    </span>
+                    <span className="inline-flex shrink-0 items-center gap-0.5">
+                      <Package size={11} /> {o.itemCount ?? 0} barang
+                    </span>
+                  </p>
+                </Link>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    onClick={() => setEditing(o.id)}
+                    title="Ubah"
+                    className="rounded-lg border p-1.5 hover:bg-muted"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    onClick={() => update(o.id, { isActive: !o.isActive })}
+                    disabled={busy}
+                    title={o.isActive ? "Nonaktifkan" : "Aktifkan"}
+                    className={`rounded-lg border p-1.5 hover:bg-muted disabled:opacity-50 ${
+                      o.isActive ? "" : "text-emerald-600"
+                    }`}
+                  >
+                    <Power size={13} />
+                  </button>
+                  <button
+                    onClick={() => remove(o.id, o.name)}
+                    disabled={busy}
+                    title="Hapus"
+                    className="rounded-lg border p-1.5 text-rose-600 hover:bg-muted disabled:opacity-50"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+                <Link
+                  href={`/dashboard/retail/konsinyasi/${o.id}`}
+                  aria-label="Detail"
+                  className="shrink-0 text-muted-foreground"
+                >
+                  <ChevronRight size={16} />
+                </Link>
+              </div>
+            ),
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-1.5">
+        <Link
+          href="/dashboard/retail/konsinyasi/laporan"
+          className="rounded-xl border bg-card p-2.5 text-center text-xs font-semibold hover:border-primary/50"
+        >
+          Laporan Penjualan
+        </Link>
+        <Link
+          href="/dashboard/retail/konsinyasi/serah-terima"
+          className="rounded-xl border bg-card p-2.5 text-center text-xs font-semibold hover:border-primary/50"
+        >
+          Serah Terima
+        </Link>
+      </div>
+    </main>
   );
 }
