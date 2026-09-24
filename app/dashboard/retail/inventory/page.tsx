@@ -255,7 +255,7 @@ export default function RetailInventoryPage() {
               )}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Stok masuk, stocktake & daftar barang unit
+              Daftar barang unit (lihat) · input via Stok Masuk
             </p>
           </div>
         </div>
@@ -266,6 +266,14 @@ export default function RetailInventoryPage() {
               className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-semibold text-white"
             >
               Review ({draftCount})
+            </Link>
+          )}
+          {isManager && (
+            <Link
+              href="/dashboard/inventory"
+              className="inline-flex items-center gap-1 rounded-lg border bg-background px-3 py-1.5 text-sm font-semibold hover:bg-accent"
+            >
+              Master
             </Link>
           )}
           <Link
@@ -372,7 +380,8 @@ export default function RetailInventoryPage() {
         )}
       </div>
 
-      {/* Stok masuk */}
+      {/* Stok masuk manual — khusus Manager. Staff wajib lewat Stok Masuk (draf → approve). */}
+      {isManager ? (
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -430,6 +439,18 @@ export default function RetailInventoryPage() {
           Tambah Stok
         </button>
       </form>
+      ) : (
+        <div className="rounded-xl border border-dashed bg-card p-4 text-sm text-muted-foreground">
+          Penambahan stok lewat{" "}
+          <Link
+            href="/dashboard/retail/stok-masuk"
+            className="font-semibold text-primary"
+          >
+            Stok Masuk
+          </Link>{" "}
+          (draf → review Manager).
+        </div>
+      )}
 
       {/* Grid barang */}
       <div className="rounded-xl border bg-card p-4">
