@@ -2,17 +2,26 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   ShoppingCart,
   Package,
-  PackageOpen,
+  PackagePlus,
   ShoppingBag,
   Wallet,
   BarChart2,
   TrendingUp,
   AlertTriangle,
   ClipboardList,
+  ClipboardCheck,
   Store,
+  LogIn,
+  LogOut,
+  Loader2,
+  Users,
+  ReceiptText,
+  ChevronRight,
+  UserPlus,
 } from "lucide-react";
 
 interface StatCardProps {
@@ -62,7 +71,99 @@ function DashboardSkeleton() {
   );
 }
 
+const fmtRp = (n: number) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(n);
+
+const fmtTime = (v: string | Date | null | undefined) => {
+  if (!v) return "-";
+  const d = new Date(v);
+  return d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+};
+
+const fmtDateTime = (v: string | Date | null | undefined) => {
+  if (!v) return "-";
+  const d = new Date(v);
+  return (
+    d.toLocaleDateString("id-ID", { day: "numeric", month: "short" }) +
+    " · " +
+    d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+  );
+};
+
+const fmtDur = (min: number | null | undefined) => {
+  if (min == null) return "-";
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return h > 0 ? `${h}j ${m}m` : `${m}m`;
+};
+
+interface Summary {
+  unit: { id: string; name: string; code: string };
+  shift: {
+    mine: {
+      id: string;
+      service: string | null;
+      checkInAt: string;
+      checkOutAt: string | null;
+      active: boolean;
+    } | null;
+    onShift: {
+      id: string;
+      service: string | null;
+      checkInAt: string;
+      user: { id: string; name: string | null; role: string | null };
+    }[];
+    onShiftCount: number;
+    totalActiveMin: number;
+  };
+  pos: {
+    id: string;
+    openedAt: string;
+    openingCash: number;
+    expectedCash: number;
+    txCount: number;
+    txTotal: number;
+  } | null;
+  lowStock: {
+    count: number;
+    items: {
+      id: string;
+      name: string;
+      sku: string;
+      imageUrl: string | null;
+      currentStock: number;
+      minStock: number;
+      unitPrice: number | null;
+      empty: boolean;
+    }[];
+  };
+  recent: {
+    id: string;
+    type: string;
+    amount: number;
+    description: string;
+    status: string | null;
+    paymentMethod: string | null;
+    createdAt: string;
+    by: string;
+  }[];
+}
+
+const QUICK_ACTIONS = [
+  { label: "Buka POS", href: "/dashboard/pos", icon: <ShoppingCart size={18} />, color: "from-amber-500 to-orange-600" },
+  { label: "Cek Stok", href: "/dashboard/retail/inventory", icon: <Package size={18} />, color: "from-blue-500 to-cyan-600" },
+  { label: "Stok Masuk", href: "/dashboard/retail/stok-masuk", icon: <PackagePlus size={18} />, color: "from-violet-500 to-purple-600" },
+  { label: "Hitung Sisa", href: "/dashboard/retail/sisa", icon: <ClipboardCheck size={18} />, color: "from-cyan-600 to-teal-600" },
+  { label: "Titipan UMKM", href: "/dashboard/retail/konsinyasi", icon: <UserPlus size={18} />, color: "from-orange-500 to-amber-600" },
+  { label: "Laporan Penjualan", href: "/dashboard/reports", icon: <BarChart2 size={18} />, color: "from-emerald-500 to-teal-600" },
+];
+
 export function RetailManagerDashboard() {
+  const { data: session } = useSession();
   const [stats, setStats] = useState({
     posToday: 0,
     posRevenue: 0,
@@ -71,9 +172,25 @@ export function RetailManagerDashboard() {
     savingsActive: 0,
     pendingApprovals: 0,
   });
-  const [unitName, setUnitName] = useState("Unit Retail");
-  const [unitCode, setUnitCode] = useState("");
+  const [data, setData] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/retail/dashboard");
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Gagal memuat dasbor");
+      setData(body.data as Summary);
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -91,37 +208,100 @@ export function RetailManagerDashboard() {
         savingsActive: (sav?.data ?? []).filter((a: any) => Number(a.balance) > 0).length || 0,
         pendingApprovals: Array.isArray(appr?.data) ? appr.data.length : 0,
       });
-      if (dash?.data?.unit?.name) setUnitName(dash.data.unit.name);
-      if (dash?.data?.unit?.code) setUnitCode(dash.data.unit.code);
+      if (dash?.data) setData(dash.data as Summary);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
 
+  const shiftAction = async (action: "check-in" | "check-out") => {
+    setActing(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/retail/shift", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          action === "check-in"
+            ? { action: "check-in", service: "POS" }
+            : { action: "check-out" },
+        ),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Gagal mencatat shift");
+      await load();
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setActing(false);
+    }
+  };
+
   if (loading) return <DashboardSkeleton />;
 
+  const user = session?.user as any;
+  const mine = data?.shift.mine ?? null;
+  const active = mine?.active ?? false;
+  const unitName = data?.unit.name ?? "Unit Retail";
+  const unitCode = data?.unit.code ?? "";
   const { posToday, posRevenue, lowStock, draftBatch, savingsActive, pendingApprovals } = stats;
 
   return (
-    <div className="mx-auto max-w-7xl p-4 space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold truncate">Dashboard Manager Retail</h1>
-          <p className="text-xs text-muted-foreground">
-            {unitName} · {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/dashboard/pos" className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:from-amber-600 hover:to-orange-700">
-            <ShoppingCart className="w-4 h-4" /> Buka POS
-          </Link>
-          {draftBatch > 0 && (
-            <Link href="/dashboard/retail/stok-masuk/review" className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-amber-600">
-              Review ({draftBatch})
-            </Link>
+    <div className="mx-auto max-w-5xl p-4 space-y-4">
+      {/* Sapaan + status shift (check-in/check-out) */}
+      <div className="rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 p-5 text-white shadow-lg">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs opacity-90">Halo,</p>
+            <h1 className="truncate text-xl font-bold">
+              {user?.name || "Manager"}
+            </h1>
+            <p className="mt-0.5 flex items-center gap-1 text-xs opacity-90">
+              <Store size={13} />
+              {unitName}
+              {unitCode && ` · ${unitCode}`}
+              {data && ` · aktif ${fmtDur(data.shift.totalActiveMin)} hari ini`}
+            </p>
+          </div>
+          {active ? (
+            <button
+              onClick={() => shiftAction("check-out")}
+              disabled={acting}
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-white/20 px-3 py-2 text-xs font-bold hover:bg-white/30 disabled:opacity-50"
+            >
+              {acting ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <LogOut size={14} />
+              )}
+              Check-out
+            </button>
+          ) : (
+            <button
+              onClick={() => shiftAction("check-in")}
+              disabled={acting}
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-50 disabled:opacity-50"
+            >
+              {acting ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <LogIn size={14} />
+              )}
+              Check-in
+            </button>
           )}
         </div>
+        {!active && (
+          <p className="mt-2 text-[11px] opacity-90">
+            Check-in dulu untuk buka kasir, stok & titipan.
+          </p>
+        )}
       </div>
+
+      {err && (
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-sm text-rose-600">
+          {err}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -133,18 +313,61 @@ export function RetailManagerDashboard() {
         <StatCard label="Persetujuan Menunggu" value={pendingApprovals} icon={<ClipboardList size={18} />} href="/dashboard/approvals" color="red" />
       </div>
 
+      {/* Status POS */}
+      <div className="rounded-xl border bg-card p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">
+              {data?.pos ? (
+                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-600">
+                  POS OPEN
+                </span>
+              ) : (
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
+                  POS CLOSED
+                </span>
+              )}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {data?.pos
+                ? `Dibuka ${fmtTime(data.pos.openedAt)} · ekspektasi ${fmtRp(
+                    data.pos.expectedCash,
+                  )} · ${data.pos.txCount} transaksi · kas ${fmtRp(data.pos.txTotal)}`
+                : active
+                  ? "Buka sesi kasir dari halaman Shift sebelum melayani."
+                  : "Check-in dulu, lalu buka sesi POS."}
+            </p>
+          </div>
+          <Link
+            href="/dashboard/retail/shift"
+            className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-primary"
+          >
+            {data?.pos ? "Kelola" : "Buka"} <ChevronRight size={13} />
+          </Link>
+        </div>
+      </div>
+
+      {/* Kru bertugas */}
+      {data && data.shift.onShiftCount > 0 && (
+        <div className="flex items-center gap-1.5 rounded-xl border bg-card px-4 py-3 text-xs text-muted-foreground">
+          <Users size={13} />
+          {data.shift.onShiftCount} kru bertugas
+          {data.shift.onShift.slice(0, 4).map((s) => (
+            <span
+              key={s.id}
+              className="rounded-full bg-muted px-2 py-0.5 font-medium text-foreground"
+            >
+              {s.user.name}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Quick Actions */}
       <div className="rounded-xl border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">Aksi Cepat</h2>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            { label: "Buka POS", href: "/dashboard/pos", icon: <ShoppingCart size={18} />, color: "from-amber-500 to-orange-600" },
-            { label: "Cek Stok", href: "/dashboard/retail/inventory", icon: <Package size={18} />, color: "from-blue-500 to-cyan-600" },
-            { label: "Barang Titipan", href: "/dashboard/retail/inventory", icon: <PackageOpen size={18} />, color: "from-amber-500 to-yellow-600" },
-            { label: "Review Batch", href: "/dashboard/retail/stok-masuk/review", icon: <ShoppingBag size={18} />, color: "from-violet-500 to-purple-600" },
-            { label: "Laporan Penjualan", href: "/dashboard/reports", icon: <BarChart2 size={18} />, color: "from-emerald-500 to-teal-600" },
-            { label: "Cek Tabungan", href: "/dashboard/savings", icon: <Wallet size={18} />, color: "from-purple-500 to-pink-600" },
-          ].map((action) => (
+          {QUICK_ACTIONS.map((action) => (
             <Link key={action.href} href={action.href} className="group">
               <div className="rounded-xl border bg-card p-4 hover:shadow-md hover:border-primary/30 transition-all">
                 <div className="flex items-center gap-2">
@@ -220,6 +443,55 @@ export function RetailManagerDashboard() {
             </div>
           </Link>
         </div>
+      </div>
+
+      {/* Aktivitas terkini */}
+      <div className="rounded-xl border bg-card p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <ReceiptText size={16} /> Aktivitas terkini
+          </h2>
+          <Link
+            href="/dashboard/transactions"
+            className="inline-flex items-center gap-0.5 text-xs font-semibold text-primary"
+          >
+            Semua <ChevronRight size={13} />
+          </Link>
+        </div>
+        {!data || data.recent.length === 0 ? (
+          <p className="py-3 text-center text-sm text-muted-foreground">
+            Belum ada transaksi di unit ini
+          </p>
+        ) : (
+          <div className="divide-y">
+            {data.recent.map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center justify-between gap-3 py-2 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">
+                    {t.description || t.type}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {fmtDateTime(t.createdAt)} · {t.by}
+                    {t.status ? ` · ${t.status}` : ""}
+                  </p>
+                </div>
+                <p
+                  className={`shrink-0 font-bold ${
+                    t.type === "INCOME"
+                      ? "text-emerald-600"
+                      : "text-foreground"
+                  }`}
+                >
+                  {t.type === "INCOME" ? "+" : "-"}
+                  {fmtRp(t.amount)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
