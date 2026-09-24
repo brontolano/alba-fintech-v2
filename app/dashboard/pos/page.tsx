@@ -59,6 +59,21 @@ export default function POSPage() {
   });
   const router = useRouter();
   const { data: session } = useSession();
+  const sessionUserId = (session?.user as any)?.id;
+
+  // R1: POS hanya saat check-in. Tanpa segmen aktif → arahkan ke halaman shift.
+  useEffect(() => {
+    if (!sessionUserId) return;
+    fetch("/api/retail/dashboard")
+      .then((r) => r.json())
+      .then((b) => {
+        if (!b?.data?.shift?.mine?.active) {
+          toast.error("Check-in shift dulu sebelum buka POS");
+          router.push("/dashboard/retail/shift");
+        }
+      })
+      .catch(() => {});
+  }, [sessionUserId, router]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [barcode, setBarcode] = useState("");

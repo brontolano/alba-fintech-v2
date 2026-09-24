@@ -56,12 +56,21 @@ export async function GET(request: NextRequest) {
   const start = dayStart(dateStr);
 
   // ?history=1: log shift saya 14 hari + durasi + transaksi POS
+  // + segmen multi-session hari ini & total jam aktif.
   if (searchParams.get("history") === "1") {
-    const rows = await prisma.shiftAttendance.findMany({
-      where: { unitId, userId: session.user.id! },
-      orderBy: { date: "desc" },
-      take: 14,
-    });
+    const dateStrToday = wibDateStr();
+    const startToday = dayStart(dateStrToday);
+    const [segments, rows] = await Promise.all([
+      prisma.shiftSession.findMany({
+        where: { unitId, userId: session.user.id!, date: startToday },
+        orderBy: { checkInAt: "asc" },
+      }),
+      prisma.shiftAttendance.findMany({
+        where: { unitId, userId: session.user.id! },
+        orderBy: { date: "desc" },
+        take: 14,
+      }),
+    ]);
     const history = await Promise.all(
       rows.map(async (r) => {
         const d = new Date(r.date).toISOString().slice(0, 10);
@@ -90,7 +99,39 @@ export async function GET(request: NextRequest) {
         };
       }),
     );
-    return NextResponse.json({ data: { history } });
+    const nowMs = Date.now();
+    const totalActiveMin = segments.reduce((sum, s) => {
+      const end = s.checkOutAt ? new Date(s.checkOutAt).getTime() : nowMs;
+      return (
+        sum + Math.max(0, Math.round((end - new Date(s.checkInAt).getTime()) / 60000))
+      );
+    }, 0);
+    return NextResponse.json({
+      data: {
+        history,
+        today: {
+          date: dateStrToday,
+          segments: segments.map((s) => ({
+            id: s.id,
+            service: s.service,
+            checkInAt: s.checkInAt,
+            checkOutAt: s.checkOutAt,
+            durationMin: s.checkOutAt
+              ? Math.max(
+                  0,
+                  Math.round(
+                    (new Date(s.checkOutAt).getTime() -
+                      new Date(s.checkInAt).getTime()) /
+                      60000,
+                  ),
+                )
+              : null,
+            running: !s.checkOutAt,
+          })),
+          totalActiveMin,
+        },
+      },
+    });
   }
 
   const [mine, crew, attendances, myTxToday] = await Promise.all([

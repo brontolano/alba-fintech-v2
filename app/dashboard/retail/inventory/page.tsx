@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   PackagePlus,
   ClipboardCheck,
@@ -27,6 +28,7 @@ type Item = {
 };
 
 export default function RetailInventoryPage() {
+  const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -63,7 +65,18 @@ export default function RetailInventoryPage() {
   };
 
   useEffect(() => {
-    load();
+    // R1: inventaris hanya saat check-in. Tanpa segmen aktif → ke halaman shift.
+    fetch("/api/retail/dashboard")
+      .then((r) => r.json())
+      .then((b) => {
+        if (!b?.data?.shift?.mine?.active) {
+          setErr("Check-in shift dulu sebelum buka inventaris");
+          router.push("/dashboard/retail/shift");
+          return;
+        }
+        load();
+      })
+      .catch(() => load());
   }, []);
 
   const post = async (action: string, payload: any) => {
