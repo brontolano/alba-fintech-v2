@@ -12,8 +12,6 @@ import {
   TrendingUp,
   AlertTriangle,
   ClipboardList,
-  BookOpen,
-  Utensils,
   Store,
 } from "lucide-react";
 
@@ -74,6 +72,7 @@ export function RetailManagerDashboard() {
     pendingApprovals: 0,
   });
   const [unitName, setUnitName] = useState("Unit Retail");
+  const [unitCode, setUnitCode] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -93,6 +92,7 @@ export function RetailManagerDashboard() {
         pendingApprovals: Array.isArray(appr?.data) ? appr.data.length : 0,
       });
       if (dash?.data?.unit?.name) setUnitName(dash.data.unit.name);
+      if (dash?.data?.unit?.code) setUnitCode(dash.data.unit.code);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -112,7 +112,7 @@ export function RetailManagerDashboard() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/dashboard/retail/pos" className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:from-amber-600 hover:to-orange-700">
+          <Link href="/dashboard/pos" className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:from-amber-600 hover:to-orange-700">
             <ShoppingCart className="w-4 h-4" /> Buka POS
           </Link>
           {draftBatch > 0 && (
@@ -138,7 +138,7 @@ export function RetailManagerDashboard() {
         <h2 className="mb-3 text-sm font-semibold">Aksi Cepat</h2>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { label: "Buka POS", href: "/dashboard/retail/pos", icon: <ShoppingCart size={18} />, color: "from-amber-500 to-orange-600" },
+            { label: "Buka POS", href: "/dashboard/pos", icon: <ShoppingCart size={18} />, color: "from-amber-500 to-orange-600" },
             { label: "Cek Stok", href: "/dashboard/retail/inventory", icon: <Package size={18} />, color: "from-blue-500 to-cyan-600" },
             { label: "Barang Titipan", href: "/dashboard/retail/inventory", icon: <PackageOpen size={18} />, color: "from-amber-500 to-yellow-600" },
             { label: "Review Batch", href: "/dashboard/retail/stok-masuk/review", icon: <ShoppingBag size={18} />, color: "from-violet-500 to-purple-600" },
@@ -204,27 +204,21 @@ export function RetailManagerDashboard() {
 
       {/* Unit Overview */}
       <div className="rounded-xl border bg-card p-4">
-        <h2 className="mb-3 text-sm font-semibold">Ringkasan Unit Retail</h2>
-        <div className="grid gap-2 sm:grid-cols-3">
-          {[
-            { id: "cmubg2y5h001fxx3d51558t81", name: "Koperasi Buku", code: "KOP", icon: <BookOpen size={16} /> },
-            { id: "cmubg2y5b001dxx3d8ybh8kx9", name: "Kantin Umi", code: "KUM", icon: <Utensils size={16} /> },
-            { id: "cmubg2y54001bxx3d7c6scg0h", name: "Kantin Baru", code: "KAB", icon: <Store size={16} /> },
-          ].map((unit) => (
-            <Link key={unit.id} href={`/dashboard/retail/inventory?unitId=${unit.id}`} className="group">
-              <div className="rounded-xl border bg-card p-3 hover:shadow-md hover:border-primary/30 transition-all">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white">
-                    {unit.icon}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground truncate">{unit.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{unit.code} · Klik untuk detail stok</p>
-                  </div>
+        <h2 className="mb-3 text-sm font-semibold">Unit Saya</h2>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Link href="/dashboard/retail/inventory" className="group">
+            <div className="rounded-xl border bg-card p-3 hover:shadow-md hover:border-primary/30 transition-all">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white">
+                  <Store size={16} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-foreground truncate">{unitName}</p>
+                  <p className="text-[10px] text-muted-foreground">{unitCode} · Klik untuk detail stok</p>
                 </div>
               </div>
-            </Link>
-          ))}
+            </div>
+          </Link>
         </div>
       </div>
     </div>

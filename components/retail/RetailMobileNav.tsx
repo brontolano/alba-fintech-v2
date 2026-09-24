@@ -58,7 +58,7 @@ export function RetailMobileNav({ user }: RetailMobileNavProps) {
     <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden pb-safe">
       {/* FAB - Primary Action (POS) */}
       <button
-        onClick={() => router.push("/dashboard/retail/pos")}
+        onClick={() => router.push("/dashboard/pos")}
         className="relative -mt-6 mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-[0_8px_24px_rgba(249,115,22,0.4)] transition-transform hover:scale-105"
         aria-label="POS"
       >
@@ -68,7 +68,7 @@ export function RetailMobileNav({ user }: RetailMobileNavProps) {
       {/* Bottom Bar - 4 items */}
       <div className="flex h-16 items-end justify-around px-2 border-t border-border bg-white/95 backdrop-blur-xl shadow-[0_-6px_20px_rgba(0,0,0,0.05)] dark:bg-gray-900/95">
         {[
-          { key: "pos", label: "POS", href: "/dashboard/retail/pos", iconName: "ShoppingCart" },
+          { key: "pos", label: "POS", href: "/dashboard/pos", iconName: "ShoppingCart" },
           { key: "inventory", label: "Stok", href: "/dashboard/retail/inventory", iconName: "Package" },
           { key: "belanja", label: "Belanja", href: "/dashboard/retail/belanja", iconName: "ShoppingBag" },
           { key: "laporan", label: "Laporan", href: "/dashboard/reports", iconName: "BarChart2" },

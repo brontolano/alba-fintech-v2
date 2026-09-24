@@ -21,7 +21,7 @@ export interface RetailNavItem {
 
 export const RETAIL_NAV_GROUPS = {
   primary: [
-    { key: "pos" as RetailPage, label: "POS", href: "/dashboard/retail/pos", iconName: "ShoppingCart", roles: ["MANAGER","STAFF"] as const, primary: true },
+    { key: "pos" as RetailPage, label: "POS", href: "/dashboard/pos", iconName: "ShoppingCart", roles: ["MANAGER","STAFF"] as const, primary: true },
   ],
   secondary: [
     { 
