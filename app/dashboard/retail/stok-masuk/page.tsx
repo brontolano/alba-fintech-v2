@@ -203,6 +203,33 @@ export default function StokMasukPage() {
   const [ownerId, setOwnerId] = useState("");
   const [newOwner, setNewOwner] = useState({ name: "", phone: "", address: "" });
   const [nota, setNota] = useState<Nota | null>(null);
+  const [drafts, setDrafts] = useState<
+    { id: string; batchNo: string; status: string; totalQty: number; totalCost: number; createdById: string }[]
+  >([]);
+
+  const loadDrafts = async () => {
+    try {
+      const res = await fetch("/api/retail/batches?limit=20");
+      const b = await res.json();
+      if (!res.ok) return;
+      const me = (session as any)?.user?.id;
+      setDrafts(
+        (Array.isArray(b.data) ? b.data : [])
+          .filter((d: any) => !me || d.createdById === me)
+          .slice(0, 10)
+          .map((d: any) => ({
+            id: d.id,
+            batchNo: d.batchNo,
+            status: d.status,
+            totalQty: d.totalQty,
+            totalCost: Number(d.totalCost),
+            createdById: d.createdById,
+          })),
+      );
+    } catch {
+      /* abaikan */
+    }
+  };
 
   useEffect(() => {
     fetch("/api/auth/session")
@@ -240,6 +267,7 @@ export default function StokMasukPage() {
 
   useEffect(() => {
     if (!unitId) return;
+    loadDrafts();
     fetch(`/api/inventory?limit=500&unitId=${unitId}`)
       .then((res) => res.json())
       .then((b) =>
@@ -471,6 +499,7 @@ export default function StokMasukPage() {
       setNextKey((k) => k + 1);
       setNote("");
       setSourceRef("");
+      await loadDrafts();
     } catch (e: any) {
       setErr(e.message);
     } finally {
@@ -861,6 +890,45 @@ export default function StokMasukPage() {
               Simpan Draf
             </button>
           </div>
+
+          {/* Status draf saya */}
+          {drafts.length > 0 && (
+            <div className="rounded-xl border bg-card p-4">
+              <h2 className="mb-2 text-sm font-semibold">
+                Draf & status saya ({drafts.length})
+              </h2>
+              <div className="divide-y">
+                {drafts.map((d) => (
+                  <div
+                    key={d.id}
+                    className="flex items-center justify-between gap-3 py-1.5 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{d.batchNo}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {d.totalQty} pcs · {fmt(d.totalCost)}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                        d.status === "APPROVED"
+                          ? "bg-emerald-500/15 text-emerald-600"
+                          : d.status === "REJECTED"
+                            ? "bg-rose-500/15 text-rose-600"
+                            : "bg-amber-500/15 text-amber-700"
+                      }`}
+                    >
+                      {d.status === "APPROVED"
+                        ? "disetujui"
+                        : d.status === "REJECTED"
+                          ? "ditolak"
+                          : "menunggu"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </form>
       )}
     </main>

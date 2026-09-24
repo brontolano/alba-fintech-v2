@@ -107,6 +107,7 @@ export async function GET(request: NextRequest) {
       sourceRef: b.sourceRef,
       note: b.note,
       by: b.creator?.name ?? "-",
+      createdById: b.creator?.id ?? null,
       reviewedBy: b.reviewer?.name ?? null,
       reviewedAt: b.reviewedAt,
       reviewNote: b.reviewNote,
