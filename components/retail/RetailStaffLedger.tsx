@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import {
+  Search,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Pencil,
+  Eye,
+  Trash2,
+} from "lucide-react";
+import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { StatusPill } from "@/components/ui/finzo";
 
@@ -36,7 +47,7 @@ const toInputDate = (d: Date) =>
     d.getDate(),
   ).padStart(2, "0")}`;
 
-export function RetailStaffLedger() {
+export function RetailStaffLedger({ manage = false }: { manage?: boolean }) {
   const { data: session } = useSession();
   const unitId = (session?.user as any)?.unitId || "";
   const [unitName, setUnitName] = useState("");
@@ -73,44 +84,46 @@ export function RetailStaffLedger() {
       .catch(() => {});
   }, [unitId]);
 
-  useEffect(() => {
+  const load = async () => {
     if (!unitId) return;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams({
-          page: String(page),
-          limit: "10",
-          unitId,
-        });
-        if (q) params.set("search", q);
-        if (type) params.set("type", type);
-        if (status) params.set("status", status);
-        if (period !== "all") {
-          const end = new Date();
-          const start = new Date();
-          if (period === "today") start.setHours(0, 0, 0, 0);
-          else if (period === "7d") start.setDate(end.getDate() - 6);
-          else start.setDate(end.getDate() - 29);
-          params.set("startDate", toInputDate(start));
-          params.set("endDate", toInputDate(end));
-        }
-        const res = await fetch(`/api/transactions?${params.toString()}`);
-        const body = await res.json();
-        if (!res.ok) throw new Error(body.error || "Gagal memuat");
-        setItems(body.data ?? []);
-        setPages(body.summary?.pages ?? 1);
-        setTotal(body.summary?.total ?? 0);
-        setSumIn(body.summary?.totalIncome ?? 0);
-        setSumOut(body.summary?.totalExpense ?? 0);
-        setSumSaldo(body.summary?.netBalance ?? 0);
-      } catch {
-        setItems([]);
-      } finally {
-        setLoading(false);
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: "10",
+        unitId,
+      });
+      if (q) params.set("search", q);
+      if (type) params.set("type", type);
+      if (status) params.set("status", status);
+      if (period !== "all") {
+        const end = new Date();
+        const start = new Date();
+        if (period === "today") start.setHours(0, 0, 0, 0);
+        else if (period === "7d") start.setDate(end.getDate() - 6);
+        else start.setDate(end.getDate() - 29);
+        params.set("startDate", toInputDate(start));
+        params.set("endDate", toInputDate(end));
       }
-    };
+      const res = await fetch(`/api/transactions?${params.toString()}`);
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Gagal memuat");
+      setItems(body.data ?? []);
+      setPages(body.summary?.pages ?? 1);
+      setTotal(body.summary?.total ?? 0);
+      setSumIn(body.summary?.totalIncome ?? 0);
+      setSumOut(body.summary?.totalExpense ?? 0);
+      setSumSaldo(body.summary?.netBalance ?? 0);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unitId, page, q, type, status, period]);
 
   const resetAll = () => {
@@ -120,6 +133,21 @@ export function RetailStaffLedger() {
     setPeriod("30d");
     setPage(1);
   };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Hapus transaksi ini?")) return;
+    try {
+      const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.error || "Gagal menghapus");
+      }
+      toast.success("Transaksi dihapus");
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || "Gagal menghapus");
+    }
+  };
   const hasFilter = q !== "" || type !== "" || status !== "" || period !== "30d";
 
   const sel =
@@ -127,13 +155,23 @@ export function RetailStaffLedger() {
 
   return (
     <div className="space-y-3">
-      <div>
-        <h1 className="text-xl font-bold">
-          Buku Kas{unitName ? ` · ${unitName}` : ""}
-        </h1>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Catatan keuangan unit — pemasukan & pengeluaran tercatat otomatis.
-        </p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-bold">
+            Buku Kas{unitName ? ` · ${unitName}` : ""}
+          </h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Catatan keuangan unit — pemasukan & pengeluaran tercatat otomatis.
+          </p>
+        </div>
+        {manage && (
+          <Link
+            href="/dashboard/transactions/create"
+            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground"
+          >
+            <Plus size={14} /> Catat
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -291,19 +329,43 @@ export function RetailStaffLedger() {
                     </div>
                   </button>
                   {open && (
-                    <div className="grid grid-cols-2 gap-1.5 bg-muted/30 px-3 py-2 text-xs">
-                      <p className="text-muted-foreground">
-                        Kategori:{" "}
-                        <span className="font-medium text-foreground">
-                          {tx.categoryName || "—"}
-                        </span>
-                      </p>
-                      <p className="text-muted-foreground">
-                        Referensi:{" "}
-                        <span className="font-medium text-foreground">
-                          {tx.reference || "—"}
-                        </span>
-                      </p>
+                    <div className="bg-muted/30 px-3 py-2">
+                      <div className="grid grid-cols-2 gap-1.5 text-xs">
+                        <p className="text-muted-foreground">
+                          Kategori:{" "}
+                          <span className="font-medium text-foreground">
+                            {tx.categoryName || "—"}
+                          </span>
+                        </p>
+                        <p className="text-muted-foreground">
+                          Referensi:{" "}
+                          <span className="font-medium text-foreground">
+                            {tx.reference || "—"}
+                          </span>
+                        </p>
+                      </div>
+                      {manage && (
+                        <div className="mt-2 grid grid-cols-3 gap-1.5">
+                          <Link
+                            href={`/dashboard/transactions/${tx.id}/edit`}
+                            className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border bg-card text-[11px] font-medium hover:bg-muted"
+                          >
+                            <Pencil size={12} /> Edit
+                          </Link>
+                          <Link
+                            href={`/dashboard/transactions/${tx.id}`}
+                            className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border bg-card text-[11px] font-medium hover:bg-muted"
+                          >
+                            <Eye size={12} /> Detail
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(tx.id)}
+                            className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-[#fdecec] text-[11px] font-medium text-[#d14d4d] hover:bg-[#fbdede]"
+                          >
+                            <Trash2 size={12} /> Hapus
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

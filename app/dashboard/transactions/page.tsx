@@ -346,14 +346,18 @@ export default function TransactionsPage() {
     (v) => v !== "" && v !== undefined,
   );
 
-  // Staff retail: tampilkan ledger ringkas khusus (unit terkunci, tanpa tombol ganda).
+  // Retail: ledger ringkas khusus (unit terkunci, tanpa scroll horizontal).
+  // Staff baca saja; Manager + tombol kelola.
   const isRetailStaff =
     session?.user?.role === "STAFF" &&
     (session?.user as any)?.unitIsRetail === true;
-  if (isRetailStaff) {
+  const isRetailManager =
+    session?.user?.role === "MANAGER" &&
+    (session?.user as any)?.unitIsRetail === true;
+  if (isRetailStaff || isRetailManager) {
     return (
       <div className="mx-auto max-w-3xl">
-        <RetailStaffLedger />
+        <RetailStaffLedger manage={isRetailManager} />
       </div>
     );
   }
