@@ -7,6 +7,7 @@ import { guardRetail, resolveUnitId } from "@/lib/retail-guard";
 
 const itemSchema = z.object({
   ownerId: z.string().min(1),
+  unitId: z.string().min(1).optional(),
   inventoryItemId: z.string().optional(),
   name: z.string().min(1, "Nama barang wajib diisi").max(200),
   sku: z.string().min(1).max(50),
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
 
-  const unitId = await resolveUnitId(session, null);
+  const unitId = await resolveUnitId(session, parsed.data.unitId ?? null);
   if (!unitId)
     return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 400 });
 
