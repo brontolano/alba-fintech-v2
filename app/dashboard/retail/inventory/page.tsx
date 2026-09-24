@@ -58,6 +58,7 @@ export default function RetailInventoryPage() {
   const [isManager, setIsManager] = useState(false);
 
   const [tab, setTab] = useState<Filter>("all");
+  const [draftCount, setDraftCount] = useState(0);
   const [q, setQ] = useState("");
   const [qDebounced, setQDebounced] = useState("");
   const [category, setCategory] = useState("");
@@ -76,9 +77,21 @@ export default function RetailInventoryPage() {
   useEffect(() => {
     fetch("/api/auth/session")
       .then((r) => r.json())
-      .then((s) =>
-        setIsManager(String(s?.user?.role || "").toUpperCase() === "MANAGER"),
-      )
+      .then((s) => {
+        const mgr =
+          String(s?.user?.role || "").toUpperCase() === "MANAGER";
+        setIsManager(mgr);
+        if (mgr) {
+          fetch("/api/retail/batches?status=DRAFT&limit=1")
+            .then((r2) => r2.json())
+            .then((b) =>
+              setDraftCount(
+                Array.isArray(b.data) ? b.data.length : 0,
+              ),
+            )
+            .catch(() => {});
+        }
+      })
       .catch(() => setIsManager(false));
   }, []);
 
@@ -247,6 +260,14 @@ export default function RetailInventoryPage() {
           </div>
         </div>
         <div className="flex shrink-0 gap-1.5">
+          {isManager && draftCount > 0 && (
+            <Link
+              href="/dashboard/retail/stok-masuk/review"
+              className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-semibold text-white"
+            >
+              Review ({draftCount})
+            </Link>
+          )}
           <Link
             href="/dashboard/retail/stok-masuk"
             className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
