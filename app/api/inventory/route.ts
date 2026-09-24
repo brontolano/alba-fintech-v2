@@ -106,10 +106,18 @@ export async function GET(request: NextRequest) {
     if (parsed.data.isActive !== undefined) {
       where.isActive = parsed.data.isActive === 'true';
     }
-    if (parsed.data.isConsignment === 'true') {
-      where.consignment_item = { is: { id: { not: null } } };
-    } else if (parsed.data.isConsignment === 'false') {
-      where.consignment_item = null;
+    // Filter pondok/titipan via daftar ID (filter relasi `not: null` ditolak Prisma).
+    if (parsed.data.isConsignment === 'true' || parsed.data.isConsignment === 'false') {
+      const cScope: any = {};
+      if (typeof where.unitId === 'string') cScope.unitId = where.unitId;
+      else if (where.unitId?.in) cScope.unitId = { in: where.unitId.in };
+      const cRows = await prisma.consignmentItem.findMany({
+        where: { ...cScope, isActive: true },
+        select: { inventoryItemId: true },
+      });
+      const cIds = [...new Set(cRows.map((r) => r.inventoryItemId))];
+      where.id =
+        parsed.data.isConsignment === 'true' ? { in: cIds } : { notIn: cIds };
     }
 
     // Fetch inventory items (orderItems excluded to avoid heavy joins)
@@ -133,22 +141,27 @@ export async function GET(request: NextRequest) {
     // Ringkasan KPI unit (abaikan filter tab/qty halaman): hitung per unit scope.
     const unitScope: any = {};
     if (where.unitId !== undefined) unitScope.unitId = where.unitId;
-    const [pondokCount, titipanCount, valuasi] = await Promise.all([
+    const kScope: any = {};
+    if (typeof unitScope.unitId === 'string') kScope.unitId = unitScope.unitId;
+    else if (unitScope.unitId?.in) kScope.unitId = { in: unitScope.unitId.in };
+    const kRows = await prisma.consignmentItem.findMany({
+      where: { ...kScope, isActive: true },
+      select: { inventoryItemId: true },
+    });
+    const kIds = [...new Set(kRows.map((r) => r.inventoryItemId))];
+    const [totalActive, titipanCount, valuasi] = await Promise.all([
       prisma.inventoryItem.count({
-        where: { ...unitScope, isActive: true, consignment_item: null },
+        where: { ...unitScope, isActive: true },
       }),
       prisma.inventoryItem.count({
-        where: {
-          ...unitScope,
-          isActive: true,
-          consignment_item: { is: { id: { not: null } } },
-        },
+        where: { ...unitScope, isActive: true, id: { in: kIds } },
       }),
       prisma.inventoryItem.findMany({
         where: { ...unitScope, isActive: true },
         select: { currentStock: true, purchasePrice: true },
       }),
     ]);
+    const pondokCount = Math.max(0, totalActive - titipanCount);
     const modalValuation = valuasi.reduce(
       (s, v) => s + (v.currentStock ?? 0) * Number(v.purchasePrice ?? 0),
       0,
