@@ -9,6 +9,8 @@ import {
   Boxes,
   PackageOpen,
   ArrowLeft,
+  Search,
+  Package,
 } from "lucide-react";
 
 const fmt = (n: number) =>
@@ -22,24 +24,45 @@ type Item = {
   id: string;
   name: string;
   sku?: string;
+  category?: string | null;
   currentStock: number;
   minStock?: number;
   unitPrice?: number;
   imageUrl?: string;
   isConsignment?: boolean;
+  isConsignmentOwner?: string | null;
 };
 
+type Owner = { id: string; name: string };
 type Filter = "all" | "pondok" | "titipan";
 
-const FILTERS: { key: Filter; label: string }[] = [
+type Summary = {
+  total: number;
+  pages: number;
+  pondokCount: number;
+  titipanCount: number;
+  modalValuation: number;
+};
+
+const TABS: { key: Filter; label: string }[] = [
   { key: "all", label: "Semua" },
-  { key: "pondok", label: "Pondok" },
+  { key: "pondok", label: "Barang Pondok" },
   { key: "titipan", label: "Titipan (UMKM)" },
 ];
 
 export default function RetailInventoryPage() {
   const [items, setItems] = useState<Item[]>([]);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [owners, setOwners] = useState<Owner[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [isManager, setIsManager] = useState(false);
+
+  const [tab, setTab] = useState<Filter>("all");
+  const [q, setQ] = useState("");
+  const [qDebounced, setQDebounced] = useState("");
+  const [category, setCategory] = useState("");
+  const [ownerId, setOwnerId] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -49,34 +72,76 @@ export default function RetailInventoryPage() {
   const [counting, setCounting] = useState<Record<string, number>>({});
   const [countingMode, setCountingMode] = useState(false);
 
-  const load = useCallback(async (f: Filter) => {
-    setLoading(true);
-    setErr(null);
-    try {
-      const params = new URLSearchParams({ limit: "500" });
-      if (f === "pondok") params.set("isConsignment", "false");
-      if (f === "titipan") params.set("isConsignment", "true");
-      const res = await fetch(`/api/inventory?${params.toString()}`);
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Gagal memuat stok");
-      const list = (
-        Array.isArray(body.data) ? body.data : body.items || []
-      ) as Item[];
-      setItems(list.filter((x: any) => x.isActive !== false));
-    } catch (e: any) {
-      setErr(e.message);
-    } finally {
-      setLoading(false);
-    }
+  // Role untuk gate tombol Stocktake (server tetap menolak non-manager).
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((s) =>
+        setIsManager(String(s?.user?.role || "").toUpperCase() === "MANAGER"),
+      )
+      .catch(() => setIsManager(false));
   }, []);
 
+  // Daftar pemilik (filter vendor) + kategori (filter).
   useEffect(() => {
-    load(filter);
-  }, [filter, load]);
+    fetch("/api/retail/consignments/owners")
+      .then((r) => r.json())
+      .then((b) => setOwners(Array.isArray(b.data) ? b.data : []))
+      .catch(() => setOwners([]));
+    fetch("/api/inventory?limit=500")
+      .then((r) => r.json())
+      .then((b) => {
+        const list = (Array.isArray(b.data) ? b.data : []) as Item[];
+        setCategories(
+          [...new Set(list.map((i) => i.category).filter(Boolean))].sort() as string[],
+        );
+      })
+      .catch(() => {});
+  }, []);
 
-  const pickFilter = (f: Filter) => {
+  // Debounce pencarian 300ms.
+  useEffect(() => {
+    const t = setTimeout(() => setQDebounced(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const load = useCallback(
+    async (f: Filter, search: string, cat: string) => {
+      setLoading(true);
+      setErr(null);
+      try {
+        const params = new URLSearchParams({ limit: "500" });
+        if (f === "pondok") params.set("isConsignment", "false");
+        if (f === "titipan") params.set("isConsignment", "true");
+        if (search) params.set("search", search);
+        if (cat) params.set("category", cat);
+        const res = await fetch(`/api/inventory?${params.toString()}`);
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || "Gagal memuat stok");
+        const list = (Array.isArray(body.data) ? body.data : []) as Item[];
+        setItems(list.filter((x: any) => x.isActive !== false));
+        if (body.summary) setSummary(body.summary as Summary);
+      } catch (e: any) {
+        setErr(e.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    load(tab, qDebounced, category);
+  }, [tab, qDebounced, category, load]);
+
+  // Filter vendor (pemilik) di sisi klien — API tidak punya param owner.
+  const visible = ownerId
+    ? items.filter((i) => i.isConsignmentOwner === ownerId)
+    : items;
+
+  const pickTab = (f: Filter) => {
     setCountingMode(false);
-    setFilter(f);
+    setTab(f);
   };
 
   const post = async (action: string, payload: any) => {
@@ -96,7 +161,7 @@ export default function RetailInventoryPage() {
       );
       setStockIn({ itemId: "", qty: "", unitPrice: "" });
       setCountingMode(false);
-      await load(filter);
+      await load(tab, qDebounced, category);
     } catch (e: any) {
       setErr(e.message);
     } finally {
@@ -135,9 +200,29 @@ export default function RetailInventoryPage() {
   const lowCount = items.filter(
     (i) => Number(i.currentStock) <= Number(i.minStock ?? -1),
   ).length;
+  const totalItem = (summary?.pondokCount ?? 0) + (summary?.titipanCount ?? 0);
+
+  const kpis = [
+    { label: "Total Item", value: String(totalItem), icon: <Boxes size={18} /> },
+    {
+      label: "Barang Pondok",
+      value: String(summary?.pondokCount ?? 0),
+      icon: <Package size={18} />,
+    },
+    {
+      label: "Barang Titipan",
+      value: String(summary?.titipanCount ?? 0),
+      icon: <PackageOpen size={18} />,
+    },
+    {
+      label: "Total Modal",
+      value: fmt(summary?.modalValuation ?? 0),
+      icon: <PackagePlus size={18} />,
+    },
+  ];
 
   return (
-    <main className="mx-auto max-w-3xl space-y-4 p-4">
+    <main className="mx-auto max-w-5xl space-y-4 p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Link
@@ -157,7 +242,7 @@ export default function RetailInventoryPage() {
               )}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Stok masuk & stocktake
+              Stok masuk, stocktake & daftar barang unit
             </p>
           </div>
         </div>
@@ -188,18 +273,82 @@ export default function RetailInventoryPage() {
         </div>
       )}
 
-      <div className="flex items-center justify-end gap-1 text-xs">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => pickFilter(f.key)}
-            className={`rounded-lg border bg-background px-2 py-1 ${
-              filter === f.key ? "border-primary bg-primary/10" : ""
-            }`}
-          >
-            {f.label}
-          </button>
+      {/* 4 KPI */}
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        {kpis.map((k) => (
+          <div key={k.label} className="rounded-xl border bg-card p-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {k.icon}
+              {k.label}
+            </div>
+            <p className="mt-1 truncate text-lg font-bold">{k.value}</p>
+          </div>
         ))}
+      </div>
+
+      {/* Search + filter */}
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div className="relative sm:col-span-1">
+          <Search
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Cari nama / SKU…"
+            className="w-full rounded-lg border bg-background py-2 pl-9 pr-3 text-sm"
+          />
+        </div>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="rounded-lg border bg-background px-3 py-2 text-sm"
+        >
+          <option value="">Semua kategori</option>
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <select
+          value={ownerId}
+          onChange={(e) => setOwnerId(e.target.value)}
+          className="rounded-lg border bg-background px-3 py-2 text-sm"
+        >
+          <option value="">Semua vendor</option>
+          {owners.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Tab */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex gap-1 text-xs">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => pickTab(t.key)}
+              className={`rounded-lg border bg-background px-2 py-1 ${
+                tab === t.key ? "border-primary bg-primary/10" : ""
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {isManager && (
+          <button
+            onClick={toggleCounting}
+            className="rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold"
+          >
+            {countingMode ? "Batal Stocktake" : "Stocktake"}
+          </button>
+        )}
       </div>
 
       {/* Stok masuk */}
@@ -261,32 +410,23 @@ export default function RetailInventoryPage() {
         </button>
       </form>
 
-      {/* Stocktake + daftar */}
+      {/* Grid barang */}
       <div className="rounded-xl border bg-card p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-sm font-semibold">
-            <ClipboardCheck size={16} /> Daftar Barang ({items.length})
-          </h2>
-          <button
-            onClick={toggleCounting}
-            className="rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold"
-          >
-            {countingMode ? "Batal" : "Stocktake"}
-          </button>
-        </div>
-
+        <h2 className="mb-3 text-sm font-semibold">
+          Daftar Barang ({visibleCount(visible)})
+        </h2>
         {loading ? (
           <div className="py-8 text-center text-muted-foreground">
             <Loader2 size={18} className="mx-auto animate-spin" />
           </div>
-        ) : items.length === 0 ? (
+        ) : visible.length === 0 ? (
           <p className="py-3 text-center text-sm text-muted-foreground">
             Tidak ada barang
           </p>
         ) : countingMode ? (
           <>
-            <div className="max-h-80 space-y-2 overflow-y-auto">
-              {items.map((i) => (
+            <div className="max-h-96 space-y-2 overflow-y-auto">
+              {visible.map((i) => (
                 <div
                   key={i.id}
                   className="flex items-center justify-between gap-3 py-2 text-sm"
@@ -302,7 +442,10 @@ export default function RetailInventoryPage() {
                     min="0"
                     value={counting[i.id] ?? i.currentStock}
                     onChange={(e) =>
-                      setCounting({ ...counting, [i.id]: Number(e.target.value) })
+                      setCounting({
+                        ...counting,
+                        [i.id]: Number(e.target.value),
+                      })
                     }
                     className="w-24 rounded-lg border bg-background px-2 py-1.5 text-sm text-right"
                   />
@@ -323,47 +466,48 @@ export default function RetailInventoryPage() {
             </button>
           </>
         ) : (
-          <div className="divide-y">
-            {items.map((i) => {
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            {visible.map((i) => {
               const low =
                 Number(i.currentStock) <= Number(i.minStock ?? -1);
               return (
                 <div
                   key={i.id}
-                  className="flex items-center gap-3 py-2 text-sm"
+                  className="overflow-hidden rounded-xl border bg-background"
                 >
                   {i.imageUrl ? (
                     <img
                       src={i.imageUrl}
                       alt={i.name}
-                      className="h-9 w-9 shrink-0 rounded-lg border object-cover"
+                      className="aspect-square w-full object-cover"
+                      loading="lazy"
                     />
                   ) : (
-                    <span className="h-9 w-9 shrink-0 rounded-lg border bg-muted" />
+                    <div className="flex aspect-square w-full items-center justify-center bg-muted">
+                      <PackagePlus
+                        size={22}
+                        className="text-muted-foreground"
+                      />
+                    </div>
                   )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">
+                  <div className="space-y-0.5 p-2">
+                    <p className="truncate text-sm font-semibold" title={i.name}>
                       {i.name}
                       {i.isConsignment && (
-                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                        <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-px align-middle text-[10px] font-semibold text-amber-800">
                           UMKM
                         </span>
                       )}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {i.sku ? `${i.sku} · ` : ""}
-                      {i.unitPrice
-                        ? `${fmt(Number(i.unitPrice))}/biji`
-                        : "harga belum set"}
+                    <p className="text-xs font-medium text-emerald-700">
+                      {i.unitPrice ? fmt(Number(i.unitPrice)) : "—"}
                     </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className={`font-bold ${low ? "text-rose-600" : ""}`}>
-                      {i.currentStock}
+                    <p
+                      className={`text-xs ${low ? "font-bold text-rose-600" : "text-muted-foreground"}`}
+                    >
+                      Stok: {i.currentStock}
+                      {low ? " · menipis" : ""}
                     </p>
-                    {low && (
-                      <p className="text-[11px] text-rose-600">menipis</p>
-                    )}
                   </div>
                 </div>
               );
@@ -373,4 +517,8 @@ export default function RetailInventoryPage() {
       </div>
     </main>
   );
+
+  function visibleCount(list: Item[]) {
+    return list.length;
+  }
 }
