@@ -248,10 +248,10 @@ export default function RetailInventoryPage() {
         </div>
         <div className="flex shrink-0 gap-1.5">
           <Link
-            href="/dashboard/retail/inventory/tambah"
+            href="/dashboard/retail/stok-masuk"
             className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
           >
-            <PackagePlus size={15} /> Tambah
+            <PackagePlus size={15} /> Stok Masuk
           </Link>
           <Link
             href="/dashboard/retail/konsinyasi"
