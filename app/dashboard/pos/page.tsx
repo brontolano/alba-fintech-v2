@@ -607,7 +607,7 @@ export default function POSPage() {
           Penjualan - Unit Toko/Retail
         </p>
         <button
-          onClick={() => router.push("/dashboard/pos/shift")}
+          onClick={() => router.push("/dashboard/retail/shift")}
           className="flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
         >
           <Clock size={16} />
