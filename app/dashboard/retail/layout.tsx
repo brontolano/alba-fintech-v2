@@ -1,39 +1,17 @@
-"use client";
+import type { ReactNode } from "react";
 
-import { RetailSidebar } from "@/components/retail/RetailSidebar";
-import { RetailMobileNav } from "@/components/retail/RetailMobileNav";
-import { Header } from "@/components/layout/Header";
-import { useSession } from "next-auth/react";
-import { useState } from "react";
-
-export default function RetailLayout({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-
-  const user = session?.user ? {
-    role: session.user.role as "MANAGER" | "STAFF",
-    unitId: (session.user as any).unitId,
-    unitName: (session.user as any).unitName,
-  } : null;
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Header user={session?.user as any} onMenuClick={() => setSidebarOpen(true)} />
-      <RetailSidebar 
-        user={user} 
-        expanded={true} 
-        onToggle={() => setSidebarOpen(o => !o)} 
-        mobileOpen={mobileNavOpen} 
-        onCloseMobile={() => setMobileNavOpen(false)} 
-      />
-      <RetailMobileNav user={user ? { role: user.role } : null} />
-      <main className={`md:ml-64 min-h-screen transition-all ${sidebarOpen ? "ml-64" : "ml-20"}`}>
-        <div className="p-4 md:p-6 pb-24 md:pb-6">
-          {children}
-        </div>
-      </main>
-      {mobileNavOpen && <RetailMobileNav user={user ? { role: user.role } : null} />}
-    </div>
-  );
+/**
+ * Layout retail — pass-through bersih.
+ *
+ * Chrome aplikasi (Header + Sidebar + MobileNav) sudah disediakan oleh
+ * `app/dashboard/DashboardClient.tsx`. Layout ini SENGAJA tidak me-render
+ * header/sidebar/nav sendiri agar tidak terjadi:
+ * - header ganda,
+ * - sidebar ganda,
+ * - tombol POS melayang (FAB) yang menutupi konten.
+ *
+ * Navigasi staff retail memakai MobileNav generik + grup "Toko" di Sidebar.
+ */
+export default function RetailLayout({ children }: { children: ReactNode }) {
+  return <>{children}</>;
 }
