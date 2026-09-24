@@ -81,7 +81,6 @@ export default function RetailInventoryPage() {
   const [countingMode, setCountingMode] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [newItem, setNewItem] = useState({
     name: "",
     sku: "",
@@ -89,15 +88,6 @@ export default function RetailInventoryPage() {
     unitPrice: "",
     purchasePrice: "",
     minStock: "",
-  });
-  const [editItem, setEditItem] = useState({
-    name: "",
-    sku: "",
-    category: "",
-    unitPrice: "",
-    purchasePrice: "",
-    minStock: "",
-    isActive: true,
   });
 
   useEffect(() => {
@@ -277,56 +267,6 @@ export default function RetailInventoryPage() {
     }
   };
 
-  const openEdit = (i: Item) => {
-    setShowCreate(false);
-    setEditingId(i.id);
-    setEditItem({
-      name: i.name,
-      sku: i.sku ?? "",
-      category: i.category ?? "",
-      unitPrice: i.unitPrice != null ? String(i.unitPrice) : "",
-      purchasePrice:
-        i.purchasePrice != null ? String(i.purchasePrice) : "",
-      minStock: i.minStock != null ? String(i.minStock) : "",
-      isActive: i.isActive !== false,
-    });
-  };
-
-  const submitEdit = async (e: { preventDefault: () => void }) => {
-    e.preventDefault();
-    const unitPrice = Number(editItem.unitPrice);
-    if (!editItem.name.trim() || !unitPrice || !editingId) return;
-    setBusy(true);
-    setErr(null);
-    setMsg(null);
-    try {
-      const res = await fetch(`/api/inventory/${editingId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editItem.name.trim(),
-          sku: editItem.sku.trim() || undefined,
-          category: editItem.category.trim() || null,
-          unitPrice,
-          purchasePrice: editItem.purchasePrice
-            ? Number(editItem.purchasePrice)
-            : null,
-          minStock: editItem.minStock ? Number(editItem.minStock) : 0,
-          isActive: editItem.isActive,
-        }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Gagal memperbarui barang");
-      setMsg("Barang diperbarui");
-      setEditingId(null);
-      await load(tab, qDebounced, category);
-    } catch (e: any) {
-      setErr(e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const removeItem = async (i: Item) => {
     if (!window.confirm(`Hapus barang "${i.name}"?`)) return;
     setBusy(true);
@@ -337,7 +277,6 @@ export default function RetailInventoryPage() {
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || "Gagal menghapus barang");
       setMsg("Barang dihapus");
-      if (editingId === i.id) setEditingId(null);
       await load(tab, qDebounced, category);
     } catch (e: any) {
       setErr(e.message);
@@ -397,14 +336,21 @@ export default function RetailInventoryPage() {
 
       <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
-          { label: "Item", value: String((summary?.pondokCount ?? 0) + (summary?.titipanCount ?? 0)) },
+          { label: "Item Aktif", value: String((summary?.pondokCount ?? 0) + (summary?.titipanCount ?? 0)) },
           { label: "Pondok", value: String(summary?.pondokCount ?? 0) },
           { label: "Titipan", value: String(summary?.titipanCount ?? 0) },
-          { label: "Modal", value: fmt(summary?.modalValuation ?? 0) },
+          { label: "Nilai Modal", value: fmt(summary?.modalValuation ?? 0) },
         ].map((k) => (
-          <div key={k.label} className="min-w-0 rounded-xl border bg-card px-2.5 py-2">
-            <p className="text-[11px] text-muted-foreground">{k.label}</p>
-            <p className="truncate text-base font-bold">{k.value}</p>
+          <div key={k.label} className="min-w-0 rounded-xl border bg-card px-2 py-1.5">
+            <p className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">
+              {k.label}
+            </p>
+            <p
+              className="break-words text-sm font-bold leading-snug text-foreground sm:text-base"
+              title={k.value}
+            >
+              {k.value}
+            </p>
           </div>
         ))}
       </div>
@@ -529,10 +475,7 @@ export default function RetailInventoryPage() {
       )}
       {isManager && !countingMode && (
         <button
-          onClick={() => {
-            setShowCreate((v) => !v);
-            setEditingId(null);
-          }}
+          onClick={() => setShowCreate((v) => !v)}
           className="inline-flex h-9 w-full items-center justify-center gap-1 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 text-sm font-semibold text-primary hover:bg-primary/10"
         >
           {showCreate ? <X size={14} /> : <Plus size={14} />}
@@ -613,103 +556,6 @@ export default function RetailInventoryPage() {
               <Plus size={14} />
             )}
             Simpan Barang
-          </button>
-        </form>
-      )}
-
-      {isManager && editingId && !countingMode && (
-        <form
-          onSubmit={submitEdit}
-          className="rounded-xl border bg-card p-2.5"
-        >
-          <div className="mb-1.5 flex items-center justify-between px-0.5">
-            <p className="text-xs font-semibold text-muted-foreground">
-              Edit Barang
-            </p>
-            <button
-              type="button"
-              onClick={() => setEditingId(null)}
-              aria-label="Tutup edit"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <X size={14} />
-            </button>
-          </div>
-          <div className="grid gap-1.5 sm:grid-cols-2">
-            <input
-              value={editItem.name}
-              onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
-              placeholder="Nama barang *"
-              className={`${inputCls} min-w-0`}
-              required
-            />
-            <input
-              value={editItem.sku}
-              onChange={(e) => setEditItem({ ...editItem, sku: e.target.value })}
-              placeholder="SKU"
-              className={`${inputCls} min-w-0`}
-            />
-            <input
-              value={editItem.category}
-              onChange={(e) =>
-                setEditItem({ ...editItem, category: e.target.value })
-              }
-              placeholder="Kategori"
-              className={`${inputCls} min-w-0`}
-            />
-            <input
-              value={editItem.unitPrice}
-              onChange={(e) =>
-                setEditItem({ ...editItem, unitPrice: e.target.value })
-              }
-              placeholder="Harga jual *"
-              type="number"
-              min="0"
-              className={`${inputCls} min-w-0`}
-              required
-            />
-            <input
-              value={editItem.purchasePrice}
-              onChange={(e) =>
-                setEditItem({ ...editItem, purchasePrice: e.target.value })
-              }
-              placeholder="Harga beli"
-              type="number"
-              min="0"
-              className={`${inputCls} min-w-0`}
-            />
-            <input
-              value={editItem.minStock}
-              onChange={(e) =>
-                setEditItem({ ...editItem, minStock: e.target.value })
-              }
-              placeholder="Stok minimum"
-              type="number"
-              min="0"
-              className={`${inputCls} min-w-0`}
-            />
-          </div>
-          <label className="mt-2 flex cursor-pointer items-center gap-1.5 text-xs">
-            <input
-              type="checkbox"
-              checked={editItem.isActive}
-              onChange={(e) =>
-                setEditItem({ ...editItem, isActive: e.target.checked })
-              }
-            />
-            Aktif (tampil di POS & stok)
-          </label>
-          <button
-            type="submit"
-            disabled={busy || !editItem.name.trim() || !Number(editItem.unitPrice)}
-            className="mt-2 inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
-          >
-            {busy ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Pencil size={14} />
-            )}
-            Simpan Perubahan
           </button>
         </form>
       )}
@@ -813,14 +659,16 @@ export default function RetailInventoryPage() {
                       Stok: {i.currentStock}
                       {low ? " · menipis" : ""}
                     </p>
-                    {isManager && (
-                      <div className="mt-1 flex gap-1">
-                        <button
-                          onClick={() => openEdit(i)}
-                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-border px-1.5 py-1 text-[10px] font-semibold text-muted-foreground hover:border-primary hover:text-primary"
-                        >
-                          <Pencil size={10} /> Edit
-                        </button>
+                    <div
+                      className={`mt-1 flex gap-1 ${isManager ? "" : "pt-0.5"}`}
+                    >
+                      <Link
+                        href={`/dashboard/retail/inventory/${i.id}`}
+                        className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-border px-1.5 py-1 text-[10px] font-semibold text-muted-foreground hover:border-primary hover:text-primary"
+                      >
+                        <Pencil size={10} /> {isManager ? "Edit" : "Detail"}
+                      </Link>
+                      {isManager && (
                         <button
                           onClick={() => removeItem(i)}
                           disabled={Boolean(i.isConsignment)}
@@ -833,8 +681,8 @@ export default function RetailInventoryPage() {
                         >
                           <Trash2 size={10} /> Hapus
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               );
