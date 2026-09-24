@@ -235,6 +235,8 @@ export default function StokMasukPage() {
   const r: string = String(session?.user?.role || "").toUpperCase();
   const canWrite =
     r === "PIMPINAN" || r === "MANAGER" || r === "STAFF";
+  // Dropdown ref pengajuan hanya untuk yang boleh baca approvals (Staff = 403).
+  const canSeeApprovals = r === "PIMPINAN" || r === "MANAGER" || r === "SUPERADMIN";
 
   useEffect(() => {
     if (!unitId) return;
@@ -257,6 +259,12 @@ export default function StokMasukPage() {
       .then((res) => res.json())
       .then((b) => setOwners(Array.isArray(b.data) ? b.data : []))
       .catch(() => setOwners([]));
+    if (!["PIMPINAN", "MANAGER", "SUPERADMIN"].includes(
+      String((session as any)?.user?.role || "").toUpperCase(),
+    )) {
+      setApprovals([]);
+      return;
+    }
     fetch(`/api/approvals?unitId=${unitId}`)
       .then((res) => res.json())
       .then((b) =>
@@ -271,6 +279,7 @@ export default function StokMasukPage() {
         ),
       )
       .catch(() => setApprovals([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unitId]);
 
   const patchRow = (key: number, patch: Partial<Row>) =>
@@ -591,7 +600,7 @@ export default function StokMasukPage() {
                 required
               />
             </div>
-            {kind === "pondok" && (
+            {kind === "pondok" && canSeeApprovals && (
               <div>
                 <label className="block text-xs font-medium">
                   Ref pengajuan (opsional)
