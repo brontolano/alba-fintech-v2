@@ -6,8 +6,6 @@ import {
   PackagePlus,
   ClipboardCheck,
   Loader2,
-  Boxes,
-  PackageOpen,
   ArrowLeft,
   Search,
   Package,
@@ -46,9 +44,12 @@ type Summary = {
 
 const TABS: { key: Filter; label: string }[] = [
   { key: "all", label: "Semua" },
-  { key: "pondok", label: "Barang Pondok" },
-  { key: "titipan", label: "Titipan (UMKM)" },
+  { key: "pondok", label: "Pondok" },
+  { key: "titipan", label: "Titipan" },
 ];
+
+const inputCls =
+  "rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary";
 
 export default function RetailInventoryPage() {
   const [items, setItems] = useState<Item[]>([]);
@@ -56,9 +57,9 @@ export default function RetailInventoryPage() {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [isManager, setIsManager] = useState(false);
+  const [draftCount, setDraftCount] = useState(0);
 
   const [tab, setTab] = useState<Filter>("all");
-  const [draftCount, setDraftCount] = useState(0);
   const [q, setQ] = useState("");
   const [qDebounced, setQDebounced] = useState("");
   const [category, setCategory] = useState("");
@@ -73,21 +74,17 @@ export default function RetailInventoryPage() {
   const [counting, setCounting] = useState<Record<string, number>>({});
   const [countingMode, setCountingMode] = useState(false);
 
-  // Role untuk gate tombol Stocktake (server tetap menolak non-manager).
   useEffect(() => {
     fetch("/api/auth/session")
       .then((r) => r.json())
       .then((s) => {
-        const mgr =
-          String(s?.user?.role || "").toUpperCase() === "MANAGER";
+        const mgr = String(s?.user?.role || "").toUpperCase() === "MANAGER";
         setIsManager(mgr);
         if (mgr) {
           fetch("/api/retail/batches?status=DRAFT&limit=1")
             .then((r2) => r2.json())
             .then((b) =>
-              setDraftCount(
-                Array.isArray(b.data) ? b.data.length : 0,
-              ),
+              setDraftCount(Array.isArray(b.data) ? b.data.length : 0),
             )
             .catch(() => {});
         }
@@ -95,7 +92,6 @@ export default function RetailInventoryPage() {
       .catch(() => setIsManager(false));
   }, []);
 
-  // Daftar pemilik (filter vendor) + kategori (filter).
   useEffect(() => {
     fetch("/api/retail/consignments/owners")
       .then((r) => r.json())
@@ -112,7 +108,6 @@ export default function RetailInventoryPage() {
       .catch(() => {});
   }, []);
 
-  // Debounce pencarian 300ms.
   useEffect(() => {
     const t = setTimeout(() => setQDebounced(q.trim()), 300);
     return () => clearTimeout(t);
@@ -147,7 +142,6 @@ export default function RetailInventoryPage() {
     load(tab, qDebounced, category);
   }, [tab, qDebounced, category, load]);
 
-  // Filter vendor (pemilik) di sisi klien — API tidak punya param owner.
   const visible = ownerId
     ? items.filter((i) => i.isConsignmentOwner === ownerId)
     : items;
@@ -169,9 +163,7 @@ export default function RetailInventoryPage() {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Gagal");
-      setMsg(
-        action === "stock-in" ? "Stok ditambahkan" : "Stocktake diterapkan",
-      );
+      setMsg(action === "stock-in" ? "Stok ditambahkan" : "Stocktake diterapkan");
       setStockIn({ itemId: "", qty: "", unitPrice: "" });
       setCountingMode(false);
       await load(tab, qDebounced, category);
@@ -213,255 +205,196 @@ export default function RetailInventoryPage() {
   const lowCount = items.filter(
     (i) => Number(i.currentStock) <= Number(i.minStock ?? -1),
   ).length;
-  const totalItem = (summary?.pondokCount ?? 0) + (summary?.titipanCount ?? 0);
-
-  const kpis = [
-    { label: "Total Item", value: String(totalItem), icon: <Boxes size={18} /> },
-    {
-      label: "Barang Pondok",
-      value: String(summary?.pondokCount ?? 0),
-      icon: <Package size={18} />,
-    },
-    {
-      label: "Barang Titipan",
-      value: String(summary?.titipanCount ?? 0),
-      icon: <PackageOpen size={18} />,
-    },
-    {
-      label: "Total Modal",
-      value: fmt(summary?.modalValuation ?? 0),
-      icon: <PackagePlus size={18} />,
-    },
-  ];
 
   return (
-    <main className="mx-auto max-w-5xl space-y-4 p-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Link
-            href="/dashboard"
-            aria-label="Kembali"
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <div>
-            <h1 className="flex items-center gap-2 text-xl font-bold">
-              <Boxes size={20} /> Stok Retail
-              {lowCount > 0 && (
-                <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-bold text-rose-600">
-                  {lowCount} menipis
-                </span>
-              )}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Daftar barang unit (lihat) · input via Stok Masuk
-            </p>
-          </div>
-        </div>
-        <div className="flex shrink-0 gap-1.5">
-          {isManager && draftCount > 0 && (
-            <Link
-              href="/dashboard/retail/stok-masuk/review"
-              className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-semibold text-white"
-            >
-              Review ({draftCount})
-            </Link>
+    <main className="mx-auto w-full max-w-3xl space-y-3 overflow-x-hidden p-3 sm:p-4">
+      <div className="flex min-w-0 items-center gap-2">
+        <Link
+          href="/dashboard"
+          aria-label="Kembali"
+          className="shrink-0 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft size={18} />
+        </Link>
+        <h1 className="min-w-0 flex-1 truncate text-lg font-bold">
+          Stok Retail
+          {lowCount > 0 && (
+            <span className="ml-2 rounded-full bg-rose-500/15 px-2 py-0.5 align-middle text-[11px] font-bold text-rose-600">
+              {lowCount} menipis
+            </span>
           )}
-          {isManager && (
-            <Link
-              href="/dashboard/inventory"
-              className="inline-flex items-center gap-1 rounded-lg border bg-background px-3 py-1.5 text-sm font-semibold hover:bg-accent"
-            >
-              Master
-            </Link>
-          )}
+        </h1>
+        {isManager && draftCount > 0 && (
           <Link
-            href="/dashboard/retail/sisa"
-            className="inline-flex items-center gap-1 rounded-lg border bg-background px-3 py-1.5 text-sm font-semibold hover:bg-accent"
+            href="/dashboard/retail/stok-masuk/review"
+            className="shrink-0 rounded-lg bg-amber-500 px-2.5 py-1.5 text-xs font-semibold text-white"
           >
-            Hitung Sisa
+            Review ({draftCount})
           </Link>
-          <Link
-            href="/dashboard/retail/stok-masuk"
-            className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
-          >
-            <PackagePlus size={15} /> Stok Masuk
-          </Link>
-          <Link
-            href="/dashboard/retail/konsinyasi"
-            className="inline-flex items-center gap-1 rounded-lg border bg-background px-3 py-1.5 text-sm font-semibold hover:bg-accent"
-          >
-            <PackageOpen size={15} /> Pemilik
-          </Link>
-        </div>
+        )}
+        <Link
+          href="/dashboard/retail/stok-masuk"
+          className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground"
+        >
+          <PackagePlus size={14} /> Stok Masuk
+        </Link>
       </div>
 
       {err && (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-sm text-rose-600">
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 px-3 py-2 text-xs text-rose-600">
           {err}
         </div>
       )}
       {msg && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-600">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-600">
           {msg}
         </div>
       )}
 
-      {/* 4 KPI */}
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        {kpis.map((k) => (
-          <div key={k.label} className="rounded-xl border bg-card p-3">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              {k.icon}
-              {k.label}
-            </div>
-            <p className="mt-1 truncate text-lg font-bold">{k.value}</p>
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        {[
+          { label: "Item", value: String((summary?.pondokCount ?? 0) + (summary?.titipanCount ?? 0)) },
+          { label: "Pondok", value: String(summary?.pondokCount ?? 0) },
+          { label: "Titipan", value: String(summary?.titipanCount ?? 0) },
+          { label: "Modal", value: fmt(summary?.modalValuation ?? 0) },
+        ].map((k) => (
+          <div key={k.label} className="min-w-0 rounded-xl border bg-card px-2.5 py-2">
+            <p className="text-[11px] text-muted-foreground">{k.label}</p>
+            <p className="truncate text-base font-bold">{k.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Search + filter */}
-      <div className="grid gap-2 sm:grid-cols-3">
-        <div className="relative sm:col-span-1">
+      <div className="rounded-xl border bg-card p-2">
+        <div className="relative">
           <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            size={14}
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
           />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Cari nama / SKU…"
-            className="w-full rounded-lg border bg-background py-2 pl-9 pr-3 text-sm"
+            className="h-9 w-full rounded-lg border border-border bg-background pl-8 pr-2 text-sm outline-none focus:border-primary"
           />
         </div>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="rounded-lg border bg-background px-3 py-2 text-sm"
-        >
-          <option value="">Semua kategori</option>
-          {categories.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        <select
-          value={ownerId}
-          onChange={(e) => setOwnerId(e.target.value)}
-          className="rounded-lg border bg-background px-3 py-2 text-sm"
-        >
-          <option value="">Semua vendor</option>
-          {owners.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Tab */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex gap-1 text-xs">
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="h-8 min-w-0 flex-1 rounded-lg border border-border bg-background px-2 text-xs outline-none focus:border-primary"
+          >
+            <option value="">Semua kategori</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <select
+            value={ownerId}
+            onChange={(e) => setOwnerId(e.target.value)}
+            className="h-8 min-w-0 flex-1 rounded-lg border border-border bg-background px-2 text-xs outline-none focus:border-primary"
+          >
+            <option value="">Semua vendor</option>
+            {owners.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
+          </select>
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => pickTab(t.key)}
-              className={`rounded-lg border bg-background px-2 py-1 ${
-                tab === t.key ? "border-primary bg-primary/10" : ""
+              className={`h-8 rounded-lg border px-2.5 text-xs font-medium ${
+                tab === t.key
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-background text-muted-foreground"
               }`}
             >
               {t.label}
             </button>
           ))}
+          {isManager && (
+            <button
+              onClick={toggleCounting}
+              className="h-8 rounded-lg border border-border bg-background px-2.5 text-xs font-semibold"
+            >
+              {countingMode ? "Batal" : "Stocktake"}
+            </button>
+          )}
         </div>
-        {isManager && (
-          <button
-            onClick={toggleCounting}
-            className="rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold"
-          >
-            {countingMode ? "Batal Stocktake" : "Stocktake"}
-          </button>
-        )}
       </div>
 
-      {/* Stok masuk manual — khusus Manager. Staff wajib lewat Stok Masuk (draf → approve). */}
-      {isManager ? (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submitStockIn();
-        }}
-        className="rounded-xl border bg-card p-4"
-      >
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-          <PackagePlus size={16} /> Stok Masuk
-        </h2>
-        <div className="grid gap-2 sm:grid-cols-3">
-          <select
-            value={stockIn.itemId}
-            onChange={(e) => setStockIn({ ...stockIn, itemId: e.target.value })}
-            className="rounded-lg border bg-background px-3 py-2 text-sm"
-            required
-          >
-            <option value="">— Pilih barang —</option>
-            {items.map((i) => (
-              <option key={i.id} value={i.id}>
-                {i.name} (stok {i.currentStock})
-              </option>
-            ))}
-          </select>
-          <input
-            value={stockIn.qty}
-            onChange={(e) => setStockIn({ ...stockIn, qty: e.target.value })}
-            placeholder="Jumlah"
-            type="number"
-            min="1"
-            className="rounded-lg border bg-background px-3 py-2 text-sm"
-            required
-          />
-          <input
-            value={stockIn.unitPrice}
-            onChange={(e) =>
-              setStockIn({ ...stockIn, unitPrice: e.target.value })
-            }
-            placeholder="Harga beli/biji (opsional)"
-            type="number"
-            min="0"
-            className="rounded-lg border bg-background px-3 py-2 text-sm"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={busy || !stockIn.itemId || !stockIn.qty}
-          className="mt-3 inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+      {isManager && !countingMode && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitStockIn();
+          }}
+          className="rounded-xl border bg-card p-2.5"
         >
-          {busy ? (
-            <Loader2 size={15} className="animate-spin" />
-          ) : (
-            <PackagePlus size={15} />
-          )}
-          Tambah Stok
-        </button>
-      </form>
-      ) : (
-        <div className="rounded-xl border border-dashed bg-card p-4 text-sm text-muted-foreground">
-          Penambahan stok lewat{" "}
-          <Link
-            href="/dashboard/retail/stok-masuk"
-            className="font-semibold text-primary"
-          >
-            Stok Masuk
-          </Link>{" "}
-          (draf → review Manager).
-        </div>
+          <div className="grid gap-1.5 sm:grid-cols-[1fr_90px_130px_auto]">
+            <select
+              value={stockIn.itemId}
+              onChange={(e) => setStockIn({ ...stockIn, itemId: e.target.value })}
+              className={`${inputCls} min-w-0`}
+              required
+            >
+              <option value="">— Pilih barang —</option>
+              {items.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.name} ({i.currentStock})
+                </option>
+              ))}
+            </select>
+            <input
+              value={stockIn.qty}
+              onChange={(e) => setStockIn({ ...stockIn, qty: e.target.value })}
+              placeholder="Qty"
+              type="number"
+              min="1"
+              className={inputCls}
+              required
+            />
+            <input
+              value={stockIn.unitPrice}
+              onChange={(e) =>
+                setStockIn({ ...stockIn, unitPrice: e.target.value })
+              }
+              placeholder="Harga/biji"
+              type="number"
+              min="0"
+              className={inputCls}
+            />
+            <button
+              type="submit"
+              disabled={busy || !stockIn.itemId || !stockIn.qty}
+              className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              {busy ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <PackagePlus size={14} />
+              )}
+              Tambah
+            </button>
+          </div>
+        </form>
+      )}
+      {!isManager && (
+        <Link
+          href="/dashboard/retail/stok-masuk"
+          className="block rounded-xl border border-dashed bg-card p-2.5 text-center text-xs text-muted-foreground"
+        >
+          Tambah stok lewat <span className="font-semibold text-primary">Stok Masuk</span>
+        </Link>
       )}
 
-      {/* Grid barang */}
-      <div className="rounded-xl border bg-card p-4">
-        <h2 className="mb-3 text-sm font-semibold">
-          Daftar Barang ({visibleCount(visible)})
+      <div className="rounded-xl border bg-card p-2.5">
+        <h2 className="mb-2 px-1 text-xs font-semibold text-muted-foreground">
+          Daftar Barang ({visible.length})
         </h2>
         {loading ? (
           <div className="py-8 text-center text-muted-foreground">
@@ -473,15 +406,15 @@ export default function RetailInventoryPage() {
           </p>
         ) : countingMode ? (
           <>
-            <div className="max-h-96 space-y-2 overflow-y-auto">
+            <div className="max-h-96 space-y-1 overflow-y-auto">
               {visible.map((i) => (
                 <div
                   key={i.id}
-                  className="flex items-center justify-between gap-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-2 py-1.5 text-sm"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{i.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       catat: {i.currentStock}
                     </p>
                   </div>
@@ -490,12 +423,9 @@ export default function RetailInventoryPage() {
                     min="0"
                     value={counting[i.id] ?? i.currentStock}
                     onChange={(e) =>
-                      setCounting({
-                        ...counting,
-                        [i.id]: Number(e.target.value),
-                      })
+                      setCounting({ ...counting, [i.id]: Number(e.target.value) })
                     }
-                    className="w-24 rounded-lg border bg-background px-2 py-1.5 text-sm text-right"
+                    className="w-20 shrink-0 rounded-lg border bg-background px-2 py-1.5 text-sm text-right"
                   />
                 </div>
               ))}
@@ -503,25 +433,24 @@ export default function RetailInventoryPage() {
             <button
               onClick={submitStocktake}
               disabled={busy}
-              className="mt-3 inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+              className="mt-2 inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
             >
               {busy ? (
-                <Loader2 size={15} className="animate-spin" />
+                <Loader2 size={14} className="animate-spin" />
               ) : (
-                <ClipboardCheck size={15} />
+                <ClipboardCheck size={14} />
               )}
-              Terapkan Hitungan
+              Terapkan
             </button>
           </>
         ) : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
             {visible.map((i) => {
-              const low =
-                Number(i.currentStock) <= Number(i.minStock ?? -1);
+              const low = Number(i.currentStock) <= Number(i.minStock ?? -1);
               return (
                 <div
                   key={i.id}
-                  className="overflow-hidden rounded-xl border bg-background"
+                  className="min-w-0 overflow-hidden rounded-xl border bg-background"
                 >
                   {i.imageUrl ? (
                     <img
@@ -532,14 +461,11 @@ export default function RetailInventoryPage() {
                     />
                   ) : (
                     <div className="flex aspect-square w-full items-center justify-center bg-muted">
-                      <PackagePlus
-                        size={22}
-                        className="text-muted-foreground"
-                      />
+                      <Package size={20} className="text-muted-foreground" />
                     </div>
                   )}
-                  <div className="space-y-0.5 p-2">
-                    <p className="truncate text-sm font-semibold" title={i.name}>
+                  <div className="space-y-0.5 p-1.5">
+                    <p className="truncate text-xs font-semibold" title={i.name}>
                       {i.name}
                       {i.isConsignment && (
                         <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-px align-middle text-[10px] font-semibold text-amber-800">
@@ -551,7 +477,7 @@ export default function RetailInventoryPage() {
                       {i.unitPrice ? fmt(Number(i.unitPrice)) : "—"}
                     </p>
                     <p
-                      className={`text-xs ${low ? "font-bold text-rose-600" : "text-muted-foreground"}`}
+                      className={`text-[11px] ${low ? "font-bold text-rose-600" : "text-muted-foreground"}`}
                     >
                       Stok: {i.currentStock}
                       {low ? " · menipis" : ""}
@@ -565,8 +491,4 @@ export default function RetailInventoryPage() {
       </div>
     </main>
   );
-
-  function visibleCount(list: Item[]) {
-    return list.length;
-  }
 }
