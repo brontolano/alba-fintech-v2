@@ -280,7 +280,7 @@ Inventory retail membedakan dua jenis barang agar stok tidak kotor:
 | Jenis | Sumber stok | Kelola di | API |
 |-------|-------------|-----------|-----|
 | **Barang Pondok** (unit) | stok ritel non-titipan | `app/dashboard/retail/inventory` (halaman beku) | `GET /api/inventory` + `POST /api/retail/inventory?action=stock-in\|stocktake` (scoped unit, stok tak boleh negatif) |
-| **Barang Titipan** (UMKM) | stok milik pemilik titipan | `app/dashboard/retail/inventory/barang-titipan` (file baru) | `GET/POST /api/retail/consignments/items`, `PATCH /items/[id]`, `DELETE /items/[id]`, `GET /api/retail/consignments/owners` |
+| **Barang Titipan** (UMKM) | stok milik pemilik titipan | tab Titipan di `app/dashboard/retail/inventory` + input di `inventory/tambah` (halaman `barang-titipan` dihapus anti-duplikat) | `GET/POST /api/retail/consignments/items`, `PATCH /items/[id]`, `DELETE /items/[id]`, `GET /api/retail/consignments/owners` |
 
 - `InventoryItem` memiliki relasi one-to-one ke `ConsignmentItem` (field `consignment_item`). Barang Titipan = InventoryItem yang mempunyai `consignment_item`; Barang Pondok = InventoryItem tanpa `consignment_item`.
 - Karena `app/dashboard/retail/inventory/page.tsx` dan `/api/inventory` termasuk **permukaan beku** (`RETAIL-STAFF-FREEZE.md`), pemisahan dilakukan lewat **file halaman baru** — bukan perubahan pada yang beku.

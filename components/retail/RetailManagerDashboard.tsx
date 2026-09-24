@@ -119,7 +119,7 @@ export function RetailManagerDashboard() {
           {[
             { label: "Buka POS", href: "/dashboard/retail/pos", icon: <ShoppingCart size={24} />, color: "from-amber-500 to-orange-600" },
             { label: "Cek Stok", href: "/dashboard/retail/inventory", icon: <Package size={24} />, color: "from-blue-500 to-cyan-600" },
-            { label: "Barang Titipan", href: "/dashboard/retail/inventory/barang-titipan", icon: <PackageOpen size={24} />, color: "from-amber-500 to-yellow-600" },
+            { label: "Barang Titipan", href: "/dashboard/retail/inventory", icon: <PackageOpen size={24} />, color: "from-amber-500 to-yellow-600" },
             { label: "Buat Belanja", href: "/dashboard/retail/belanja", icon: <ShoppingBag size={24} />, color: "from-violet-500 to-purple-600" },
             { label: "Laporan Penjualan", href: "/dashboard/reports", icon: <BarChart2 size={24} />, color: "from-emerald-500 to-teal-600" },
             { label: "Cek Tabungan", href: "/dashboard/retail/tabungan", icon: <Wallet size={24} />, color: "from-purple-500 to-pink-600" },

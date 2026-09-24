@@ -8,7 +8,6 @@ import {
   Settings,
   ShoppingCart,
   Package,
-  PackageOpen,
   Receipt,
   Clock,
   ClipboardList,
@@ -205,9 +204,9 @@ export function MobileNav({ user }: MobileNavProps) {
               icon: <Home size={24} />,
             },
             {
-              label: "Titipan",
-              href: "/dashboard/retail/inventory/barang-titipan",
-              icon: <PackageOpen size={24} />,
+              label: "Shift",
+              href: "/dashboard/retail/shift",
+              icon: <Clock size={24} />,
             },
             {
               label: "POS",

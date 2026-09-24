@@ -33,7 +33,7 @@ export const RETAIL_NAV_GROUPS = {
       children: [
         { key: "inventory" as RetailPage, label: "Stok Pondok", href: "/dashboard/retail/inventory", iconName: "Package", roles: ["MANAGER","STAFF"] as const },
         { key: "inventory-tambah" as RetailPage, label: "Tambah Barang", href: "/dashboard/retail/inventory/tambah", iconName: "Plus", roles: ["MANAGER","STAFF"] as const },
-        { key: "inventory-titipan" as RetailPage, label: "Barang Titipan (UMKM)", href: "/dashboard/retail/inventory/barang-titipan", iconName: "PackageOpen", roles: ["MANAGER","STAFF"] as const },
+        { key: "inventory-titipan" as RetailPage, label: "Barang Titipan (UMKM)", href: "/dashboard/retail/inventory", iconName: "PackageOpen", roles: ["MANAGER","STAFF"] as const },
       ]
     },
     { key: "belanja" as RetailPage, label: "Belanja Stok", href: "/dashboard/retail/belanja", iconName: "ShoppingBag", roles: ["MANAGER","STAFF"] as const },

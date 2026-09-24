@@ -254,10 +254,10 @@ export default function RetailInventoryPage() {
             <PackagePlus size={15} /> Tambah
           </Link>
           <Link
-            href="/dashboard/retail/inventory/barang-titipan"
+            href="/dashboard/retail/konsinyasi"
             className="inline-flex items-center gap-1 rounded-lg border bg-background px-3 py-1.5 text-sm font-semibold hover:bg-accent"
           >
-            <PackageOpen size={15} /> Titipan
+            <PackageOpen size={15} /> Pemilik
           </Link>
         </div>
       </div>

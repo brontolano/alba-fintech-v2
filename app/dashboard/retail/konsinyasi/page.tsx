@@ -18,7 +18,8 @@ type Owner = { id: string; name: string; phone?: string; isActive: boolean; item
 
 // Pembagian halaman (anti-duplikat):
 // - Halaman ini: kelola PEMILIK titipan + payout/serah terima.
-// - Kelola BARANG titipan: /dashboard/retail/inventory/barang-titipan.
+// - Kelola BARANG titipan: tab Titipan di /dashboard/retail/inventory,
+//   input via /dashboard/retail/inventory/tambah.
 
 export default function KonsinyasiPage() {
   const [owners, setOwners] = useState<Owner[]>([]);
@@ -38,10 +39,10 @@ export default function KonsinyasiPage() {
       </div>
 
       <Link
-        href="/dashboard/retail/inventory/barang-titipan"
+        href="/dashboard/retail/inventory"
         className="flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-sm font-semibold hover:border-primary/50"
       >
-        Kelola barang titipan di halaman Inventaris
+        Kelola barang titipan di halaman Inventaris (tab Titipan)
         <ArrowRight size={16} className="text-muted-foreground" />
       </Link>
 
