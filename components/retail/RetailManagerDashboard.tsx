@@ -154,12 +154,12 @@ interface Summary {
 }
 
 const QUICK_ACTIONS = [
-  { label: "Buka POS", href: "/dashboard/pos", icon: <ShoppingCart size={18} />, color: "from-amber-500 to-orange-600" },
-  { label: "Cek Stok", href: "/dashboard/retail/inventory", icon: <Package size={18} />, color: "from-blue-500 to-cyan-600" },
-  { label: "Stok Masuk", href: "/dashboard/retail/stok-masuk", icon: <PackagePlus size={18} />, color: "from-violet-500 to-purple-600" },
-  { label: "Hitung Sisa", href: "/dashboard/retail/sisa", icon: <ClipboardCheck size={18} />, color: "from-cyan-600 to-teal-600" },
-  { label: "Titipan UMKM", href: "/dashboard/retail/konsinyasi", icon: <UserPlus size={18} />, color: "from-orange-500 to-amber-600" },
-  { label: "Laporan Penjualan", href: "/dashboard/reports", icon: <BarChart2 size={18} />, color: "from-emerald-500 to-teal-600" },
+  { label: "Buka POS", desc: "Jual & bayar", href: "/dashboard/pos", icon: <ShoppingCart size={22} />, color: "bg-amber-500" },
+  { label: "Cek Stok", desc: "Lihat & cari barang", href: "/dashboard/retail/inventory", icon: <Package size={22} />, color: "bg-blue-500" },
+  { label: "Stok Masuk", desc: "Catat kedatangan", href: "/dashboard/retail/stok-masuk", icon: <PackagePlus size={22} />, color: "bg-violet-500" },
+  { label: "Hitung Sisa", desc: "Sisa titipan", href: "/dashboard/retail/sisa", icon: <ClipboardCheck size={22} />, color: "bg-cyan-600" },
+  { label: "Titipan UMKM", desc: "Pemilik & payout", href: "/dashboard/retail/konsinyasi", icon: <UserPlus size={22} />, color: "bg-orange-500" },
+  { label: "Laporan Penjualan", desc: "Rekap harian", href: "/dashboard/reports", icon: <BarChart2 size={22} />, color: "bg-emerald-500" },
 ];
 
 export function RetailManagerDashboard() {
@@ -363,22 +363,26 @@ export function RetailManagerDashboard() {
         </div>
       )}
 
-      {/* Quick Actions */}
+      {/* Aksi Cepat */}
       <div className="rounded-xl border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">Aksi Cepat</h2>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {QUICK_ACTIONS.map((action) => (
-            <Link key={action.href} href={action.href} className="group">
-              <div className="rounded-xl border bg-card p-4 hover:shadow-md hover:border-primary/30 transition-all">
-                <div className="flex items-center gap-2">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${action.color} text-white`}>
-                    {action.icon}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-foreground group-hover:text-primary truncate">{action.label}</p>
-                    <p className="text-[11px] text-muted-foreground">Klik untuk buka</p>
-                  </div>
-                </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {QUICK_ACTIONS.map((a) => (
+            <Link key={a.href} href={a.href} className="group">
+              <div className="flex items-center gap-3 rounded-xl border bg-card p-3 hover:border-primary/40 hover:shadow-sm">
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white ${a.color}`}
+                >
+                  {a.icon}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold group-hover:text-primary">
+                    {a.label}
+                  </span>
+                  <span className="block truncate text-[11px] text-muted-foreground">
+                    {a.desc}
+                  </span>
+                </span>
               </div>
             </Link>
           ))}
