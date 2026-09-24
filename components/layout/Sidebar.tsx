@@ -29,6 +29,7 @@ import {
   CalendarCheck,
   PackagePlus,
   ClipboardCheck,
+  ShoppingBag,
 } from "lucide-react";
 import Image from "next/image";
 import { useShiftGate } from "@/components/kpak/useShiftGate";
@@ -64,8 +65,8 @@ type NavItem = {
   hideForStaffRetail?: boolean;
   kpakOnly?: boolean;
   hideForKpak?: boolean;
-  /** Kunci badge pantau live (khusus menu Manager KPAK) */
-  badgeKey?: "review" | "crew";
+  /** Kunci badge pantau live (menu Manager KPAK: review/crew; Manager Retail: batch/count) */
+  badgeKey?: "review" | "crew" | "batch" | "count";
 };
 
 type NavGroup = {
@@ -410,6 +411,123 @@ const MANAGER_KPAK_GROUPS: NavGroup[] = [
   },
 ];
 
+/**
+ * Menu khusus MANAGER unit Retail — disederhanakan fokus pekerjaan manager.
+ * Shift/Stok Masuk (input)/Hitung Sisa (input) milik STAFF dan tidak tampil
+ * di sini; route-nya tetap hidup untuk keadaan darurat.
+ * Manager mengoperasikan: dashboard, review batch, persetujuan hitung sisa,
+ * belanja, konsinyasi/serah terima, POS, dan keuangan unit.
+ * (Perubahan atas persetujuan pemilik; jalur STAFF di NAV_GROUPS tak tersentuh.)
+ */
+const MANAGER_RETAIL_GROUPS: NavGroup[] = [
+  {
+    title: "Kerja Harian",
+    items: [
+      {
+        label: "Pusat Kerja",
+        href: "/dashboard",
+        icon: <LayoutDashboard size={20} />,
+        roles: ["MANAGER"],
+      },
+      {
+        label: "POS",
+        href: "/dashboard/pos",
+        icon: <ShoppingCart size={20} />,
+        roles: ["MANAGER"],
+      },
+      {
+        label: "Review Stok Masuk",
+        href: "/dashboard/retail/stok-masuk/review",
+        icon: <PackagePlus size={20} />,
+        roles: ["MANAGER"],
+        badgeKey: "batch",
+      },
+      {
+        label: "Hitung Sisa",
+        href: "/dashboard/retail/sisa",
+        icon: <ClipboardCheck size={20} />,
+        roles: ["MANAGER"],
+        badgeKey: "count",
+      },
+    ],
+  },
+  {
+    title: "Kelola",
+    items: [
+      {
+        label: "Belanja Stok",
+        href: "/dashboard/retail/belanja",
+        icon: <ShoppingBag size={20} />,
+        roles: ["MANAGER"],
+      },
+      {
+        label: "Inventori",
+        href: "/dashboard/retail/inventory",
+        icon: <Package size={20} />,
+        roles: ["MANAGER"],
+      },
+      {
+        label: "Titipan UMKM",
+        href: "/dashboard/retail/konsinyasi",
+        icon: <Users size={20} />,
+        roles: ["MANAGER"],
+      },
+      {
+        label: "Serah Terima",
+        href: "/dashboard/retail/konsinyasi/serah-terima",
+        icon: <ClipboardList size={20} />,
+        roles: ["MANAGER"],
+      },
+      {
+        label: "Laporan Jualan",
+        href: "/dashboard/retail/konsinyasi/laporan",
+        icon: <BarChart3 size={20} />,
+        roles: ["MANAGER"],
+      },
+    ],
+  },
+  {
+    title: "Keuangan",
+    items: [
+      {
+        label: "Buku Kas",
+        href: "/dashboard/transactions",
+        icon: <Receipt size={20} />,
+        roles: ["MANAGER"],
+      },
+      {
+        label: "Pengajuan",
+        href: "/dashboard/approvals",
+        icon: <ClipboardList size={20} />,
+        roles: ["MANAGER"],
+        badgeKey: "review",
+      },
+      {
+        label: "Laporan",
+        href: "/dashboard/reports",
+        icon: <BarChart3 size={20} />,
+        roles: ["MANAGER"],
+      },
+    ],
+  },
+  {
+    items: [
+      {
+        label: "Profil",
+        href: "/dashboard/profile",
+        icon: <User size={20} />,
+        roles: ["MANAGER"],
+      },
+      {
+        label: "Keluar",
+        href: "#",
+        icon: <LogOut size={20} />,
+        roles: ["MANAGER"],
+      },
+    ],
+  },
+];
+
 export function Sidebar({
   user,
   expanded,
@@ -428,17 +546,61 @@ export function Sidebar({
   const shiftGate = useShiftGate();
   const isStaffKpak = shiftGate.gated;
   const isManagerKpak = role === "MANAGER" && user?.unitType === "KPAK";
+  const isManagerRetail =
+    role === "MANAGER" && user?.unitIsRetail === true && user?.unitType !== "KPAK";
 
-  // Badge pantau live khusus Manager KPAK: antrean keputusan + kru bertugas.
-  const [badges, setBadges] = useState<{ review: number; crew: number }>({
+  // Badge pantau live khusus Manager (KPAK: review/crew; Retail: batch/count/review).
+  const [badges, setBadges] = useState<{
+    review: number;
+    crew: number;
+    batch: number;
+    count: number;
+  }>({
     review: 0,
     crew: 0,
+    batch: 0,
+    count: 0,
   });
   useEffect(() => {
-    if (!isManagerKpak) return;
     let on = true;
+    const clear = () => {
+      if (!on) return;
+      setBadges({ review: 0, crew: 0, batch: 0, count: 0 });
+    };
+    if (!isManagerKpak && !isManagerRetail) {
+      clear();
+      return () => {
+        on = false;
+      };
+    }
     const fetchBadges = async () => {
       try {
+        if (isManagerRetail) {
+          const [apprRes, batchRes, sisaRes] = await Promise.all([
+            fetch("/api/approvals").catch(() => null),
+            fetch("/api/retail/batches?status=DRAFT&limit=200").catch(() => null),
+            fetch("/api/retail/sisa?limit=200").catch(() => null),
+          ]);
+          let review = 0;
+          let batch = 0;
+          let count = 0;
+          if (apprRes && apprRes.ok) {
+            const j = await apprRes.json();
+            review += ((j.data ?? []) as any[]).filter((a) => a.status === "PENDING").length;
+          }
+          if (batchRes && batchRes.ok) {
+            const j = await batchRes.json();
+            batch += ((j.data ?? []) as any[]).filter((b) => b.status === "DRAFT").length;
+          }
+          if (sisaRes && sisaRes.ok) {
+            const j = await sisaRes.json();
+            count += ((j?.data?.history ?? []) as any[]).filter(
+              (s) => s.status === "DRAFT",
+            ).length;
+          }
+          if (on) setBadges({ review, crew: 0, batch, count });
+          return;
+        }
         const [apprRes, repRes, shiftRes] = await Promise.all([
           fetch("/api/approvals").catch(() => null),
           fetch("/api/kpak/shift-reports").catch(() => null),
@@ -462,7 +624,7 @@ export function Sidebar({
             (c) => c.attendance && !c.attendance.checkOutAt,
           ).length;
         }
-        if (on) setBadges({ review, crew });
+        if (on) setBadges({ review, crew, batch: 0, count: 0 });
       } catch {
         // abaikan — badge opsional
       }
@@ -472,7 +634,7 @@ export function Sidebar({
     return () => {
       on = false;
     };
-  }, [isManagerKpak, pathname]);
+  }, [isManagerKpak, isManagerRetail, pathname]);
 
   const canSeeItem = (item: NavItem) => {
     if (item.roles && !item.roles.includes(role)) return false;
@@ -503,7 +665,12 @@ export function Sidebar({
     return true;
   };
 
-  const visibleGroups = (isManagerKpak ? MANAGER_KPAK_GROUPS : NAV_GROUPS).map((g) => ({
+  const baseGroups = isManagerKpak
+    ? MANAGER_KPAK_GROUPS
+    : isManagerRetail
+      ? MANAGER_RETAIL_GROUPS
+      : NAV_GROUPS;
+  const visibleGroups = baseGroups.map((g) => ({
     ...g,
     items: g.items.filter(canSeeItem),
   })).filter((g) => g.items.length > 0);
@@ -661,9 +828,9 @@ export function Sidebar({
                       {expanded && badgeCount > 0 && (
                         <span
                           className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
-                            item.badgeKey === "review"
-                              ? "bg-amber-500 text-white"
-                              : "bg-emerald-500 text-white"
+                            item.badgeKey === "crew"
+                              ? "bg-emerald-500 text-white"
+                              : "bg-amber-500 text-white"
                           }`}
                         >
                           {badgeCount > 99 ? "99+" : badgeCount}

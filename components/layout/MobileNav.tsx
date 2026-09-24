@@ -103,7 +103,7 @@ export function MobileNav({ user }: MobileNavProps) {
 
       // ── MANAGER RETAIL ──────────────────────────
       // Pusat: POS — operasional harian utama retail
-      // Sisa: Beranda, Transaksi, Laporan, Inventori
+      // Sisa: Beranda, Review, Inventori, Laporan
       case "MANAGER":
         if (isRetail) {
           return [
@@ -113,9 +113,9 @@ export function MobileNav({ user }: MobileNavProps) {
               icon: <Home size={24} />,
             },
             {
-              label: "Transaksi",
-              href: "/dashboard/transactions",
-              icon: <Receipt size={24} />,
+              label: "Review",
+              href: "/dashboard/retail/stok-masuk/review",
+              icon: <ClipboardList size={24} />,
             },
             {
               label: "POS",
@@ -124,14 +124,14 @@ export function MobileNav({ user }: MobileNavProps) {
               isPrimary: true,
             },
             {
+              label: "Inventori",
+              href: "/dashboard/retail/inventory",
+              icon: <Package size={24} />,
+            },
+            {
               label: "Laporan",
               href: "/dashboard/reports",
               icon: <BarChart2 size={24} />,
-            },
-            {
-              label: "Inventori",
-              href: "/dashboard/inventory",
-              icon: <Package size={24} />,
             },
           ];
         }
