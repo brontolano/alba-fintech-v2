@@ -35,26 +35,28 @@ interface StatCardProps {
 
 function StatCard({ label, value, change, icon, href, color }: StatCardProps) {
   const colors = {
-    amber: "bg-gradient-to-br from-amber-500 to-orange-500",
-    blue: "bg-gradient-to-br from-blue-500 to-cyan-500",
-    green: "bg-gradient-to-br from-emerald-500 to-teal-500",
-    purple: "bg-gradient-to-br from-violet-500 to-purple-500",
-    red: "bg-gradient-to-br from-red-500 to-rose-500",
+    amber: "bg-amber-500",
+    blue: "bg-blue-500",
+    green: "bg-emerald-500",
+    purple: "bg-violet-500",
+    red: "bg-rose-500",
   };
 
   return (
     <Link href={href} className="group">
-      <div className="rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-all">
-        <div className="flex items-start justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p className="mt-0.5 text-lg font-bold text-foreground truncate">{value}</p>
-            {change && <p className="mt-0.5 text-xs text-emerald-600">{change}</p>}
-          </div>
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors[color as keyof typeof colors]} text-white shrink-0`}>
-            {icon}
-          </div>
-        </div>
+      <div className="flex items-center gap-3 rounded-xl border bg-card p-3 hover:border-primary/40 hover:shadow-sm">
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white ${colors[color as keyof typeof colors]}`}>
+          {icon}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-bold text-foreground group-hover:text-primary">
+            {value}
+          </span>
+          <span className="block truncate text-[11px] text-muted-foreground">
+            {label}
+            {change ? ` · ${change}` : ""}
+          </span>
+        </span>
       </div>
     </Link>
   );
@@ -64,8 +66,8 @@ function DashboardSkeleton() {
   return (
     <div className="p-4 space-y-3">
       <div className="h-6 bg-muted animate-pulse rounded w-1/3" />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-        {[...Array(6)].map((_, i) => <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />)}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {[...Array(6)].map((_, i) => <div key={i} className="h-14 bg-muted animate-pulse rounded-xl" />)}
       </div>
     </div>
   );
@@ -303,14 +305,17 @@ export function RetailManagerDashboard() {
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Transaksi POS Hari Ini" value={posToday} change={`Rp ${posRevenue.toLocaleString("id-ID")}`} icon={<ShoppingCart size={18} />} href="/dashboard/pos" color="amber" />
-        <StatCard label="Pendapatan Hari Ini" value={`Rp ${posRevenue.toLocaleString("id-ID")}`} icon={<TrendingUp size={18} />} href="/dashboard/reports" color="green" />
-        <StatCard label="Stok Menipis" value={lowStock} icon={<AlertTriangle size={18} />} href="/dashboard/retail/inventory" color="red" />
-        <StatCard label="Draf Batch" value={draftBatch} icon={<ShoppingBag size={18} />} href="/dashboard/retail/stok-masuk/review" color="blue" />
-        <StatCard label="Tabungan Aktif" value={savingsActive} icon={<Wallet size={18} />} href="/dashboard/savings" color="purple" />
-        <StatCard label="Persetujuan Menunggu" value={pendingApprovals} icon={<ClipboardList size={18} />} href="/dashboard/approvals" color="red" />
+      {/* Ringkasan */}
+      <div className="rounded-xl border bg-card p-4">
+        <h2 className="mb-3 text-sm font-semibold">Ringkasan</h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <StatCard label="Transaksi POS Hari Ini" value={posToday} change={`Rp ${posRevenue.toLocaleString("id-ID")}`} icon={<ShoppingCart size={22} />} href="/dashboard/pos" color="amber" />
+          <StatCard label="Pendapatan Hari Ini" value={`Rp ${posRevenue.toLocaleString("id-ID")}`} icon={<TrendingUp size={22} />} href="/dashboard/reports" color="green" />
+          <StatCard label="Stok Menipis" value={lowStock} icon={<AlertTriangle size={22} />} href="/dashboard/retail/inventory" color="red" />
+          <StatCard label="Draf Batch" value={draftBatch} icon={<ShoppingBag size={22} />} href="/dashboard/retail/stok-masuk/review" color="blue" />
+          <StatCard label="Tabungan Aktif" value={savingsActive} icon={<Wallet size={22} />} href="/dashboard/savings" color="purple" />
+          <StatCard label="Persetujuan Menunggu" value={pendingApprovals} icon={<ClipboardList size={22} />} href="/dashboard/approvals" color="red" />
+        </div>
       </div>
 
       {/* Status POS */}
