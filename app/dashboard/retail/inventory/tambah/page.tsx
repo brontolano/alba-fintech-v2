@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PackagePlus, PackageOpen, ArrowLeft, Loader2 } from "lucide-react";
+import {
+  PackagePlus,
+  ArrowLeft,
+  Loader2,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { ImageUpload } from "@/components/retail/ImageUpload";
 
 const fmt = (n: number) =>
@@ -13,38 +19,87 @@ const fmt = (n: number) =>
     minimumFractionDigits: 0,
   }).format(n);
 
+const todayWib = () =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
 type Session = {
-  user?: { role?: string; unitId?: string; unitIsRetail?: boolean };
+  user?: { role?: string; unitId?: string };
 };
 type Unit = { id: string; name: string };
 type Owner = { id: string; name: string };
-type Kind = "pondok" | "titipan";
+type StockItem = { id: string; name: string; sku: string; currentStock: number };
+type ApprovalOpt = { id: string; description: string; transactionId: string };
 
-export default function TambahBarangPage() {
+type Row = {
+  key: number;
+  mode: "existing" | "new";
+  inventoryItemId: string;
+  name: string;
+  sku: string;
+  category: string;
+  imageUrl: string;
+  qty: string;
+  unitCost: string;
+  minStock: string;
+  ownerId: string;
+  marginType: "PERCENT" | "FIXED";
+  marginValue: string;
+};
+
+const blankRow = (key: number): Row => ({
+  key,
+  mode: "existing",
+  inventoryItemId: "",
+  name: "",
+  sku: "",
+  category: "",
+  imageUrl: "",
+  qty: "",
+  unitCost: "",
+  minStock: "",
+  ownerId: "",
+  marginType: "PERCENT",
+  marginValue: "",
+});
+
+function rowError(r: Row): string | null {
+  const qty = Number(r.qty);
+  if (!Number.isInteger(qty) || qty < 1) return "Qty minimal 1";
+  if (Number(r.unitCost) < 0 || r.unitCost === "")
+    return "Harga beli wajib diisi";
+  if (r.mode === "existing") {
+    if (!r.inventoryItemId) return "Pilih barang";
+    return null;
+  }
+  if (!r.name.trim()) return "Nama wajib diisi";
+  if (!r.sku.trim()) return "SKU wajib diisi";
+  return null;
+}
+
+export default function BatchKedatanganPage() {
   const router = useRouter();
   const [session, setSession] = useState<Session>({});
   const [units, setUnits] = useState<Unit[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
+  const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalOpt[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const [kind, setKind] = useState<Kind>("pondok");
-  const [form, setForm] = useState({
-    name: "",
-    sku: "",
-    category: "",
-    unitPrice: "",
-    purchasePrice: "",
-    minStock: "",
-    startingStock: "",
-    ownerId: "",
-    marginType: "PERCENT" as "PERCENT" | "FIXED",
-    marginValue: "",
-    unitId: "",
-    imageUrl: "",
-  });
+  const [date, setDate] = useState(todayWib());
+  const [sourceType, setSourceType] = useState("PEMBELIAN");
+  const [sourceRef, setSourceRef] = useState("");
+  const [note, setNote] = useState("");
+  const [unitId, setUnitId] = useState("");
+  const [rows, setRows] = useState<Row[]>([blankRow(1)]);
+  const [nextKey, setNextKey] = useState(2);
 
   useEffect(() => {
     fetch("/api/auth/session")
@@ -59,7 +114,7 @@ export default function TambahBarangPage() {
           r2 === "STAFF"
         ) {
           if (r2 === "MANAGER" || r2 === "STAFF") {
-            setForm((p) => ({ ...p, unitId: s.user.unitId || "" }));
+            setUnitId(s.user.unitId || "");
           } else {
             fetch("/api/units?active=true")
               .then((r3) => r3.json())
@@ -74,91 +129,124 @@ export default function TambahBarangPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  const r = String(session?.user?.role || "").toUpperCase();
+  const r: string = String(session?.user?.role || "").toUpperCase();
   const canWrite =
-    r === "SUPERADMIN" || r === "PIMPINAN" || r === "MANAGER" || r === "STAFF";
+    r === "PIMPINAN" || r === "MANAGER" || r === "STAFF";
 
-  // Daftar pemilik untuk mode titipan (scope unit aktif).
+  // Data pendukung scope unit aktif: barang, pemilik, pengajuan disetujui.
   useEffect(() => {
-    if (!canWrite || !form.unitId) {
-      setOwners([]);
-      return;
-    }
-    fetch(`/api/retail/consignments/owners?unitId=${form.unitId}`)
+    if (!unitId) return;
+    fetch(`/api/inventory?limit=500&unitId=${unitId}`)
+      .then((res) => res.json())
+      .then((b) =>
+        setStockItems(
+          (Array.isArray(b.data) ? b.data : []).map((i: any) => ({
+            id: i.id,
+            name: i.name,
+            sku: i.sku,
+            currentStock: i.currentStock ?? 0,
+          })),
+        ),
+      )
+      .catch(() => setStockItems([]));
+    fetch(`/api/retail/consignments/owners?unitId=${unitId}`)
       .then((res) => res.json())
       .then((b) => setOwners(Array.isArray(b.data) ? b.data : []))
       .catch(() => setOwners([]));
-  }, [canWrite, form.unitId]);
+    fetch(`/api/approvals?unitId=${unitId}`)
+      .then((res) => res.json())
+      .then((b) =>
+        setApprovals(
+          (Array.isArray(b.data) ? b.data : [])
+            .filter((a: any) => a.status === "APPROVED")
+            .map((a: any) => ({
+              id: a.id,
+              description: a.description || a.transactionId,
+              transactionId: a.transactionId,
+            })),
+        ),
+      )
+      .catch(() => setApprovals([]));
+  }, [unitId]);
 
-  const set = (k: keyof typeof form, v: string) =>
-    setForm((p) => ({ ...p, [k]: v }) as typeof form);
+  const patchRow = (key: number, patch: Partial<Row>) =>
+    setRows((rs) => rs.map((x) => (x.key === key ? { ...x, ...patch } : x)));
+
+  const addRow = () => {
+    setRows((rs) => [...rs, blankRow(nextKey)]);
+    setNextKey((k) => k + 1);
+  };
+
+  const removeRow = (key: number) =>
+    setRows((rs) => (rs.length <= 1 ? rs : rs.filter((x) => x.key !== key)));
+
+  const totalQty = rows.reduce(
+    (s, x) => s + (Number.isInteger(Number(x.qty)) ? Number(x.qty) : 0),
+    0,
+  );
+  const totalCost = rows.reduce(
+    (s, x) => s + (Number(x.qty) || 0) * (Number(x.unitCost) || 0),
+    0,
+  );
+  const rowErrors = rows.map(rowError);
+  const validRows = rows.filter((_, i) => !rowErrors[i]).length;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null);
     setMsg(null);
+    if (!unitId) {
+      setErr("Unit belum dipilih");
+      return;
+    }
+    if (validRows === 0) {
+      setErr("Belum ada baris valid — periksa qty, barang, dan harga");
+      return;
+    }
     setBusy(true);
     try {
-      if (kind === "pondok") {
-        const res = await fetch("/api/inventory", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: form.name.trim(),
-            sku: form.sku.trim(),
-            category: form.category.trim() || null,
-            unitPrice: Number(form.unitPrice) || 0,
-            purchasePrice: form.purchasePrice
-              ? Number(form.purchasePrice)
-              : undefined,
-            minStock: form.minStock ? Number(form.minStock) : 0,
-            isActive: true,
-            imageUrl: form.imageUrl || null,
-            ...(form.unitId ? { unitId: form.unitId } : {}),
-          }),
-        });
-        const b = await res.json();
-        if (!res.ok) throw new Error(b.error || "Gagal menambah barang");
-        setMsg("Barang pondok ditambahkan");
-      } else {
-        if (!form.ownerId) throw new Error("Pilih pemilik titipan");
-        const res = await fetch("/api/retail/consignments/items", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ownerId: form.ownerId,
-            name: form.name.trim(),
-            sku: form.sku.trim(),
-            category: form.category.trim() || null,
-            costPrice: Number(form.purchasePrice) || 0,
-            marginType: form.marginType,
-            marginValue: Number(form.marginValue) || 0,
-            startingStock: form.startingStock ? Number(form.startingStock) : 0,
-            minStock: form.minStock ? Number(form.minStock) : 0,
-            ...(form.unitId ? { unitId: form.unitId } : {}),
-          }),
-        });
-        const b = await res.json();
-        if (!res.ok) throw new Error(b.error || "Gagal menambah barang titipan");
-        setMsg(
-          `Barang titipan ditambahkan · harga jual ${fmt(Number(b.data?.agreedPrice) || 0)}`,
-        );
-      }
-      const keepUnit = form.unitId;
-      setForm({
-        name: "",
-        sku: "",
-        category: "",
-        unitPrice: "",
-        purchasePrice: "",
-        minStock: "",
-        startingStock: "",
-        ownerId: "",
-        marginType: "PERCENT",
-        marginValue: "",
-        unitId: keepUnit,
-        imageUrl: "",
+      const res = await fetch("/api/retail/batches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date,
+          sourceType,
+          sourceRef: sourceRef || null,
+          note: note.trim() || null,
+          unitId,
+          lines: rows
+            .filter((_, i) => !rowErrors[i])
+            .map((x) => ({
+              ...(x.mode === "existing"
+                ? { inventoryItemId: x.inventoryItemId }
+                : {
+                    name: x.name.trim(),
+                    sku: x.sku.trim(),
+                    category: x.category.trim() || null,
+                    imageUrl: x.imageUrl || null,
+                    minStock: x.minStock ? Number(x.minStock) : 0,
+                  }),
+              qty: Number(x.qty),
+              unitCost: Number(x.unitCost),
+              ...(x.ownerId
+                ? {
+                    ownerId: x.ownerId,
+                    marginType: x.marginType,
+                    marginValue: Number(x.marginValue) || 0,
+                  }
+                : {}),
+            })),
+        }),
       });
+      const b = await res.json();
+      if (!res.ok) throw new Error(b.error || "Gagal menyimpan batch");
+      setMsg(
+        `Batch ${b.data.batchNo} tersimpan · ${b.data.totalQty} pcs · modal ${fmt(Number(b.data.totalCost))}`,
+      );
+      setRows([blankRow(nextKey)]);
+      setNextKey((k) => k + 1);
+      setNote("");
+      setSourceRef("");
     } catch (e: any) {
       setErr(e.message);
     } finally {
@@ -166,64 +254,21 @@ export default function TambahBarangPage() {
     }
   };
 
-  const cost = Number(form.purchasePrice) || 0;
-  const marginVal = Number(form.marginValue) || 0;
-  const agreed =
-    form.marginType === "FIXED"
-      ? cost + marginVal
-      : Math.round(cost * (1 + marginVal / 100));
-  const valid =
-    form.name.trim() &&
-    form.sku.trim() &&
-    (kind === "pondok"
-      ? Number(form.unitPrice) > 0
-      : form.ownerId && cost >= 0);
-
   return (
-    <main className="mx-auto max-w-2xl space-y-4 p-4">
+    <main className="mx-auto max-w-3xl space-y-4 p-4">
       <div className="flex items-center gap-3">
         <Link
           href="/dashboard/retail/inventory"
           className="text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft size={18} />
+          ←
         </Link>
-        <h1 className="flex items-center gap-2 text-xl font-bold">
-          {kind === "pondok" ? (
-            <PackagePlus size={20} />
-          ) : (
-            <PackageOpen size={20} />
-          )}
-          Tambah Barang
-        </h1>
-      </div>
-
-      {/* Pilihan jenis barang */}
-      <div className="grid grid-cols-2 gap-2">
-        {(
-          [
-            { key: "pondok", label: "Barang Pondok", desc: "Milik unit" },
-            { key: "titipan", label: "Barang Titipan", desc: "Milik UMKM" },
-          ] as { key: Kind; label: string; desc: string }[]
-        ).map((o) => (
-          <button
-            key={o.key}
-            type="button"
-            onClick={() => {
-              setKind(o.key);
-              setErr(null);
-              setMsg(null);
-            }}
-            className={`rounded-xl border p-3 text-left ${
-              kind === o.key
-                ? "border-primary bg-primary/10"
-                : "bg-card hover:border-primary/50"
-            }`}
-          >
-            <p className="text-sm font-semibold">{o.label}</p>
-            <p className="text-xs text-muted-foreground">{o.desc}</p>
-          </button>
-        ))}
+        <div>
+          <h1 className="text-xl font-bold">Kedatangan Barang</h1>
+          <p className="text-sm text-muted-foreground">
+            Satu batch = satu kedatangan · modal = Σ qty × harga beli
+          </p>
+        </div>
       </div>
 
       {loading ? (
@@ -232,13 +277,10 @@ export default function TambahBarangPage() {
         </div>
       ) : !canWrite ? (
         <p className="py-3 text-sm text-rose-600">
-          Anda tidak memiliki akses menambah barang.
+          Anda tidak memiliki akses mencatat kedatangan.
         </p>
       ) : (
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4 rounded-xl border bg-card p-4"
-        >
+        <form onSubmit={handleSubmit} className="space-y-4">
           {err && (
             <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-sm text-rose-600">
               {err}
@@ -250,217 +292,288 @@ export default function TambahBarangPage() {
             </div>
           )}
 
-          {(r === "SUPERADMIN" || r === "PIMPINAN") && (
-            <div>
-              <label className="block text-xs font-medium">Unit</label>
-              <select
-                value={form.unitId}
-                onChange={(e) => set("unitId", e.target.value)}
-                className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
-              >
-                <option value="">— Pilih unit —</option>
-                {units.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {kind === "titipan" && (
+          {/* Header batch */}
+          <div className="grid gap-2 rounded-xl border bg-card p-4 sm:grid-cols-2">
+            {["SUPERADMIN", "PIMPINAN"].includes(r) && (
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium">Unit</label>
+                <select
+                  value={unitId}
+                  onChange={(e) => setUnitId(e.target.value)}
+                  className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">— Pilih unit —</option>
+                  {units.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium">
-                Pemilik titipan
+                Tanggal datang (otomatis)
               </label>
-              <select
-                value={form.ownerId}
-                onChange={(e) => set("ownerId", e.target.value)}
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
                 className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
                 required
-              >
-                <option value="">
-                  {owners.length === 0
-                    ? "— Belum ada pemilik di unit ini —"
-                    : "— Pilih pemilik —"}
-                </option>
-                {owners.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-              {owners.length === 0 && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Daftarkan pemilik dulu di halaman{" "}
-                  <Link
-                    href="/dashboard/retail/konsinyasi"
-                    className="font-semibold text-primary"
-                  >
-                    Titipan UMKM
-                  </Link>
-                  .
-                </p>
-              )}
+              />
             </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-medium">Foto produk</label>
-            <ImageUpload
-              value={form.imageUrl}
-              onChange={(url) => set("imageUrl", url ?? "")}
-            />
+            <div>
+              <label className="block text-xs font-medium">Sumber</label>
+              <select
+                value={sourceType}
+                onChange={(e) => setSourceType(e.target.value)}
+                className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              >
+                <option value="PEMBELIAN">Pembelian (pengajuan pimpinan)</option>
+                <option value="TITIPAN">Titipan UMKM</option>
+                <option value="LAIN">Lainnya</option>
+              </select>
+            </div>
+            {sourceType === "PEMBELIAN" && (
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium">
+                  Ref pengajuan disetujui (opsional)
+                </label>
+                <select
+                  value={sourceRef}
+                  onChange={(e) => setSourceRef(e.target.value)}
+                  className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">— Tanpa ref —</option>
+                  {approvals.map((a) => (
+                    <option key={a.id} value={a.transactionId}>
+                      {a.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium">Catatan</label>
+              <input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="cth: Pengiriman supplier Senin"
+                className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              />
+            </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-medium">Nama barang</label>
-              <input
-                value={form.name}
-                onChange={(e) => set("name", e.target.value)}
-                className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium">SKU</label>
-              <input
-                value={form.sku}
-                onChange={(e) => set("sku", e.target.value)}
-                className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium">Kategori</label>
-              <input
-                value={form.category}
-                onChange={(e) => set("category", e.target.value)}
-                className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium">Stok minimum</label>
-              <input
-                type="number"
-                min="0"
-                value={form.minStock}
-                onChange={(e) => set("minStock", e.target.value)}
-                className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
-              />
-            </div>
+          {/* Baris barang */}
+          {rows.map((x, idx) => {
+            const e = rowErrors[idx];
+            const lineTotal = (Number(x.qty) || 0) * (Number(x.unitCost) || 0);
+            return (
+              <div key={x.key} className="space-y-2 rounded-xl border bg-card p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-1 text-xs">
+                    {(["existing", "new"] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => patchRow(x.key, { mode: m })}
+                        className={`rounded-lg border px-2 py-1 ${
+                          x.mode === m ? "border-primary bg-primary/10" : "bg-background"
+                        }`}
+                      >
+                        {m === "existing" ? "Dari database" : "Barang baru"}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeRow(x.key)}
+                    disabled={rows.length <= 1}
+                    className="text-xs text-rose-600 disabled:opacity-30"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
 
-            {kind === "pondok" ? (
-              <>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium">Harga jual</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="100"
-                    value={form.unitPrice}
-                    onChange={(e) => set("unitPrice", e.target.value)}
-                    className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
-                    required
-                  />
-                  {Number(form.unitPrice) > 0 && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Harga jual: {fmt(Number(form.unitPrice))}
-                    </p>
-                  )}
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium">
-                    Harga beli (modal)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="100"
-                    value={form.purchasePrice}
-                    onChange={(e) => set("purchasePrice", e.target.value)}
-                    className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-xs font-medium">
-                    Harga modal (dari pemilik)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="100"
-                    value={form.purchasePrice}
-                    onChange={(e) => set("purchasePrice", e.target.value)}
-                    className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium">Stok awal titipan</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.startingStock}
-                    onChange={(e) => set("startingStock", e.target.value)}
-                    className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium">Margin</label>
-                  <div className="mt-1 flex gap-1">
-                    <select
-                      value={form.marginType}
-                      onChange={(e) =>
-                        set(
-                          "marginType",
-                          e.target.value as "PERCENT" | "FIXED",
-                        )
-                      }
-                      className="w-1/2 rounded-lg border bg-background px-2 py-2 text-sm"
-                    >
-                      <option value="PERCENT">% persen</option>
-                      <option value="FIXED">Rp tetap</option>
-                    </select>
+                {x.mode === "existing" ? (
+                  <select
+                    value={x.inventoryItemId}
+                    onChange={(e) =>
+                      patchRow(x.key, { inventoryItemId: e.target.value })
+                    }
+                    className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">— Pilih barang unit ini —</option>
+                    {stockItems.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name} ({i.sku}) · stok {i.currentStock}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="grid gap-2 sm:grid-cols-2">
                     <input
+                      value={x.name}
+                      onChange={(e) => patchRow(x.key, { name: e.target.value })}
+                      placeholder="Nama barang baru"
+                      className="rounded-lg border bg-background px-3 py-2 text-sm"
+                    />
+                    <input
+                      value={x.sku}
+                      onChange={(e) => patchRow(x.key, { sku: e.target.value })}
+                      placeholder="SKU (unik)"
+                      className="rounded-lg border bg-background px-3 py-2 text-sm"
+                    />
+                    <input
+                      value={x.category}
+                      onChange={(e) =>
+                        patchRow(x.key, { category: e.target.value })
+                      }
+                      placeholder="Kategori (opsional)"
+                      className="rounded-lg border bg-background px-3 py-2 text-sm"
+                    />
+                    <input
+                      value={x.minStock}
+                      onChange={(e) =>
+                        patchRow(x.key, { minStock: e.target.value })
+                      }
+                      placeholder="Stok min (opsional)"
                       type="number"
                       min="0"
-                      value={form.marginValue}
-                      onChange={(e) => set("marginValue", e.target.value)}
-                      className="w-1/2 rounded-lg border bg-background px-2 py-2 text-sm text-right"
+                      className="rounded-lg border bg-background px-3 py-2 text-sm"
+                    />
+                    <div className="sm:col-span-2">
+                      <ImageUpload
+                        value={x.imageUrl}
+                        onChange={(url) =>
+                          patchRow(x.key, { imageUrl: url ?? "" })
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-xs text-muted-foreground">Qty</label>
+                    <input
+                      value={x.qty}
+                      onChange={(e) => patchRow(x.key, { qty: e.target.value })}
+                      type="number"
+                      min="1"
+                      step="1"
+                      className="mt-0.5 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs text-muted-foreground">
+                      Harga beli / modal
+                    </label>
+                    <input
+                      value={x.unitCost}
+                      onChange={(e) =>
+                        patchRow(x.key, { unitCost: e.target.value })
+                      }
+                      type="number"
+                      min="0"
+                      step="100"
+                      className="mt-0.5 w-full rounded-lg border bg-background px-3 py-2 text-sm"
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium">
-                    Harga jual (otomatis)
-                  </label>
-                  <input
-                    value={fmt(agreed)}
-                    readOnly
-                    className="mt-1 w-full rounded-lg border bg-muted px-3 py-2 text-sm font-semibold text-emerald-700"
-                  />
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs text-muted-foreground">
+                      Pemilik (opsional = titipan)
+                    </label>
+                    <select
+                      value={x.ownerId}
+                      onChange={(e) =>
+                        patchRow(x.key, { ownerId: e.target.value })
+                      }
+                      className="mt-0.5 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="">— Bukan titipan —</option>
+                      {owners.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {x.ownerId && (
+                    <div>
+                      <label className="block text-xs text-muted-foreground">
+                        Margin
+                      </label>
+                      <div className="mt-0.5 flex gap-1">
+                        <select
+                          value={x.marginType}
+                          onChange={(e) =>
+                            patchRow(x.key, {
+                              marginType: e.target.value as "PERCENT" | "FIXED",
+                            })
+                          }
+                          className="w-1/2 rounded-lg border bg-background px-2 py-2 text-sm"
+                        >
+                          <option value="PERCENT">% persen</option>
+                          <option value="FIXED">Rp tetap</option>
+                        </select>
+                        <input
+                          value={x.marginValue}
+                          onChange={(e) =>
+                            patchRow(x.key, { marginValue: e.target.value })
+                          }
+                          type="number"
+                          min="0"
+                          className="w-1/2 rounded-lg border bg-background px-2 py-2 text-sm text-right"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </>
-            )}
-          </div>
+
+                <div className="flex items-center justify-between text-xs">
+                  <span className={e ? "text-rose-600" : "text-muted-foreground"}>
+                    {e ?? (x.ownerId ? "Baris titipan" : "Baris pondok")}
+                  </span>
+                  <span className="font-semibold">{fmt(lineTotal)}</span>
+                </div>
+              </div>
+            );
+          })}
 
           <button
-            type="submit"
-            disabled={busy || !valid}
-            className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            type="button"
+            onClick={addRow}
+            className="inline-flex items-center gap-1 rounded-lg border bg-card px-3 py-1.5 text-sm font-semibold hover:border-primary/50"
           >
-            {busy ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <PackagePlus size={14} />
-            )}
-            Simpan {kind === "pondok" ? "Barang Pondok" : "Barang Titipan"}
+            <Plus size={14} /> Tambah baris
           </button>
+
+          {/* Total + simpan */}
+          <div className="flex items-center justify-between gap-3 rounded-xl border bg-card p-4">
+            <div className="text-sm">
+              <p className="text-muted-foreground">
+                {validRows} baris valid · {totalQty} pcs
+              </p>
+              <p className="text-lg font-bold">Modal masuk: {fmt(totalCost)}</p>
+            </div>
+            <button
+              type="submit"
+              disabled={busy || validRows === 0}
+              className="inline-flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              {busy ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <PackagePlus size={15} />
+              )}
+              Simpan Batch
+            </button>
+          </div>
         </form>
       )}
     </main>

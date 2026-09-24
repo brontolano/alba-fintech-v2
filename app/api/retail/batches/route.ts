@@ -25,6 +25,7 @@ const lineSchema = z.object({
 });
 
 const batchSchema = z.object({
+  unitId: z.string().min(1).optional(),
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal format YYYY-MM-DD")
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const unitId = await resolveUnitId(session, null);
+  const unitId = await resolveUnitId(session, parsed.data.unitId ?? null);
   if (!unitId) {
     return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 400 });
   }
