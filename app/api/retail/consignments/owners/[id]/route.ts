@@ -12,6 +12,7 @@ const ownerPatchSchema = z.object({
   phone: z.string().max(50).optional().nullable(),
   address: z.string().max(1000).optional().nullable(),
   isActive: z.boolean().optional(),
+  whatsappVerified: z.boolean().optional(),
 });
 
 async function getOwnerOrNext(id: string, unitId: string, res: NextResponse) {
@@ -47,14 +48,34 @@ export async function PATCH(request: NextRequest) {
       { status: 400 },
     );
 
+  let phone: string | null | undefined =
+    parsed.data.phone === undefined ? undefined : parsed.data.phone;
+  let waVerified: boolean | undefined = parsed.data.whatsappVerified;
+  if (waVerified) {
+    const digits = String(phone ?? owner.phone ?? "").replace(/\D/g, "");
+    const norm = digits.startsWith("62")
+      ? digits
+      : digits.startsWith("0")
+        ? `62${digits.slice(1)}`
+        : digits;
+    if (!/^62\d{9,13}$/.test(norm)) {
+      return NextResponse.json(
+        { error: "No Whatsapp aktif wajib diisi (format 08… / 628…)" },
+        { status: 400 },
+      );
+    }
+    phone = norm;
+  }
+
   const updated = await prisma.consignmentOwner.update({
     where: { id },
     data: {
       name: parsed.data.name?.trim() ?? undefined,
-      phone: parsed.data.phone === undefined ? undefined : parsed.data.phone,
+      phone,
       address:
         parsed.data.address === undefined ? undefined : parsed.data.address,
       isActive: parsed.data.isActive,
+      whatsappVerified: waVerified,
     },
   });
   return NextResponse.json({ data: updated });

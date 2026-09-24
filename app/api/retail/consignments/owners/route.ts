@@ -10,7 +10,17 @@ const ownerSchema = z.object({
   phone: z.string().max(50).optional().nullable(),
   address: z.string().max(1000).optional().nullable(),
   isActive: z.boolean().optional(),
+  whatsappVerified: z.boolean().optional(),
 });
+
+/** Normalisasi + validasi nomor WA Indonesia (08… / 628…). */
+export function normalizeWhatsapp(raw: unknown): string | null {
+  if (raw == null) return null;
+  const digits = String(raw).replace(/\D/g, "");
+  const norm = digits.startsWith("62") ? digits : digits.startsWith("0") ? `62${digits.slice(1)}` : digits;
+  if (!/^62\d{9,13}$/.test(norm)) return null;
+  return norm;
+}
 
 /** GET /api/retail/consignments/owners — daftar pemilik titipan + ringkasan item. */
 export async function GET(request: NextRequest) {
@@ -57,13 +67,28 @@ export async function POST(request: NextRequest) {
   if (!unitId)
     return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 400 });
 
+  // Jalur titipan mewajibkan No WA aktif (format Indonesia).
+  let phone: string | null = parsed.data.phone?.trim() || null;
+  let waVerified = parsed.data.whatsappVerified ?? false;
+  if (waVerified) {
+    const norm = normalizeWhatsapp(phone);
+    if (!norm) {
+      return NextResponse.json(
+        { error: "No Whatsapp aktif wajib diisi (format 08… / 628…)" },
+        { status: 400 },
+      );
+    }
+    phone = norm;
+  }
+
   const owner = await prisma.consignmentOwner.create({
     data: {
       unitId,
       name: parsed.data.name.trim(),
-      phone: parsed.data.phone?.trim() || null,
+      phone,
       address: parsed.data.address?.trim() || null,
       isActive: parsed.data.isActive ?? true,
+      whatsappVerified: waVerified,
     },
   });
   return NextResponse.json({ data: owner }, { status: 201 });

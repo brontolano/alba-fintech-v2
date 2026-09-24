@@ -26,6 +26,9 @@ const lineSchema = z.object({
 
 const batchSchema = z.object({
   unitId: z.string().min(1).optional(),
+  // asDraft: simpan sebagai draf review manager — stok & konsinyasi
+  // BELUM berubah sampai di-approve via PATCH /api/retail/batches/[id].
+  asDraft: z.boolean().default(false),
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal format YYYY-MM-DD")
@@ -63,6 +66,8 @@ export async function GET(request: NextRequest) {
   }
   const limit = Math.min(Number(q.get("limit") ?? 50), 200);
   const where: any = { unitId };
+  const status = q.get("status");
+  if (status) where.status = { in: status.split(",") };
   const from = q.get("from");
   const to = q.get("to");
   if (from || to) {
@@ -78,6 +83,7 @@ export async function GET(request: NextRequest) {
       take: limit,
       include: {
         creator: { select: { id: true, name: true } },
+        reviewer: { select: { id: true, name: true } },
         _count: { select: { items: true } },
       },
     }),
@@ -94,12 +100,16 @@ export async function GET(request: NextRequest) {
       batchNo: b.batchNo,
       date: b.date,
       kind: b.kind,
+      status: b.status,
       totalQty: b.totalQty,
       totalCost: Number(b.totalCost),
       sourceType: b.sourceType,
       sourceRef: b.sourceRef,
       note: b.note,
       by: b.creator?.name ?? "-",
+      reviewedBy: b.reviewer?.name ?? null,
+      reviewedAt: b.reviewedAt,
+      reviewNote: b.reviewNote,
       lines: b._count.items,
       createdAt: b.createdAt,
     })),
@@ -189,6 +199,7 @@ export async function POST(request: NextRequest) {
         marginValue: number | null;
       }[] = [];
 
+      const isDraft = parsed.data.asDraft === true;
       for (const l of parsed.data.lines) {
         const lineTotal = round2(l.qty * l.unitCost);
         let invId = l.inventoryItemId;
@@ -200,15 +211,18 @@ export async function POST(request: NextRequest) {
           if (!existing) {
             throw new Error("BARANG_LUAR_UNIT");
           }
-          await tx.inventoryItem.update({
-            where: { id: invId },
-            data: {
-              currentStock: (existing.currentStock ?? 0) + l.qty,
-              purchasePrice: l.unitCost,
-              isActive: true,
-            },
-          });
+          if (!isDraft) {
+            await tx.inventoryItem.update({
+              where: { id: invId },
+              data: {
+                currentStock: (existing.currentStock ?? 0) + l.qty,
+                purchasePrice: l.unitCost,
+                isActive: true,
+              },
+            });
+          }
         } else {
+          // Draf: barang baru dicatat nonaktif + stok 0, diaktifkan saat approve.
           const created = await tx.inventoryItem.create({
             data: {
               unitId,
@@ -216,11 +230,11 @@ export async function POST(request: NextRequest) {
               sku: l.sku!.trim(),
               category: l.category?.trim() || null,
               imageUrl: l.imageUrl?.trim() || null,
-              currentStock: l.qty,
+              currentStock: isDraft ? 0 : l.qty,
               minStock: l.minStock,
               unitPrice: l.unitCost,
               purchasePrice: l.unitCost,
-              isActive: true,
+              isActive: !isDraft,
             },
           });
           invId = created.id;
@@ -234,31 +248,33 @@ export async function POST(request: NextRequest) {
             where: { id: l.ownerId, unitId },
           });
           if (!owner) throw new Error("PEMILIK_LUAR_UNIT");
-          const agreed = computeAgreed(l.unitCost, l.marginType, l.marginValue);
-          await tx.consignmentItem.upsert({
-            where: { inventoryItemId: invId! },
-            update: {
-              ownerId: l.ownerId,
-              costPrice: l.unitCost,
-              marginType: l.marginType,
-              marginValue: l.marginValue,
-              agreedPrice: agreed,
-              isActive: true,
-            },
-            create: {
-              unitId,
-              ownerId: l.ownerId,
-              inventoryItemId: invId!,
-              costPrice: l.unitCost,
-              marginType: l.marginType,
-              marginValue: l.marginValue,
-              agreedPrice: agreed,
-            },
-          });
-          await tx.inventoryItem.update({
-            where: { id: invId! },
-            data: { unitPrice: agreed },
-          });
+          if (!isDraft) {
+            const agreed = computeAgreed(l.unitCost, l.marginType, l.marginValue);
+            await tx.consignmentItem.upsert({
+              where: { inventoryItemId: invId! },
+              update: {
+                ownerId: l.ownerId,
+                costPrice: l.unitCost,
+                marginType: l.marginType,
+                marginValue: l.marginValue,
+                agreedPrice: agreed,
+                isActive: true,
+              },
+              create: {
+                unitId,
+                ownerId: l.ownerId,
+                inventoryItemId: invId!,
+                costPrice: l.unitCost,
+                marginType: l.marginType,
+                marginValue: l.marginValue,
+                agreedPrice: agreed,
+              },
+            });
+            await tx.inventoryItem.update({
+              where: { id: invId! },
+              data: { unitPrice: agreed },
+            });
+          }
           ownerId = l.ownerId;
           marginType = l.marginType;
           marginValue = l.marginValue;
@@ -291,6 +307,7 @@ export async function POST(request: NextRequest) {
           batchNo,
           date: new Date(`${dateStr}T00:00:00.000Z`),
           kind,
+          status: isDraft ? "DRAFT" : "APPROVED",
           totalQty,
           totalCost,
           sourceType: parsed.data.sourceType,
@@ -310,6 +327,7 @@ export async function POST(request: NextRequest) {
           batchNo: result.batch.batchNo,
           date: result.batch.date,
           kind: result.batch.kind,
+          status: result.batch.status,
           totalQty: result.batch.totalQty,
           totalCost: Number(result.batch.totalCost),
           lines: result.lineCount,
