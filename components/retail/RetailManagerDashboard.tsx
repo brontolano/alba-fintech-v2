@@ -35,28 +35,39 @@ interface StatCardProps {
 
 function StatCard({ label, value, change, icon, href, color }: StatCardProps) {
   const colors = {
-    amber: "bg-amber-500",
-    blue: "bg-blue-500",
-    green: "bg-emerald-500",
-    purple: "bg-violet-500",
-    red: "bg-rose-500",
+    amber: "bg-amber-500/15 text-amber-600",
+    blue: "bg-blue-500/15 text-blue-600",
+    green: "bg-emerald-500/15 text-emerald-600",
+    purple: "bg-violet-500/15 text-violet-600",
+    red: "bg-rose-500/15 text-rose-600",
   };
 
   return (
     <Link href={href} className="group">
-      <div className="flex items-center gap-3 rounded-xl border bg-card p-3 hover:border-primary/40 hover:shadow-sm">
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white ${colors[color as keyof typeof colors]}`}>
-          {icon}
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-bold text-foreground group-hover:text-primary">
-            {value}
-          </span>
-          <span className="block truncate text-[11px] text-muted-foreground">
+      <div className="flex min-h-[92px] flex-col justify-between gap-3 rounded-xl border bg-card p-4 hover:border-primary/40 hover:shadow-sm">
+        <div className="flex items-start justify-between gap-2">
+          <span className="break-words text-[10px] font-medium uppercase leading-snug tracking-wider text-muted-foreground">
             {label}
-            {change ? ` · ${change}` : ""}
           </span>
-        </span>
+          <span
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${colors[color as keyof typeof colors]}`}
+          >
+            {icon}
+          </span>
+        </div>
+        <div className="min-w-0">
+          <p
+            className="break-words text-xs font-bold leading-tight text-foreground group-hover:text-primary sm:text-sm"
+            title={String(value)}
+          >
+            {value}
+          </p>
+          {change && (
+            <p className="mt-0.5 break-words text-[11px] leading-snug text-muted-foreground">
+              {change}
+            </p>
+          )}
+        </div>
       </div>
     </Link>
   );
@@ -308,13 +319,13 @@ export function RetailManagerDashboard() {
       {/* Ringkasan */}
       <div className="rounded-xl border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">Ringkasan</h2>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <StatCard label="Transaksi POS Hari Ini" value={posToday} change={`Rp ${posRevenue.toLocaleString("id-ID")}`} icon={<ShoppingCart size={22} />} href="/dashboard/pos" color="amber" />
-          <StatCard label="Pendapatan Hari Ini" value={`Rp ${posRevenue.toLocaleString("id-ID")}`} icon={<TrendingUp size={22} />} href="/dashboard/reports" color="green" />
-          <StatCard label="Stok Menipis" value={lowStock} icon={<AlertTriangle size={22} />} href="/dashboard/retail/inventory" color="red" />
-          <StatCard label="Draf Batch" value={draftBatch} icon={<ShoppingBag size={22} />} href="/dashboard/retail/stok-masuk/review" color="blue" />
-          <StatCard label="Tabungan Aktif" value={savingsActive} icon={<Wallet size={22} />} href="/dashboard/savings" color="purple" />
-          <StatCard label="Persetujuan Menunggu" value={pendingApprovals} icon={<ClipboardList size={22} />} href="/dashboard/approvals" color="red" />
+        <div className="grid grid-cols-2 gap-2">
+          <StatCard label="Transaksi POS Hari Ini" value={posToday} change={`Rp ${posRevenue.toLocaleString("id-ID")}`} icon={<ShoppingCart size={16} />} href="/dashboard/pos" color="amber" />
+          <StatCard label="Pendapatan Hari Ini" value={`Rp ${posRevenue.toLocaleString("id-ID")}`} icon={<TrendingUp size={16} />} href="/dashboard/reports" color="green" />
+          <StatCard label="Stok Menipis" value={lowStock} icon={<AlertTriangle size={16} />} href="/dashboard/retail/inventory" color="red" />
+          <StatCard label="Draf Batch" value={draftBatch} icon={<ShoppingBag size={16} />} href="/dashboard/retail/stok-masuk/review" color="blue" />
+          <StatCard label="Tabungan Aktif" value={savingsActive} icon={<Wallet size={16} />} href="/dashboard/savings" color="purple" />
+          <StatCard label="Persetujuan Menunggu" value={pendingApprovals} icon={<ClipboardList size={16} />} href="/dashboard/approvals" color="red" />
         </div>
       </div>
 
