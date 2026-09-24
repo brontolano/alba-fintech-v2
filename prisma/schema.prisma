@@ -54,6 +54,7 @@ model Unit {
   consignment_payouts ConsignmentPayout[]
   purchase_items      PurchaseItem[]
   stock_batches       StockBatch[]
+  stock_counts        StockCount[]
   lembaga             Lembaga?            @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "units_ibfk_1")
   users               User[]
 
@@ -90,6 +91,8 @@ model User {
   shiftAttendanceUser                                   ShiftAttendance[]    @relation("shiftAttendanceUser")
   shiftSessionUser                                      ShiftSession[]       @relation("shiftSessionUser")
   batchReviewer                                         StockBatch[]         @relation("batchReviewer")
+  countCreator                                          StockCount[]         @relation("countCreator")
+  countReviewer                                         StockCount[]         @relation("countReviewer")
   batchCreator                                          StockBatch[]         @relation("batchCreator")
   posSessionUser                                        PosSession[]         @relation("posSessionUser")
   shiftReportStaff                                      ShiftReport[]        @relation("shiftReportStaff")
@@ -392,6 +395,30 @@ model StockBatchItem {
   @@index([inventoryItemId], map: "stock_batch_items_itemId_idx")
   @@index([ownerId], map: "stock_batch_items_ownerId_idx")
   @@map("stock_batch_items")
+}
+
+model StockCount {
+  id           String            @id @default(cuid()) @db.VarChar(36)
+  unitId       String            @db.VarChar(36)
+  ownerId      String?           @db.VarChar(36)
+  date         DateTime          @db.DateTime(0)
+  payload      Json
+  totalSold    Int               @default(0)
+  totalHak     Decimal           @default(0.00) @db.Decimal(15, 2)
+  status       String            @default("DRAFT") @db.VarChar(20)
+  createdById  String            @db.VarChar(36)
+  reviewedById String?           @db.VarChar(36)
+  reviewedAt   DateTime?         @db.DateTime(0)
+  reviewNote   String?           @db.Text
+  createdAt    DateTime?         @default(now()) @db.DateTime(0)
+  units        Unit              @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "stock_counts_ibfk_1")
+  owners       ConsignmentOwner? @relation(fields: [ownerId], references: [id], onUpdate: Restrict, map: "stock_counts_ibfk_2")
+  creator      User              @relation("countCreator", fields: [createdById], references: [id], onUpdate: Restrict, map: "stock_counts_ibfk_3")
+  reviewer     User?             @relation("countReviewer", fields: [reviewedById], references: [id], onUpdate: Restrict, map: "stock_counts_ibfk_4")
+
+  @@index([unitId, date], map: "stock_counts_unit_date_idx")
+  @@index([unitId, status], map: "stock_counts_status_idx")
+  @@map("stock_counts")
 }
 
 model PurchaseItem {
@@ -769,6 +796,7 @@ model ConsignmentOwner {
   items     ConsignmentItem[]
   payouts   ConsignmentPayout[]
   stock_batch_items StockBatchItem[]
+  stock_counts StockCount[]
 
   @@index([unitId], map: "consignment_owners_unitId")
   @@map("consignment_owners")

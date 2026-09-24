@@ -277,6 +277,12 @@ export default function RetailInventoryPage() {
             </Link>
           )}
           <Link
+            href="/dashboard/retail/sisa"
+            className="inline-flex items-center gap-1 rounded-lg border bg-background px-3 py-1.5 text-sm font-semibold hover:bg-accent"
+          >
+            Hitung Sisa
+          </Link>
+          <Link
             href="/dashboard/retail/stok-masuk"
             className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
           >
