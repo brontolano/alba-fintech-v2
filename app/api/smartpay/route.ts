@@ -33,6 +33,7 @@ const smartPaySchema = z.object({
     )
     .min(1, "Minimal satu item"),
   description: z.string().optional(),
+  posSessionId: z.string().min(1).optional(),
 });
 
 const ALLOWED_ROLES = ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"] as const;
@@ -87,6 +88,34 @@ export async function POST(request: NextRequest) {
         { error: "Pembayaran kartu hanya berlaku di unit retail" },
         { status: 400 },
       );
+    }
+
+    // R2 (retail): kasir wajib bertransaksi dalam sesi POS terbuka miliknya.
+    let verifiedPosSessionId: string | undefined;
+    if (role === "STAFF" || role === "MANAGER") {
+      const psId = parsed.data.posSessionId?.trim();
+      if (!psId) {
+        return NextResponse.json(
+          { error: "POS_BELUM_DIBUKA: buka sesi POS dulu sebelum bertransaksi" },
+          { status: 409 },
+        );
+      }
+      const open = await prisma.posSession.findFirst({
+        where: {
+          id: psId,
+          unitId,
+          userId: session.user.id!,
+          closedAt: null,
+        },
+        select: { id: true },
+      });
+      if (!open) {
+        return NextResponse.json(
+          { error: "POS_BELUM_DIBUKA: sesi POS tidak valid / sudah ditutup" },
+          { status: 409 },
+        );
+      }
+      verifiedPosSessionId = open.id;
     }
 
     // Pimpinan hanya boleh mencatat di unit lembaganya sendiri.
@@ -308,6 +337,7 @@ export async function POST(request: NextRequest) {
           amount: total,
           description,
           paymentMethod: "SMART_CARD",
+          posSessionId: verifiedPosSessionId,
           reference: savingsTx.id,
           status: "APPROVED",
           createdById: session.user.id!,

@@ -46,14 +46,29 @@ async function isCheckedIn(unitId: string, userId: string) {
   return !!(segmen || legacy);
 }
 
+/** Sesi POS terbuka milik user di unit (paling baru). Dipakai lintas route (gate check-out). */
+export async function findOpenPosSession(unitId: string, userId: string) {
+  return prisma.posSession.findFirst({
+    where: { unitId, userId, closedAt: null },
+    orderBy: { openedAt: "desc" },
+  });
+}
+
+type OpenPos = {
+  id: string;
+  unitId: string;
+  userId: string;
+  openedAt: Date;
+  openingCash: number | string | object;
+};
+
 /** Hitung ekspektasi kas sesi: modal + INCOME tunai − EXPENSE tunai. */
-async function summarizeSession(
-  sessionId: string,
-  unitId: string,
-  ownerId: string,
-  openedAt: Date,
-  openingCash: number,
-) {
+export async function summarizePosSession(open: OpenPos) {
+  const sessionId = open.id;
+  const unitId = open.unitId;
+  const ownerId = open.userId;
+  const openedAt = open.openedAt;
+  const openingCash = Number(open.openingCash);
   const txs = await prisma.transaction.findMany({
     where: {
       unitId,
@@ -80,6 +95,26 @@ async function summarizeSession(
   const expectedCash =
     Math.round((openingCash + incomeCash - expenseCash) * 100) / 100;
   return { txCount: txs.length, txTotal: incomeCash, expectedCash };
+}
+
+/**
+ * Mitigasi otomatis (R5): tutup paksa sesi POS yang masih terbuka.
+ * countedCash = expectedCash, selisih 0, autoClosed = true + jejak alasan.
+ */
+export async function autoClosePosSession(open: OpenPos, reason: string) {
+  const s = await summarizePosSession(open);
+  const row = await prisma.posSession.update({
+    where: { id: open.id },
+    data: {
+      closedAt: new Date(),
+      expectedCash: s.expectedCash,
+      countedCash: s.expectedCash,
+      discrepancy: 0,
+      autoClosed: true,
+      closeNote: `AUTO-CLOSE: ${reason}`.slice(0, 500),
+    },
+  });
+  return { row, summary: s };
 }
 
 /**
@@ -123,13 +158,13 @@ export async function GET(request: NextRequest) {
     txTotal: number;
   } = null;
   if (mine) {
-    const s = await summarizeSession(
-      mine.id,
+    const s = await summarizePosSession({
+      id: mine.id,
       unitId,
-      mine.userId,
-      mine.openedAt,
-      Number(mine.openingCash),
-    );
+      userId: mine.userId,
+      openedAt: mine.openedAt,
+      openingCash: mine.openingCash,
+    });
     live = {
       id: mine.id,
       openedAt: mine.openedAt,
@@ -204,10 +239,7 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
-    const existing = await prisma.posSession.findFirst({
-      where: { unitId, userId, closedAt: null },
-      select: { id: true },
-    });
+    const existing = await findOpenPosSession(unitId, userId);
     if (existing) {
       return NextResponse.json(
         { error: "POS_SUDAH_TERBUKA", posSessionId: existing.id },
@@ -243,23 +275,20 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    const open = await prisma.posSession.findFirst({
-      where: { unitId, userId, closedAt: null },
-      orderBy: { openedAt: "desc" },
-    });
+    const open = await findOpenPosSession(unitId, userId);
     if (!open) {
       return NextResponse.json(
         { error: "Tidak ada sesi POS yang terbuka" },
         { status: 404 },
       );
     }
-    const s = await summarizeSession(
-      open.id,
+    const s = await summarizePosSession({
+      id: open.id,
       unitId,
-      open.userId,
-      open.openedAt,
-      Number(open.openingCash),
-    );
+      userId: open.userId,
+      openedAt: open.openedAt,
+      openingCash: open.openingCash,
+    });
     const counted = parsed.data.countedCash;
     const discrepancy = Math.round((counted - s.expectedCash) * 100) / 100;
     const row = await prisma.posSession.update({

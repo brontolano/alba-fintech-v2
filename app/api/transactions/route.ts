@@ -37,6 +37,7 @@ const createTransactionSchema = z.object({
   date: z.string().optional(),
   photoUrl: z.string().optional(),
   paymentMethod: z.string().optional(),
+  posSessionId: z.string().min(1).optional(),
   orderItems: z
     .array(
       z.object({
@@ -520,6 +521,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // R2 (retail): kasir wajib bertransaksi dalam sesi POS terbuka miliknya.
+    // Non-retail / role atas tidak terdampak.
+    let verifiedPosSessionId: string | undefined;
+    if (
+      (role === "STAFF" || role === "MANAGER") &&
+      targetUnit.isRetail === true
+    ) {
+      const psId = parsed.data.posSessionId?.trim();
+      if (!psId) {
+        return NextResponse.json(
+          { error: "POS_BELUM_DIBUKA: buka sesi POS dulu sebelum bertransaksi" },
+          { status: 409 },
+        );
+      }
+      const open = await prisma.posSession.findFirst({
+        where: {
+          id: psId,
+          unitId: parsedData.unitId!,
+          userId: session.user.id!,
+          closedAt: null,
+        },
+        select: { id: true },
+      });
+      if (!open) {
+        return NextResponse.json(
+          { error: "POS_BELUM_DIBUKA: sesi POS tidak valid / sudah ditutup" },
+          { status: 409 },
+        );
+      }
+      verifiedPosSessionId = open.id;
+    }
+
     if (role === "PIMPINAN" && !isLembagaScope) {
       const unitInLembaga = await prisma.unit.findFirst({
         where: { id: parsedData.unitId, lembagaId: session.user.lembagaId },
@@ -648,6 +681,7 @@ export async function POST(request: NextRequest) {
           reference: parsed.data.reference,
           date: parsed.data.date ? new Date(parsed.data.date) : undefined,
           paymentMethod: normalizedBody.paymentMethod || undefined,
+          posSessionId: verifiedPosSessionId,
           createdById: session.user.id!,
           status: initialStatus,
           isPimpinanNote: isLembagaScope ? true : undefined,

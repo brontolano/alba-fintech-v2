@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
+import { findOpenPosSession, autoClosePosSession } from "../pos-session/route";
 
 // WIB (UTC+7) agar konsisten dgn modul lain.
 const WIB = 7 * 3600 * 1000;
@@ -16,6 +17,8 @@ const actionSchema = z.object({
   action: z.enum(["check-in", "check-out", "set-service"]),
   service: z.enum(["POS", "INVENTORY"]).optional(),
   note: z.string().optional(),
+  force: z.boolean().optional(),
+  reason: z.string().max(500).optional(),
 });
 
 /** MANAGER/STAFF memakai unit mereka sendiri; role atas via query. */
@@ -162,34 +165,51 @@ export async function POST(request: NextRequest) {
 
   try {
     if (parsed.data.action === "check-in") {
+      // Multi-session: tolak bila masih ada segmen terbuka.
+      const openSegment = await prisma.shiftSession.findFirst({
+        where: { unitId, userId: session.user.id!, checkOutAt: null },
+        select: { id: true },
+      });
+      if (openSegment) {
+        return NextResponse.json(
+          { error: "Masih ada sesi shift terbuka. Check-out dulu." },
+          { status: 409 },
+        );
+      }
+      const now = new Date();
+      await prisma.shiftSession.create({
+        data: {
+          unitId,
+          userId: session.user.id!,
+          date: start,
+          checkInAt: now,
+          service: parsed.data.service,
+          note: parsed.data.note?.trim() || undefined,
+        },
+      });
+      // Catatan harian (kompatibilitas baca): satu baris per hari, dibuka ulang.
       const existing = await getExisting();
-      if (existing && existing.checkOutAt) {
-        const row = await prisma.shiftAttendance.update({
+      let row;
+      if (existing) {
+        row = await prisma.shiftAttendance.update({
           where: { id: existing.id },
           data: {
             checkOutAt: null,
             service: parsed.data.service ?? existing.service,
           },
         });
-        return NextResponse.json({ data: row });
-      }
-      if (existing) {
-        const row = await prisma.shiftAttendance.update({
-          where: { id: existing.id },
-          data: { service: parsed.data.service ?? existing.service },
+      } else {
+        row = await prisma.shiftAttendance.create({
+          data: {
+            unitId,
+            userId: session.user.id!,
+            date: start,
+            checkInAt: now,
+            service: parsed.data.service,
+            note: parsed.data.note?.trim() || undefined,
+          },
         });
-        return NextResponse.json({ data: row });
       }
-      const row = await prisma.shiftAttendance.create({
-        data: {
-          unitId,
-          userId: session.user.id!,
-          date: start,
-          checkInAt: new Date(),
-          service: parsed.data.service,
-          note: parsed.data.note?.trim() || undefined,
-        },
-      });
       return NextResponse.json({ data: row }, { status: 201 });
     }
 
@@ -199,34 +219,105 @@ export async function POST(request: NextRequest) {
           { error: "Layanan wajib diisi (POS/INVENTORY)" },
           { status: 400 },
         );
+      const segment = await prisma.shiftSession.findFirst({
+        where: { unitId, userId: session.user.id!, checkOutAt: null },
+        orderBy: { checkInAt: "desc" },
+      });
       const existing = await getExisting();
-      if (!existing)
+      if (!segment && (!existing || existing.checkOutAt))
         return NextResponse.json(
           { error: "Belum check-in hari ini" },
           { status: 400 },
         );
-      if (existing.checkOutAt)
-        return NextResponse.json(
-          { error: "Sudah check-out hari ini" },
-          { status: 400 },
-        );
-      const row = await prisma.shiftAttendance.update({
-        where: { id: existing.id },
-        data: { service: parsed.data.service },
-      });
+      if (segment) {
+        await prisma.shiftSession.update({
+          where: { id: segment.id },
+          data: { service: parsed.data.service },
+        });
+      }
+      let row = existing;
+      if (existing && !existing.checkOutAt) {
+        row = await prisma.shiftAttendance.update({
+          where: { id: existing.id },
+          data: { service: parsed.data.service },
+        });
+      }
       return NextResponse.json({ data: row });
     }
 
-    const existing = await getExisting();
-    if (!existing)
-      return NextResponse.json({ error: "Belum check-in hari ini" }, { status: 400 });
-    if (existing.checkOutAt)
-      return NextResponse.json({ error: "Sudah check-out hari ini" }, { status: 400 });
-    const row = await prisma.shiftAttendance.update({
-      where: { id: existing.id },
-      data: { checkOutAt: new Date() },
+    // ---- check-out: tutup segmen berjalan (R4: tolak bila POS masih terbuka) ----
+    const segment = await prisma.shiftSession.findFirst({
+      where: { unitId, userId: session.user.id!, checkOutAt: null },
+      orderBy: { checkInAt: "desc" },
     });
-    return NextResponse.json({ data: row });
+    const existing = await getExisting();
+    if (!segment && (!existing || existing.checkOutAt))
+      return NextResponse.json({ error: "Belum check-in hari ini" }, { status: 400 });
+
+    const openPos = await findOpenPosSession(unitId, session.user.id!);
+    let autoClosedPos: string | null = null;
+    if (openPos) {
+      if (!parsed.data.force) {
+        return NextResponse.json(
+          {
+            error:
+              "POS_MASIH_TERBUKA: tutup sesi POS (rekonsiliasi) dulu sebelum check-out",
+            posSessionId: openPos.id,
+          },
+          { status: 409 },
+        );
+      }
+      // R5: mitigasi otomatis — auto-close tercatat + notifikasi ke manager.
+      const reason = parsed.data.reason?.trim() || "check-out paksa tanpa alasan";
+      const staffName = (session.user as any)?.name || "Staff";
+      const closed = await autoClosePosSession(
+        {
+          id: openPos.id,
+          unitId: openPos.unitId,
+          userId: openPos.userId,
+          openedAt: openPos.openedAt,
+          openingCash: openPos.openingCash,
+        },
+        `check-out paksa oleh ${staffName}: ${reason}`,
+      );
+      autoClosedPos = closed.row.id;
+      const managers = await prisma.user.findMany({
+        where: { unitId, role: "MANAGER", isActive: true },
+        select: { id: true },
+      });
+      if (managers.length > 0) {
+        await prisma.notification.createMany({
+          data: managers.map((m) => ({
+            userId: m.id,
+            title: "POS di-auto-close saat check-out paksa",
+            message:
+              `${staffName} check-out paksa. Sesi POS ${closed.row.id} ` +
+              `ditutup otomatis (selisih tercatat 0). Alasan: ${reason}`,
+            type: "WARNING",
+          })),
+        });
+      }
+    }
+
+    const now = new Date();
+    if (segment) {
+      await prisma.shiftSession.update({
+        where: { id: segment.id },
+        data: { checkOutAt: now },
+      });
+    }
+    let row = existing;
+    if (existing && !existing.checkOutAt) {
+      row = await prisma.shiftAttendance.update({
+        where: { id: existing.id },
+        data: { checkOutAt: now },
+      });
+    }
+    const basis = segment?.checkInAt ?? existing?.checkInAt;
+    const durationMin = basis
+      ? Math.max(0, Math.round((now.getTime() - new Date(basis).getTime()) / 60000))
+      : null;
+    return NextResponse.json({ data: { ...row, durationMin, autoClosedPos } });
   } catch (error: any) {
     if (error.code === "P2002")
       return NextResponse.json({ error: "Sudah check-in hari ini" }, { status: 409 });
