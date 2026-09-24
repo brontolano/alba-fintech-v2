@@ -56,35 +56,36 @@ export function RetailManagerDashboard() {
     posToday: 0,
     posRevenue: 0,
     lowStock: 0,
-    pendingOrders: 0,
+    draftBatch: 0,
     savingsActive: 0,
     pendingApprovals: 0,
   });
+  const [unitName, setUnitName] = useState("Unit Retail");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/retail/pos/stats?period=today").then(r => r.json()).catch(() => ({ data: {} })),
-      fetch("/api/retail/inventory?isConsignment=false&limit=100").then(r => r.json()).catch(() => ({ data: [] })),
-      fetch("/api/retail/reorder?status=PENDING").then(r => r.json()).catch(() => ({ data: [] })),
-      fetch("/api/savings/limits").then(r => r.json()).catch(() => ({ data: [] })),
-      fetch("/api/approvals?status=PENDING").then(r => r.json()).catch(() => ({ data: [] })),
-    ]).then(([pos, inv, orders, sav, appr]) => {
+      fetch("/api/transactions?range=today&limit=1&type=INCOME").then(r => r.json()).catch(() => ({})),
+      fetch("/api/retail/dashboard").then(r => r.json()).catch(() => ({})),
+      fetch("/api/retail/batches?status=DRAFT&limit=100").then(r => r.json()).catch(() => ({})),
+      fetch("/api/savings/limits").then(r => r.json()).catch(() => ({})),
+      fetch("/api/approvals?status=PENDING").then(r => r.json()).catch(() => ({})),
+    ]).then(([sales, dash, drafts, sav, appr]) => {
       setStats({
-        posToday: pos.data?.count || 0,
-        posRevenue: pos.data?.revenue || 0,
-        lowStock: inv.data?.filter((i: any) => (i.currentStock || 0) <= (i.minStock || 0)).length || 0,
-        pendingOrders: orders.data?.length || 0,
-        savingsActive: sav.data?.filter((a: any) => a.balance > 0).length || 0,
-        pendingApprovals: appr.data?.length || 0,
+        posToday: sales?.summary?.todayCount ?? 0,
+        posRevenue: sales?.summary?.todayIncome ?? 0,
+        lowStock: dash?.data?.lowStock?.count ?? 0,
+        draftBatch: Array.isArray(drafts?.data) ? drafts.data.length : 0,
+        savingsActive: (sav?.data ?? []).filter((a: any) => Number(a.balance) > 0).length || 0,
+        pendingApprovals: Array.isArray(appr?.data) ? appr.data.length : 0,
       });
+      if (dash?.data?.unit?.name) setUnitName(dash.data.unit.name);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
 
   if (loading) return <DashboardSkeleton />;
 
-  const unitName = "Koperasi Buku";
   const today = new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
 
   return (
@@ -96,19 +97,24 @@ export function RetailManagerDashboard() {
           <p className="text-muted-foreground">{unitName} • {today}</p>
         </div>
         <div className="flex gap-2">
-          <a href="/dashboard/retail/pos" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2 text-white font-semibold shadow hover:from-amber-600 hover:to-orange-700">
+          <a href="/dashboard/pos" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2 text-white font-semibold shadow hover:from-amber-600 hover:to-orange-700">
             <ShoppingCart className="w-5 h-5" /> Buka POS
           </a>
+          {stats.draftBatch > 0 && (
+            <a href="/dashboard/retail/stok-masuk/review" className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-white font-semibold shadow hover:bg-amber-600">
+              Review ({stats.draftBatch})
+            </a>
+          )}
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Transaksi POS Hari Ini" value={stats.posToday} change={`Rp ${stats.posRevenue.toLocaleString("id-ID")}`} icon={<ShoppingCart size={24} />} href="/dashboard/retail/pos" color="amber" />
+        <StatCard label="Transaksi POS Hari Ini" value={stats.posToday} change={`Rp ${stats.posRevenue.toLocaleString("id-ID")}`} icon={<ShoppingCart size={24} />} href="/dashboard/pos" color="amber" />
         <StatCard label="Pendapatan Hari Ini" value={`Rp ${stats.posRevenue.toLocaleString("id-ID")}`} icon={<TrendingUpIcon size={24} />} href="/dashboard/reports" color="green" />
         <StatCard label="Stok Menipis" value={stats.lowStock} icon={<AlertCircle size={24} />} href="/dashboard/retail/inventory" color="red" />
-        <StatCard label="Belanja Pending" value={stats.pendingOrders} icon={<ShoppingBag size={24} />} href="/dashboard/retail/belanja" color="blue" />
-        <StatCard label="Tabungan Aktif" value={stats.savingsActive} icon={<Wallet size={24} />} href="/dashboard/retail/tabungan" color="purple" />
+        <StatCard label="Draf Batch" value={stats.draftBatch} icon={<ShoppingBag size={24} />} href="/dashboard/retail/stok-masuk/review" color="blue" />
+        <StatCard label="Tabungan Aktif" value={stats.savingsActive} icon={<Wallet size={24} />} href="/dashboard/savings" color="purple" />
         <StatCard label="Persetujuan Menunggu" value={stats.pendingApprovals} icon={<Clock size={24} />} href="/dashboard/approvals" color="red" />
       </div>
 
@@ -117,12 +123,12 @@ export function RetailManagerDashboard() {
         <h2 className="mb-4 text-lg font-semibold">Aksi Cepat</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Buka POS", href: "/dashboard/retail/pos", icon: <ShoppingCart size={24} />, color: "from-amber-500 to-orange-600" },
+            { label: "Buka POS", href: "/dashboard/pos", icon: <ShoppingCart size={24} />, color: "from-amber-500 to-orange-600" },
             { label: "Cek Stok", href: "/dashboard/retail/inventory", icon: <Package size={24} />, color: "from-blue-500 to-cyan-600" },
             { label: "Barang Titipan", href: "/dashboard/retail/inventory", icon: <PackageOpen size={24} />, color: "from-amber-500 to-yellow-600" },
-            { label: "Buat Belanja", href: "/dashboard/retail/belanja", icon: <ShoppingBag size={24} />, color: "from-violet-500 to-purple-600" },
+            { label: "Review Batch", href: "/dashboard/retail/stok-masuk/review", icon: <ShoppingBag size={24} />, color: "from-violet-500 to-purple-600" },
             { label: "Laporan Penjualan", href: "/dashboard/reports", icon: <BarChart2 size={24} />, color: "from-emerald-500 to-teal-600" },
-            { label: "Cek Tabungan", href: "/dashboard/retail/tabungan", icon: <Wallet size={24} />, color: "from-purple-500 to-pink-600" },
+            { label: "Cek Tabungan", href: "/dashboard/savings", icon: <Wallet size={24} />, color: "from-purple-500 to-pink-600" },
           ].map((action) => (
             <Link key={action.href} href={action.href} className="group">
               <div className="rounded-xl border bg-card p-5 hover:shadow-md hover:border-primary/30 transition-all">
@@ -141,30 +147,44 @@ export function RetailManagerDashboard() {
         </div>
       </div>
 
-      {/* Unit Overview */}
+      {/* Perlu perhatian */}
       <div className="rounded-2xl border bg-card p-6">
-        <h2 className="mb-4 text-lg font-semibold">Ringkasan 3 Unit Retail</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[
-            { id: "cmubg2y5h001fxx3d51558t81", name: "Koperasi Buku", code: "KOP", icon: <BookOpen size={20} /> },
-            { id: "cmubg2y5b001dxx3d8ybh8kx9", name: "Kantin Umi", code: "KUM", icon: <Utensils size={20} /> },
-            { id: "cmubg2y54001bxx3d7c6scg0h", name: "Kantin Baru", code: "KAB", icon: <Store size={20} /> },
-          ].map(unit => (
-            <a key={unit.id} href={`/dashboard/retail/inventory?unitId=${unit.id}`} className="group">
-              <div className="rounded-xl border bg-card p-4 hover:shadow-md hover:border-primary/30 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                    {unit.icon}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-foreground">{unit.name}</p>
-                    <p className="text-xs text-muted-foreground">{unit.code} • Klik untuk detail stok</p>
-                  </div>
-                </div>
-              </div>
-            </a>
-          ))}
-        </div>
+        <h2 className="mb-4 text-lg font-semibold">Perlu Perhatian</h2>
+        {stats.draftBatch === 0 && stats.lowStock === 0 && stats.pendingApprovals === 0 ? (
+          <p className="py-2 text-center text-sm text-muted-foreground">
+            Semua aman — tidak ada draf, stok menipis, atau persetujuan menunggu.
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {stats.draftBatch > 0 && (
+              <Link
+                href="/dashboard/retail/stok-masuk/review"
+                className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 hover:shadow-md transition-all"
+              >
+                <p className="text-2xl font-bold text-amber-700">{stats.draftBatch}</p>
+                <p className="text-sm text-muted-foreground">draf batch menunggu review</p>
+              </Link>
+            )}
+            {stats.lowStock > 0 && (
+              <Link
+                href="/dashboard/retail/inventory"
+                className="rounded-xl border border-rose-500/40 bg-rose-500/5 p-4 hover:shadow-md transition-all"
+              >
+                <p className="text-2xl font-bold text-rose-600">{stats.lowStock}</p>
+                <p className="text-sm text-muted-foreground">barang stok menipis</p>
+              </Link>
+            )}
+            {stats.pendingApprovals > 0 && (
+              <Link
+                href="/dashboard/approvals"
+                className="rounded-xl border bg-card p-4 hover:shadow-md hover:border-primary/30 transition-all"
+              >
+                <p className="text-2xl font-bold">{stats.pendingApprovals}</p>
+                <p className="text-sm text-muted-foreground">persetujuan menunggu</p>
+              </Link>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
