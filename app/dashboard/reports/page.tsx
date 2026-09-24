@@ -23,6 +23,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { RetailStaffReport } from "@/components/retail/RetailStaffReport";
 
 interface MonthlyDataItem {
   month: string;
@@ -605,6 +606,18 @@ export default function ReportsPage() {
     }
     toast.success("Dokumen laporan siap dicetak");
   };
+
+  // Staff retail: tampilkan laporan ringkas khusus (unit terkunci).
+  const isRetailStaff =
+    session?.user?.role === "STAFF" &&
+    (session?.user as any)?.unitIsRetail === true;
+  if (isRetailStaff) {
+    return (
+      <div className="mx-auto max-w-3xl p-4">
+        <RetailStaffReport />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
