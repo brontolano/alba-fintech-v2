@@ -89,6 +89,7 @@ model User {
   handoverAccepted                                      CashHandover[]       @relation("handoverAccepted")
   shiftAttendanceUser                                   ShiftAttendance[]    @relation("shiftAttendanceUser")
   shiftSessionUser                                      ShiftSession[]       @relation("shiftSessionUser")
+  batchReviewer                                         StockBatch[]         @relation("batchReviewer")
   batchCreator                                          StockBatch[]         @relation("batchCreator")
   posSessionUser                                        PosSession[]         @relation("posSessionUser")
   shiftReportStaff                                      ShiftReport[]        @relation("shiftReportStaff")
@@ -351,15 +352,20 @@ model StockBatch {
   batchNo     String           @db.VarChar(50)
   date        DateTime         @db.DateTime(0)
   kind        String           @default("CAMPURAN") @db.VarChar(20)
+  status      String           @default("APPROVED") @db.VarChar(20)
   totalQty    Int              @default(0)
   totalCost   Decimal          @default(0.00) @db.Decimal(15, 2)
   sourceType  String?          @db.VarChar(20)
   sourceRef   String?          @db.VarChar(36)
   note        String?          @db.Text
   createdById String           @db.VarChar(36)
+  reviewedById String?         @db.VarChar(36)
+  reviewedAt  DateTime?        @db.DateTime(0)
+  reviewNote  String?          @db.Text
   createdAt   DateTime?        @default(now()) @db.DateTime(0)
   units       Unit             @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "stock_batches_ibfk_1")
   creator     User             @relation("batchCreator", fields: [createdById], references: [id], onUpdate: Restrict, map: "stock_batches_ibfk_2")
+  reviewer    User?            @relation("batchReviewer", fields: [reviewedById], references: [id], onUpdate: Restrict, map: "stock_batches_ibfk_3")
   items       StockBatchItem[]
 
   @@unique([unitId, batchNo], map: "stock_batches_unit_batchNo_key")
@@ -373,6 +379,7 @@ model StockBatchItem {
   inventoryItemId String           @db.VarChar(36)
   qty             Int              @default(1)
   unitCost        Decimal          @default(0.00) @db.Decimal(15, 2)
+  finalUnitCost   Decimal?         @db.Decimal(15, 2)
   lineTotal       Decimal          @default(0.00) @db.Decimal(15, 2)
   ownerId         String?          @db.VarChar(36)
   marginType      String?          @db.VarChar(10)
@@ -753,6 +760,7 @@ model ConsignmentOwner {
   unitId    String              @db.VarChar(36)
   name      String              @db.VarChar(255)
   phone     String?             @db.VarChar(50)
+  whatsappVerified Boolean       @default(false)
   address   String?             @db.Text
   isActive  Boolean?            @default(true)
   createdAt DateTime?           @default(now()) @db.DateTime(0)
