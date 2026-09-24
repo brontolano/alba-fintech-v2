@@ -151,7 +151,7 @@ export default function SerahTerimaPage() {
                     </div>
                     <div className="flex shrink-0 items-center gap-2 text-right text-xs">
                       <p className="font-semibold">{fmt(Number(p.amount))}</p>
-                      {p.status === "PENDING" && (
+                      {p.status === "PENDING" && isManager && (
                         <>
                           <button
                             onClick={() => act(p.id, "pay")}
@@ -173,6 +173,11 @@ export default function SerahTerimaPage() {
                             <XCircle size={12} /> Batal
                           </button>
                         </>
+                      )}
+                      {p.status === "PENDING" && !isManager && (
+                        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 font-semibold text-amber-700">
+                          Menunggu Manager
+                        </span>
                       )}
                       {p.status === "PAID" && (
                         <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-600">

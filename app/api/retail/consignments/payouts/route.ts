@@ -4,6 +4,7 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
 import { guardRetail, resolveUnitId } from "@/lib/retail-guard";
+import { notifyUnitManagers } from "@/lib/retail-notify";
 
 const WIB = 7 * 3600 * 1000;
 const wibDateStr = (now = Date.now()) =>
@@ -155,5 +156,10 @@ export async function POST(request: NextRequest) {
       note: parsed.data.note?.trim() || null,
     },
   });
+  await notifyUnitManagers(
+    unitId,
+    "Draf payout titipan baru",
+    `Payout ${owner.name} Rp ${hakPemilik.toLocaleString("id-ID")} menunggu pembayaran di Serah Terima.`,
+  );
   return NextResponse.json({ data: payout }, { status: 201 });
 }

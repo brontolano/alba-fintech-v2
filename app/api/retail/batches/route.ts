@@ -4,6 +4,7 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
 import { guardRetail, resolveUnitId } from "@/lib/retail-guard";
+import { notifyUnitManagers } from "@/lib/retail-notify";
 
 // WIB (UTC+7) — konsisten dengan modul retail lain.
 const WIB = 7 * 3600 * 1000;
@@ -320,6 +321,15 @@ export async function POST(request: NextRequest) {
       });
       return { batch, lineCount: batchLines.length };
     });
+
+    if (result.batch.status === "DRAFT") {
+      const staffName = (session.user as any)?.name || "Staff";
+      await notifyUnitManagers(
+        unitId,
+        "Draf batch baru menunggu review",
+        `${staffName} mencatat ${result.batch.batchNo} (${result.lineCount} baris). Buka halaman Review Stok Masuk.`,
+      );
+    }
 
     return NextResponse.json(
       {

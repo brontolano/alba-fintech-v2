@@ -4,6 +4,7 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
 import { guardRetail, resolveUnitId } from "@/lib/retail-guard";
+import { notifyUnitManagers } from "@/lib/retail-notify";
 
 const WIB = 7 * 3600 * 1000;
 const wibDateStr = (now = Date.now()) =>
@@ -230,6 +231,13 @@ export async function POST(request: NextRequest) {
       createdById: session.user.id!,
     },
   });
+
+  const staffName = (session.user as any)?.name || "Staff";
+  await notifyUnitManagers(
+    unitId,
+    "Hitungan sisa baru menunggu persetujuan",
+    `${staffName} mencatat sisa (${totalSold} terjual). Buka halaman Hitung Sisa.`,
+  );
 
   return NextResponse.json(
     {
