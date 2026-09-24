@@ -29,6 +29,13 @@ const fmtTime = (v: string | Date | null | undefined) => {
   return d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 };
 
+const fmtDur = (min: number | null | undefined) => {
+  if (min == null) return "-";
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return h > 0 ? `${h}j ${m}m` : `${m}m`;
+};
+
 const fmtDateTime = (v: string | Date | null | undefined) => {
   if (!v) return "-";
   const d = new Date(v);
@@ -57,7 +64,16 @@ type Summary = {
       user: { id: string; name: string | null; role: string | null };
     }[];
     onShiftCount: number;
+    totalActiveMin: number;
   };
+  pos: {
+    id: string;
+    openedAt: string;
+    openingCash: number;
+    expectedCash: number;
+    txCount: number;
+    txTotal: number;
+  } | null;
   lowStock: {
     count: number;
     items: {
@@ -195,6 +211,9 @@ export function RetailStaffDashboard() {
                       }`
                     : "Kamu belum check-in hari ini"}
                 </p>
+                <p className="mt-0.5 text-xs font-semibold">
+                  Total aktif hari ini: {fmtDur(data.shift.totalActiveMin)}
+                </p>
               </div>
               {active ? (
                 <button
@@ -240,6 +259,40 @@ export function RetailStaffDashboard() {
                 className="ml-auto inline-flex items-center gap-0.5 font-semibold text-primary"
               >
                 Detail <ChevronRight size={13} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Status POS */}
+          <div className="rounded-xl border bg-card p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">
+                  {data.pos ? (
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-600">
+                      POS OPEN
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
+                      POS CLOSED
+                    </span>
+                  )}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {data.pos
+                    ? `Dibuka ${fmtTime(data.pos.openedAt)} · ekspektasi ${fmtRp(
+                        data.pos.expectedCash,
+                      )} · ${data.pos.txCount} transaksi`
+                    : active
+                      ? "Buka sesi kasir dari halaman Shift sebelum melayani."
+                      : "Check-in dulu, lalu buka sesi POS."}
+                </p>
+              </div>
+              <Link
+                href="/dashboard/retail/shift"
+                className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-primary"
+              >
+                {data.pos ? "Kelola" : "Buka"} <ChevronRight size={13} />
               </Link>
             </div>
           </div>

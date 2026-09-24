@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
 import { guardRetail, resolveUnitId } from "@/lib/retail-guard";
+import { findOpenPosSession, summarizePosSession } from "../pos-session/route";
 
 // WIB (UTC+7) — konsisten dengan modul shift retail.
 const WIB = 7 * 3600 * 1000;
@@ -16,6 +17,8 @@ const dayStart = (s: string) => new Date(`${s}T00:00:00.000Z`);
  * Ringkasan dasbor retail per unit (fokus UI Staff):
  * - unit: identitas unit aktif
  * - shift: status check-in/out saya hari ini + kru yang sedang aktif
+ *   + total menit aktif saya hari ini (akumulasi multi-segmen)
+ * - pos: sesi POS terbuka milik saya (live expected kas) atau null
  * - lowStock: barang aktif yang stok <= minStock (maks 8) + total count
  * - recent: 8 transaksi terakhir unit (aktivitas terkini)
  */
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest) {
   const dateStr = wibDateStr();
   const start = dayStart(dateStr);
 
-  const [unit, mine, onShift, items, recent] = await Promise.all([
+  const [unit, mine, onShift, items, recent, mySegments, myPos] = await Promise.all([
     prisma.unit.findUnique({
       where: { id: unitId },
       select: { id: true, name: true, code: true, isRetail: true },
@@ -89,7 +92,54 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
       take: 8,
     }),
+    prisma.shiftSession.findMany({
+      where: { unitId, userId: session.user.id!, date: start },
+      select: { checkInAt: true, checkOutAt: true },
+      orderBy: { checkInAt: "asc" },
+    }),
+    findOpenPosSession(unitId, session.user.id!),
   ]);
+
+  const nowMs = Date.now();
+  const totalActiveMin = mySegments.reduce(
+    (sum, s) =>
+      sum +
+      Math.max(
+        0,
+        Math.round(
+          ((s.checkOutAt ? new Date(s.checkOutAt).getTime() : nowMs) -
+            new Date(s.checkInAt).getTime()) /
+            60000,
+        ),
+      ),
+    0,
+  );
+
+  let pos: null | {
+    id: string;
+    openedAt: Date;
+    openingCash: number;
+    expectedCash: number;
+    txCount: number;
+    txTotal: number;
+  } = null;
+  if (myPos) {
+    const s = await summarizePosSession({
+      id: myPos.id,
+      unitId: myPos.unitId,
+      userId: myPos.userId,
+      openedAt: myPos.openedAt,
+      openingCash: myPos.openingCash,
+    });
+    pos = {
+      id: myPos.id,
+      openedAt: myPos.openedAt,
+      openingCash: Number(myPos.openingCash),
+      expectedCash: s.expectedCash,
+      txCount: s.txCount,
+      txTotal: s.txTotal,
+    };
+  }
 
   if (!unit) {
     return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 404 });
@@ -133,7 +183,9 @@ export async function GET(request: NextRequest) {
           user: s.user,
         })),
         onShiftCount: onShift.length,
+        totalActiveMin,
       },
+      pos,
       lowStock: { count: lowStockCount, items: lowStock },
       recent: recent.map((t) => ({
         id: t.id,
