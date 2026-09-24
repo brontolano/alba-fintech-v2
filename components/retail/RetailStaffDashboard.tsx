@@ -14,6 +14,10 @@ import {
   Loader2,
   Store,
   Users,
+  ShoppingCart,
+  PackagePlus,
+  ClipboardCheck,
+  UserPlus,
 } from "lucide-react";
 
 const fmtRp = (n: number) =>
@@ -29,13 +33,6 @@ const fmtTime = (v: string | Date | null | undefined) => {
   return d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 };
 
-const fmtDur = (min: number | null | undefined) => {
-  if (min == null) return "-";
-  const h = Math.floor(min / 60);
-  const m = Math.round(min % 60);
-  return h > 0 ? `${h}j ${m}m` : `${m}m`;
-};
-
 const fmtDateTime = (v: string | Date | null | undefined) => {
   if (!v) return "-";
   const d = new Date(v);
@@ -44,6 +41,13 @@ const fmtDateTime = (v: string | Date | null | undefined) => {
     " · " +
     d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
   );
+};
+
+const fmtDur = (min: number | null | undefined) => {
+  if (min == null) return "-";
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return h > 0 ? `${h}j ${m}m` : `${m}m`;
 };
 
 type Summary = {
@@ -99,6 +103,51 @@ type Summary = {
   }[];
 };
 
+const SHORTCUTS = [
+  {
+    label: "Kasir POS",
+    desc: "Jual & bayar",
+    href: "/dashboard/pos",
+    icon: <ShoppingCart size={22} />,
+    color: "bg-amber-500",
+  },
+  {
+    label: "Shift Saya",
+    desc: "Check-in & sesi POS",
+    href: "/dashboard/retail/shift",
+    icon: <Clock size={22} />,
+    color: "bg-emerald-500",
+  },
+  {
+    label: "Stok",
+    desc: "Lihat & cari barang",
+    href: "/dashboard/retail/inventory",
+    icon: <Package size={22} />,
+    color: "bg-blue-500",
+  },
+  {
+    label: "Stok Masuk",
+    desc: "Catat kedatangan",
+    href: "/dashboard/retail/stok-masuk",
+    icon: <PackagePlus size={22} />,
+    color: "bg-violet-500",
+  },
+  {
+    label: "Hitung Sisa",
+    desc: "Sisa titipan",
+    href: "/dashboard/retail/sisa",
+    icon: <ClipboardCheck size={22} />,
+    color: "bg-cyan-600",
+  },
+  {
+    label: "Titipan UMKM",
+    desc: "Pemilik & payout",
+    href: "/dashboard/retail/konsinyasi",
+    icon: <UserPlus size={22} />,
+    color: "bg-orange-500",
+  },
+];
+
 export function RetailStaffDashboard() {
   const { data: session } = useSession();
   const [data, setData] = useState<Summary | null>(null);
@@ -153,8 +202,8 @@ export function RetailStaffDashboard() {
   const active = mine?.active ?? false;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-4">
-      {/* Sapaan + unit */}
+    <div className="mx-auto max-w-3xl space-y-4 p-4">
+      {/* Sapaan + status shift */}
       <div className="rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 p-5 text-white shadow-lg">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -165,15 +214,42 @@ export function RetailStaffDashboard() {
             <p className="mt-0.5 flex items-center gap-1 text-xs opacity-90">
               <Store size={13} />
               {data?.unit.name ?? "Unit Retail"}
+              {data && ` · aktif ${fmtDur(data.shift.totalActiveMin)} hari ini`}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold">
-            <span
-              className={`h-2 w-2 rounded-full ${active ? "bg-emerald-300" : "bg-white/60"}`}
-            />
-            {active ? "Shift aktif" : "Belum check-in"}
-          </div>
+          {active ? (
+            <button
+              onClick={() => shiftAction("check-out")}
+              disabled={acting}
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-white/20 px-3 py-2 text-xs font-bold hover:bg-white/30 disabled:opacity-50"
+            >
+              {acting ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <LogOut size={14} />
+              )}
+              Check-out
+            </button>
+          ) : (
+            <button
+              onClick={() => shiftAction("check-in")}
+              disabled={acting}
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-50 disabled:opacity-50"
+            >
+              {acting ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <LogIn size={14} />
+              )}
+              Check-in
+            </button>
+          )}
         </div>
+        {!active && (
+          <p className="mt-2 text-[11px] opacity-90">
+            Check-in dulu untuk buka kasir, stok & titipan.
+          </p>
+        )}
       </div>
 
       {err && (
@@ -188,79 +264,27 @@ export function RetailStaffDashboard() {
         </div>
       ) : (
         <>
-          {/* Check-in / Check-out */}
-          <div
-            className={`rounded-2xl border p-5 ${
-              active
-                ? "border-emerald-500/40 bg-emerald-500/10"
-                : "border-amber-500/40 bg-amber-500/10"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="flex items-center gap-1.5 text-sm font-semibold">
-                  <Clock size={15} />
-                  {active ? "Sedang bertugas" : "Shift hari ini"}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {mine
-                    ? `Check-in ${fmtTime(mine.checkInAt)}${
-                        mine.checkOutAt
-                          ? ` · Check-out ${fmtTime(mine.checkOutAt)}`
-                          : ` · Layanan ${mine.service === "INVENTORY" ? "Inventori" : "Kasir POS"}`
-                      }`
-                    : "Kamu belum check-in hari ini"}
-                </p>
-                <p className="mt-0.5 text-xs font-semibold">
-                  Total aktif hari ini: {fmtDur(data.shift.totalActiveMin)}
-                </p>
-              </div>
-              {active ? (
-                <button
-                  onClick={() => shiftAction("check-out")}
-                  disabled={acting}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
-                >
-                  {acting ? (
-                    <Loader2 size={15} className="animate-spin" />
-                  ) : (
-                    <LogOut size={15} />
-                  )}
-                  Check-out
-                </button>
-              ) : (
-                <button
-                  onClick={() => shiftAction("check-in")}
-                  disabled={acting}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {acting ? (
-                    <Loader2 size={15} className="animate-spin" />
-                  ) : (
-                    <LogIn size={15} />
-                  )}
-                  Check-in
-                </button>
-              )}
-            </div>
-            <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Users size={13} />
-              {data.shift.onShiftCount} kru sedang bertugas
-              {data.shift.onShift.slice(0, 3).map((s) => (
-                <span
-                  key={s.id}
-                  className="rounded-full bg-background px-2 py-0.5 font-medium"
-                >
-                  {s.user.name}
-                </span>
-              ))}
-              <Link
-                href="/dashboard/retail/shift"
-                className="ml-auto inline-flex items-center gap-0.5 font-semibold text-primary"
-              >
-                Detail <ChevronRight size={13} />
+          {/* Jalan pintas */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {SHORTCUTS.map((a) => (
+              <Link key={a.href} href={a.href} className="group">
+                <div className="flex items-center gap-3 rounded-xl border bg-card p-3 hover:border-primary/40 hover:shadow-sm">
+                  <span
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white ${a.color}`}
+                  >
+                    {a.icon}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold group-hover:text-primary">
+                      {a.label}
+                    </span>
+                    <span className="block truncate text-[11px] text-muted-foreground">
+                      {a.desc}
+                    </span>
+                  </span>
+                </div>
               </Link>
-            </div>
+            ))}
           </div>
 
           {/* Status POS */}
@@ -296,6 +320,22 @@ export function RetailStaffDashboard() {
               </Link>
             </div>
           </div>
+
+          {/* Kru bertugas */}
+          {data.shift.onShiftCount > 0 && (
+            <div className="flex items-center gap-1.5 rounded-xl border bg-card px-4 py-3 text-xs text-muted-foreground">
+              <Users size={13} />
+              {data.shift.onShiftCount} kru bertugas
+              {data.shift.onShift.slice(0, 4).map((s) => (
+                <span
+                  key={s.id}
+                  className="rounded-full bg-muted px-2 py-0.5 font-medium text-foreground"
+                >
+                  {s.user.name}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Peringatan stok menipis */}
           <div className="rounded-xl border bg-card p-4">

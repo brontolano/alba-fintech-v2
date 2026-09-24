@@ -27,6 +27,8 @@ import {
   CreditCard,
   Tags,
   CalendarCheck,
+  PackagePlus,
+  ClipboardCheck,
 } from "lucide-react";
 import Image from "next/image";
 import { useShiftGate } from "@/components/kpak/useShiftGate";
@@ -56,6 +58,10 @@ type NavItem = {
   roles?: string[];
   nonRetailOnly?: boolean;
   retailOnly?: boolean;
+  /** Hanya tampil untuk STAFF unit retail */
+  staffRetailOnly?: boolean;
+  /** Sembunyikan untuk STAFF unit retail (dialihkan ke halaman retail) */
+  hideForStaffRetail?: boolean;
   kpakOnly?: boolean;
   hideForKpak?: boolean;
   /** Kunci badge pantau live (khusus menu Manager KPAK) */
@@ -159,6 +165,7 @@ const NAV_GROUPS: NavGroup[] = [
         icon: <Package size={20} />,
         roles: ["SUPERADMIN", "MANAGER", "STAFF"],
         retailOnly: true,
+        hideForStaffRetail: true,
       },
       {
         label: "POS",
@@ -166,6 +173,46 @@ const NAV_GROUPS: NavGroup[] = [
         icon: <ShoppingCart size={20} />,
         roles: ["MANAGER", "STAFF"],
         retailOnly: true,
+      },
+    ],
+  },
+  {
+    title: "Retail Saya",
+    items: [
+      {
+        label: "Shift Saya",
+        href: "/dashboard/retail/shift",
+        icon: <Clock size={20} />,
+        roles: ["STAFF"],
+        staffRetailOnly: true,
+      },
+      {
+        label: "Stok",
+        href: "/dashboard/retail/inventory",
+        icon: <Package size={20} />,
+        roles: ["STAFF"],
+        staffRetailOnly: true,
+      },
+      {
+        label: "Stok Masuk",
+        href: "/dashboard/retail/stok-masuk",
+        icon: <PackagePlus size={20} />,
+        roles: ["STAFF"],
+        staffRetailOnly: true,
+      },
+      {
+        label: "Hitung Sisa",
+        href: "/dashboard/retail/sisa",
+        icon: <ClipboardCheck size={20} />,
+        roles: ["STAFF"],
+        staffRetailOnly: true,
+      },
+      {
+        label: "Titipan UMKM",
+        href: "/dashboard/retail/konsinyasi",
+        icon: <Users size={20} />,
+        roles: ["STAFF"],
+        staffRetailOnly: true,
       },
     ],
   },
@@ -376,6 +423,7 @@ export function Sidebar({
   const role = user?.role || "STAFF";
   const canUseRetailModules =
     role === "SUPERADMIN" || user?.unitIsRetail === true;
+  const isStaffRetail = role === "STAFF" && user?.unitIsRetail === true;
 
   const shiftGate = useShiftGate();
   const isStaffKpak = shiftGate.gated;
@@ -430,6 +478,8 @@ export function Sidebar({
     if (item.roles && !item.roles.includes(role)) return false;
     if (item.nonRetailOnly && canUseRetailModules) return false;
     if (item.retailOnly && !canUseRetailModules) return false;
+    if (item.staffRetailOnly && !isStaffRetail) return false;
+    if (item.hideForStaffRetail && isStaffRetail) return false;
     if (item.kpakOnly && user?.unitType !== "KPAK" && role !== "SUPERADMIN")
       return false;
     if (item.hideForKpak && user?.unitType === "KPAK") return false;
