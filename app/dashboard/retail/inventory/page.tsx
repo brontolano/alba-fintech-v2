@@ -9,11 +9,6 @@ import {
   ArrowLeft,
   Search,
   Package,
-  Store,
-  Users,
-  Wallet,
-  AlertTriangle,
-  Tags,
   Plus,
   X,
   Pencil,
@@ -339,59 +334,23 @@ export default function RetailInventoryPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
-          {
-            label: "Item Aktif",
-            value: String(
-              (summary?.pondokCount ?? 0) + (summary?.titipanCount ?? 0),
-            ),
-            icon: Package,
-          },
-          {
-            label: "Milik Pondok",
-            value: String(summary?.pondokCount ?? 0),
-            icon: Store,
-          },
-          {
-            label: "Titipan UMKM",
-            value: String(summary?.titipanCount ?? 0),
-            icon: Users,
-          },
-          {
-            label: "Nilai Modal",
-            value: fmt(summary?.modalValuation ?? 0),
-            icon: Wallet,
-          },
-          {
-            label: "Stok Menipis",
-            value: String(lowCount),
-            icon: AlertTriangle,
-          },
-          {
-            label: "Kategori",
-            value: String(categories.length),
-            icon: Tags,
-          },
+          { label: "Item Aktif", value: String((summary?.pondokCount ?? 0) + (summary?.titipanCount ?? 0)) },
+          { label: "Pondok", value: String(summary?.pondokCount ?? 0) },
+          { label: "Titipan", value: String(summary?.titipanCount ?? 0) },
+          { label: "Nilai Modal", value: fmt(summary?.modalValuation ?? 0) },
         ].map((k) => (
-          <div
-            key={k.label}
-            className="flex min-w-0 items-center gap-2 rounded-xl border bg-card p-2.5"
-            title={k.value}
-          >
-            <k.icon
-              size={14}
-              strokeWidth={1.5}
-              className="shrink-0 text-muted-foreground/60"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[9px] uppercase tracking-wider text-muted-foreground">
-                {k.label}
-              </p>
-              <p className="break-words text-xs font-semibold leading-snug text-foreground sm:text-sm">
-                {k.value}
-              </p>
-            </div>
+          <div key={k.label} className="min-w-0 rounded-xl border bg-card px-2 py-1.5">
+            <p className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">
+              {k.label}
+            </p>
+            <p
+              className="break-words text-sm font-bold leading-snug text-foreground sm:text-base"
+              title={k.value}
+            >
+              {k.value}
+            </p>
           </div>
         ))}
       </div>
