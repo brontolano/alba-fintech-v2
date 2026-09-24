@@ -24,6 +24,7 @@ import {
   finzoSelectClass,
   FinzoButton,
 } from "@/components/ui/finzo";
+import { RetailStaffLedger } from "@/components/retail/RetailStaffLedger";
 
 interface Transaction {
   id: string;
@@ -344,6 +345,18 @@ export default function TransactionsPage() {
   const hasFilter = Object.values(filters).some(
     (v) => v !== "" && v !== undefined,
   );
+
+  // Staff retail: tampilkan ledger ringkas khusus (unit terkunci, tanpa tombol ganda).
+  const isRetailStaff =
+    session?.user?.role === "STAFF" &&
+    (session?.user as any)?.unitIsRetail === true;
+  if (isRetailStaff) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <RetailStaffLedger />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
