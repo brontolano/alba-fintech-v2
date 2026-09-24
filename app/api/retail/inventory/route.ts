@@ -38,6 +38,14 @@ export async function POST(request: NextRequest) {
   if (!unitId)
     return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 400 });
 
+  // Stocktake (opname fisik) hanya MANAGER unit — Staff & role lain ditolak.
+  if (action === "stocktake" && session.user.role !== "MANAGER") {
+    return NextResponse.json(
+      { error: "Stocktake hanya boleh dilakukan Manager unit" },
+      { status: 403 },
+    );
+  }
+
   if (action === "stock-in") {
     const parsed = stockInSchema.safeParse(await request.json());
     if (!parsed.success)

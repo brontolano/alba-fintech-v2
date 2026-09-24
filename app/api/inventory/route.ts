@@ -130,6 +130,30 @@ export async function GET(request: NextRequest) {
 
     const total = await prisma.inventoryItem.count({ where });
 
+    // Ringkasan KPI unit (abaikan filter tab/qty halaman): hitung per unit scope.
+    const unitScope: any = {};
+    if (where.unitId !== undefined) unitScope.unitId = where.unitId;
+    const [pondokCount, titipanCount, valuasi] = await Promise.all([
+      prisma.inventoryItem.count({
+        where: { ...unitScope, isActive: true, consignment_item: null },
+      }),
+      prisma.inventoryItem.count({
+        where: {
+          ...unitScope,
+          isActive: true,
+          consignment_item: { is: { id: { not: null } } },
+        },
+      }),
+      prisma.inventoryItem.findMany({
+        where: { ...unitScope, isActive: true },
+        select: { currentStock: true, purchasePrice: true },
+      }),
+    ]);
+    const modalValuation = valuasi.reduce(
+      (s, v) => s + (v.currentStock ?? 0) * Number(v.purchasePrice ?? 0),
+      0,
+    );
+
     return NextResponse.json({
       data: items.map((i) => ({
         ...i,
@@ -139,6 +163,9 @@ export async function GET(request: NextRequest) {
       summary: {
         total,
         pages: Math.ceil(total / parsed.data.limit),
+        pondokCount,
+        titipanCount,
+        modalValuation: Math.round(modalValuation * 100) / 100,
       },
     }, { status: 200 });
   } catch (error: any) {
