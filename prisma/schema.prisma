@@ -45,6 +45,8 @@ model Unit {
   inventory_items     InventoryItem[]
   transactions        Transaction[]
   shift_attendances   ShiftAttendance[]
+  shift_sessions      ShiftSession[]
+  pos_sessions        PosSession[]
   shift_reports       ShiftReport[]
   budget_allocations  BudgetAllocation[]
   consignment_owners  ConsignmentOwner[]
@@ -85,6 +87,8 @@ model User {
   handoverSubmitted                                     CashHandover[]       @relation("handoverSubmitted")
   handoverAccepted                                      CashHandover[]       @relation("handoverAccepted")
   shiftAttendanceUser                                   ShiftAttendance[]    @relation("shiftAttendanceUser")
+  shiftSessionUser                                      ShiftSession[]       @relation("shiftSessionUser")
+  posSessionUser                                        PosSession[]         @relation("posSessionUser")
   shiftReportStaff                                      ShiftReport[]        @relation("shiftReportStaff")
   shiftReportReviewer                                   ShiftReport[]        @relation("shiftReportReviewer")
   allocationCreator                                     BudgetAllocation[]   @relation("allocationCreator")
@@ -206,6 +210,7 @@ model Transaction {
   description                            String              @db.Text
   categoryId                             String?             @db.VarChar(36)
   accountId                              String?             @db.VarChar(36)
+  posSessionId                           String?             @db.VarChar(36)
   reference                              String?             @db.VarChar(255)
   date                                   DateTime?           @default(now()) @map("date") @db.DateTime(0)
   status                                 TransactionStatus?  @default(PENDING)
@@ -226,6 +231,7 @@ model Transaction {
   units                                  Unit                @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "transactions_ibfk_1")
   financial_categories                   FinancialCategory?  @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "transactions_ibfk_2")
   bank_accounts                          BankAccount?        @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "transactions_ibfk_3")
+  pos_sessions                           PosSession?         @relation(fields: [posSessionId], references: [id], onDelete: SetNull, onUpdate: Restrict, map: "transactions_possession_ibfk")
   users_transactions_createdByIdTousers  User                @relation("transactions_createdByIdTousers", fields: [createdById], references: [id], onUpdate: Restrict, map: "transactions_ibfk_4")
   users_transactions_approvedByIdTousers User?               @relation("transactions_approvedByIdTousers", fields: [approvedById], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "transactions_ibfk_5")
 
@@ -622,6 +628,47 @@ model ShiftReport {
   @@index([unitId], map: "shift_reports_unitId")
   @@index([status], map: "shift_reports_status")
   @@map("shift_reports")
+}
+
+model ShiftSession {
+  id         String    @id @default(cuid()) @db.VarChar(36)
+  unitId     String    @db.VarChar(36)
+  userId     String    @db.VarChar(36)
+  date       DateTime  @db.DateTime(0)
+  checkInAt  DateTime  @db.DateTime(0)
+  checkOutAt DateTime? @db.DateTime(0)
+  service    String?   @db.VarChar(20)
+  note       String?   @db.Text
+  createdAt  DateTime? @default(now()) @db.DateTime(0)
+  units      Unit      @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "shift_sessions_ibfk_1")
+  user       User      @relation("shiftSessionUser", fields: [userId], references: [id], onUpdate: Restrict, map: "shift_sessions_ibfk_2")
+
+  @@index([unitId, userId, date], map: "shift_sessions_unit_user_date_idx")
+  @@index([unitId, userId, checkOutAt], map: "shift_sessions_open_idx")
+  @@map("shift_sessions")
+}
+
+model PosSession {
+  id           String       @id @default(cuid()) @db.VarChar(36)
+  unitId       String       @db.VarChar(36)
+  userId       String       @db.VarChar(36)
+  date         DateTime     @db.DateTime(0)
+  openedAt     DateTime     @db.DateTime(0)
+  openingCash  Decimal      @db.Decimal(15, 2)
+  closedAt     DateTime?    @db.DateTime(0)
+  expectedCash Decimal?     @db.Decimal(15, 2)
+  countedCash  Decimal?     @db.Decimal(15, 2)
+  discrepancy  Decimal?     @db.Decimal(15, 2)
+  closeNote    String?      @db.Text
+  autoClosed   Boolean      @default(false)
+  createdAt    DateTime?    @default(now()) @db.DateTime(0)
+  units        Unit         @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "pos_sessions_ibfk_1")
+  user         User         @relation("posSessionUser", fields: [userId], references: [id], onUpdate: Restrict, map: "pos_sessions_ibfk_2")
+  transactions Transaction[]
+
+  @@index([unitId, userId, date], map: "pos_sessions_unit_user_date_idx")
+  @@index([unitId, userId, closedAt], map: "pos_sessions_open_idx")
+  @@map("pos_sessions")
 }
 
 model BudgetAllocation {
