@@ -2,7 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShoppingCart, Package, PackageOpen, ShoppingBag, Wallet, BarChart2, TrendingUp, Users, AlertCircle, Clock, TrendingDown, DollarSign, BookOpen, Utensils, Store, TrendingUp as TrendingUpIcon } from "lucide-react";
+import {
+  ShoppingCart,
+  Package,
+  PackageOpen,
+  ShoppingBag,
+  Wallet,
+  BarChart2,
+  TrendingUp,
+  AlertTriangle,
+  ClipboardList,
+  BookOpen,
+  Utensils,
+  Store,
+} from "lucide-react";
 
 interface StatCardProps {
   label: string;
@@ -24,14 +37,14 @@ function StatCard({ label, value, change, icon, href, color }: StatCardProps) {
 
   return (
     <Link href={href} className="group">
-      <div className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-md transition-all">
+      <div className="rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
-            {change && <p className="mt-1 text-sm text-emerald-600">{change}</p>}
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">{label}</p>
+            <p className="mt-0.5 text-lg font-bold text-foreground truncate">{value}</p>
+            {change && <p className="mt-0.5 text-xs text-emerald-600">{change}</p>}
           </div>
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colors[color as keyof typeof colors]} text-white`}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors[color as keyof typeof colors]} text-white shrink-0`}>
             {icon}
           </div>
         </div>
@@ -42,10 +55,10 @@ function StatCard({ label, value, change, icon, href, color }: StatCardProps) {
 
 function DashboardSkeleton() {
   return (
-    <div className="p-6 space-y-4">
-      <div className="h-8 bg-muted animate-pulse rounded w-1/3" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-        {[...Array(6)].map((_, i) => <div key={i} className="h-24 bg-muted animate-pulse rounded-xl" />)}
+    <div className="p-4 space-y-3">
+      <div className="h-6 bg-muted animate-pulse rounded w-1/3" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        {[...Array(6)].map((_, i) => <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />)}
       </div>
     </div>
   );
@@ -86,59 +99,61 @@ export function RetailManagerDashboard() {
 
   if (loading) return <DashboardSkeleton />;
 
-  const today = new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
+  const { posToday, posRevenue, lowStock, draftBatch, savingsActive, pendingApprovals } = stats;
 
   return (
-    <div className="mx-auto max-w-7xl p-4 sm:p-6 space-y-6">
+    <div className="mx-auto max-w-7xl p-4 space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard Manager Retail</h1>
-          <p className="text-muted-foreground">{unitName} • {today}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold truncate">Dashboard Manager Retail</h1>
+          <p className="text-xs text-muted-foreground">
+            {unitName} · {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
+          </p>
         </div>
-        <div className="flex gap-2">
-          <a href="/dashboard/pos" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2 text-white font-semibold shadow hover:from-amber-600 hover:to-orange-700">
-            <ShoppingCart className="w-5 h-5" /> Buka POS
-          </a>
-          {stats.draftBatch > 0 && (
-            <a href="/dashboard/retail/stok-masuk/review" className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-white font-semibold shadow hover:bg-amber-600">
-              Review ({stats.draftBatch})
-            </a>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/dashboard/retail/pos" className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:from-amber-600 hover:to-orange-700">
+            <ShoppingCart className="w-4 h-4" /> Buka POS
+          </Link>
+          {draftBatch > 0 && (
+            <Link href="/dashboard/retail/stok-masuk/review" className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-amber-600">
+              Review ({draftBatch})
+            </Link>
           )}
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Transaksi POS Hari Ini" value={stats.posToday} change={`Rp ${stats.posRevenue.toLocaleString("id-ID")}`} icon={<ShoppingCart size={24} />} href="/dashboard/pos" color="amber" />
-        <StatCard label="Pendapatan Hari Ini" value={`Rp ${stats.posRevenue.toLocaleString("id-ID")}`} icon={<TrendingUpIcon size={24} />} href="/dashboard/reports" color="green" />
-        <StatCard label="Stok Menipis" value={stats.lowStock} icon={<AlertCircle size={24} />} href="/dashboard/retail/inventory" color="red" />
-        <StatCard label="Draf Batch" value={stats.draftBatch} icon={<ShoppingBag size={24} />} href="/dashboard/retail/stok-masuk/review" color="blue" />
-        <StatCard label="Tabungan Aktif" value={stats.savingsActive} icon={<Wallet size={24} />} href="/dashboard/savings" color="purple" />
-        <StatCard label="Persetujuan Menunggu" value={stats.pendingApprovals} icon={<Clock size={24} />} href="/dashboard/approvals" color="red" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <StatCard label="Transaksi POS Hari Ini" value={posToday} change={`Rp ${posRevenue.toLocaleString("id-ID")}`} icon={<ShoppingCart size={18} />} href="/dashboard/pos" color="amber" />
+        <StatCard label="Pendapatan Hari Ini" value={`Rp ${posRevenue.toLocaleString("id-ID")}`} icon={<TrendingUp size={18} />} href="/dashboard/reports" color="green" />
+        <StatCard label="Stok Menipis" value={lowStock} icon={<AlertTriangle size={18} />} href="/dashboard/retail/inventory" color="red" />
+        <StatCard label="Draf Batch" value={draftBatch} icon={<ShoppingBag size={18} />} href="/dashboard/retail/stok-masuk/review" color="blue" />
+        <StatCard label="Tabungan Aktif" value={savingsActive} icon={<Wallet size={18} />} href="/dashboard/savings" color="purple" />
+        <StatCard label="Persetujuan Menunggu" value={pendingApprovals} icon={<ClipboardList size={18} />} href="/dashboard/approvals" color="red" />
       </div>
 
       {/* Quick Actions */}
-      <div className="rounded-2xl border bg-card p-6">
-        <h2 className="mb-4 text-lg font-semibold">Aksi Cepat</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="rounded-xl border bg-card p-4">
+        <h2 className="mb-3 text-sm font-semibold">Aksi Cepat</h2>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { label: "Buka POS", href: "/dashboard/pos", icon: <ShoppingCart size={24} />, color: "from-amber-500 to-orange-600" },
-            { label: "Cek Stok", href: "/dashboard/retail/inventory", icon: <Package size={24} />, color: "from-blue-500 to-cyan-600" },
-            { label: "Barang Titipan", href: "/dashboard/retail/inventory", icon: <PackageOpen size={24} />, color: "from-amber-500 to-yellow-600" },
-            { label: "Review Batch", href: "/dashboard/retail/stok-masuk/review", icon: <ShoppingBag size={24} />, color: "from-violet-500 to-purple-600" },
-            { label: "Laporan Penjualan", href: "/dashboard/reports", icon: <BarChart2 size={24} />, color: "from-emerald-500 to-teal-600" },
-            { label: "Cek Tabungan", href: "/dashboard/savings", icon: <Wallet size={24} />, color: "from-purple-500 to-pink-600" },
+            { label: "Buka POS", href: "/dashboard/retail/pos", icon: <ShoppingCart size={18} />, color: "from-amber-500 to-orange-600" },
+            { label: "Cek Stok", href: "/dashboard/retail/inventory", icon: <Package size={18} />, color: "from-blue-500 to-cyan-600" },
+            { label: "Barang Titipan", href: "/dashboard/retail/inventory", icon: <PackageOpen size={18} />, color: "from-amber-500 to-yellow-600" },
+            { label: "Review Batch", href: "/dashboard/retail/stok-masuk/review", icon: <ShoppingBag size={18} />, color: "from-violet-500 to-purple-600" },
+            { label: "Laporan Penjualan", href: "/dashboard/reports", icon: <BarChart2 size={18} />, color: "from-emerald-500 to-teal-600" },
+            { label: "Cek Tabungan", href: "/dashboard/savings", icon: <Wallet size={18} />, color: "from-purple-500 to-pink-600" },
           ].map((action) => (
             <Link key={action.href} href={action.href} className="group">
-              <div className="rounded-xl border bg-card p-5 hover:shadow-md hover:border-primary/30 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${action.color} text-white`}>
+              <div className="rounded-xl border bg-card p-4 hover:shadow-md hover:border-primary/30 transition-all">
+                <div className="flex items-center gap-2">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${action.color} text-white`}>
                     {action.icon}
                   </div>
-                  <div>
-                    <p className="font-semibold text-foreground group-hover:text-primary">{action.label}</p>
-                    <p className="text-xs text-muted-foreground">Klik untuk buka</p>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground group-hover:text-primary truncate">{action.label}</p>
+                    <p className="text-[11px] text-muted-foreground">Klik untuk buka</p>
                   </div>
                 </div>
               </div>
@@ -147,44 +162,70 @@ export function RetailManagerDashboard() {
         </div>
       </div>
 
-      {/* Perlu perhatian */}
-      <div className="rounded-2xl border bg-card p-6">
-        <h2 className="mb-4 text-lg font-semibold">Perlu Perhatian</h2>
-        {stats.draftBatch === 0 && stats.lowStock === 0 && stats.pendingApprovals === 0 ? (
+      {/* Perlu Perhatian */}
+      <div className="rounded-xl border bg-card p-4">
+        <h2 className="mb-3 text-sm font-semibold">Perlu Perhatian</h2>
+        {draftBatch === 0 && lowStock === 0 && pendingApprovals === 0 ? (
           <p className="py-2 text-center text-sm text-muted-foreground">
             Semua aman — tidak ada draf, stok menipis, atau persetujuan menunggu.
           </p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-3">
-            {stats.draftBatch > 0 && (
+          <div className="grid gap-2 sm:grid-cols-3">
+            {draftBatch > 0 && (
               <Link
                 href="/dashboard/retail/stok-masuk/review"
-                className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 hover:shadow-md transition-all"
+                className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 hover:shadow-md transition-all"
               >
-                <p className="text-2xl font-bold text-amber-700">{stats.draftBatch}</p>
-                <p className="text-sm text-muted-foreground">draf batch menunggu review</p>
+                <p className="text-xl font-bold text-amber-700">{draftBatch}</p>
+                <p className="text-xs text-muted-foreground">draf batch menunggu review</p>
               </Link>
             )}
-            {stats.lowStock > 0 && (
+            {lowStock > 0 && (
               <Link
                 href="/dashboard/retail/inventory"
-                className="rounded-xl border border-rose-500/40 bg-rose-500/5 p-4 hover:shadow-md transition-all"
+                className="rounded-xl border border-rose-500/40 bg-rose-500/5 p-3 hover:shadow-md transition-all"
               >
-                <p className="text-2xl font-bold text-rose-600">{stats.lowStock}</p>
-                <p className="text-sm text-muted-foreground">barang stok menipis</p>
+                <p className="text-xl font-bold text-rose-600">{lowStock}</p>
+                <p className="text-xs text-muted-foreground">barang stok menipis</p>
               </Link>
             )}
-            {stats.pendingApprovals > 0 && (
+            {pendingApprovals > 0 && (
               <Link
                 href="/dashboard/approvals"
-                className="rounded-xl border bg-card p-4 hover:shadow-md hover:border-primary/30 transition-all"
+                className="rounded-xl border bg-card p-3 hover:shadow-md hover:border-primary/30 transition-all"
               >
-                <p className="text-2xl font-bold">{stats.pendingApprovals}</p>
-                <p className="text-sm text-muted-foreground">persetujuan menunggu</p>
+                <p className="text-xl font-bold">{pendingApprovals}</p>
+                <p className="text-xs text-muted-foreground">persetujuan menunggu</p>
               </Link>
             )}
           </div>
         )}
+      </div>
+
+      {/* Unit Overview */}
+      <div className="rounded-xl border bg-card p-4">
+        <h2 className="mb-3 text-sm font-semibold">Ringkasan Unit Retail</h2>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {[
+            { id: "cmubg2y5h001fxx3d51558t81", name: "Koperasi Buku", code: "KOP", icon: <BookOpen size={16} /> },
+            { id: "cmubg2y5b001dxx3d8ybh8kx9", name: "Kantin Umi", code: "KUM", icon: <Utensils size={16} /> },
+            { id: "cmubg2y54001bxx3d7c6scg0h", name: "Kantin Baru", code: "KAB", icon: <Store size={16} /> },
+          ].map((unit) => (
+            <Link key={unit.id} href={`/dashboard/retail/inventory?unitId=${unit.id}`} className="group">
+              <div className="rounded-xl border bg-card p-3 hover:shadow-md hover:border-primary/30 transition-all">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white">
+                    {unit.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-foreground truncate">{unit.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{unit.code} · Klik untuk detail stok</p>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
