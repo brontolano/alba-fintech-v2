@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   PackagePlus,
   ClipboardCheck,
   Loader2,
   Boxes,
   PackageOpen,
+  ArrowLeft,
 } from "lucide-react";
 
 const fmt = (n: number) =>
@@ -25,59 +25,59 @@ type Item = {
   currentStock: number;
   minStock?: number;
   unitPrice?: number;
+  imageUrl?: string;
+  isConsignment?: boolean;
 };
 
+type Filter = "all" | "pondok" | "titipan";
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "Semua" },
+  { key: "pondok", label: "Pondok" },
+  { key: "titipan", label: "Titipan (UMKM)" },
+];
+
 export default function RetailInventoryPage() {
-  const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
+  const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Form stock-in
   const [stockIn, setStockIn] = useState({ itemId: "", qty: "", unitPrice: "" });
-
-  // Filter: semua / pondok / titipan — menata inventory per-unit dengan jelas.
-  const [filter, setFilter] = useState<"all" | "pondok" | "titipan">("all");
-
-  // Mode stocktake
   const [counting, setCounting] = useState<Record<string, number>>({});
   const [countingMode, setCountingMode] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async (f: Filter) => {
     setLoading(true);
     setErr(null);
     try {
       const params = new URLSearchParams({ limit: "500" });
-      if (filter === "pondok") params.set("isConsignment", "false");
-      if (filter === "titipan") params.set("isConsignment", "true");
+      if (f === "pondok") params.set("isConsignment", "false");
+      if (f === "titipan") params.set("isConsignment", "true");
       const res = await fetch(`/api/inventory?${params.toString()}`);
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Gagal memuat stok");
-      const list = (body.data && Array.isArray(body.data) ? body.data : body.items || []) as Item[];
+      const list = (
+        Array.isArray(body.data) ? body.data : body.items || []
+      ) as Item[];
       setItems(list.filter((x: any) => x.isActive !== false));
     } catch (e: any) {
       setErr(e.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // R1: inventaris hanya saat check-in. Tanpa segmen aktif → ke halaman shift.
-    fetch("/api/retail/dashboard")
-      .then((r) => r.json())
-      .then((b) => {
-        if (!b?.data?.shift?.mine?.active) {
-          setErr("Check-in shift dulu sebelum buka inventaris");
-          router.push("/dashboard/retail/shift");
-          return;
-        }
-        load();
-      })
-      .catch(() => load());
-  }, []);
+    load(filter);
+  }, [filter, load]);
+
+  const pickFilter = (f: Filter) => {
+    setCountingMode(false);
+    setFilter(f);
+  };
 
   const post = async (action: string, payload: any) => {
     setBusy(true);
@@ -91,10 +91,12 @@ export default function RetailInventoryPage() {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Gagal");
-      setMsg(action === "stock-in" ? "Stok ditambahkan" : "Stocktake diterapkan");
+      setMsg(
+        action === "stock-in" ? "Stok ditambahkan" : "Stocktake diterapkan",
+      );
       setStockIn({ itemId: "", qty: "", unitPrice: "" });
       setCountingMode(false);
-      await load();
+      await load(filter);
     } catch (e: any) {
       setErr(e.message);
     } finally {
@@ -103,11 +105,10 @@ export default function RetailInventoryPage() {
   };
 
   const submitStockIn = () => {
-    const itemId = stockIn.itemId;
     const qty = Number(stockIn.qty);
-    if (!itemId || !qty) return;
+    if (!stockIn.itemId || !qty) return;
     post("stock-in", {
-      itemId,
+      itemId: stockIn.itemId,
       qty,
       unitPrice: stockIn.unitPrice ? Number(stockIn.unitPrice) : undefined,
     });
@@ -121,30 +122,59 @@ export default function RetailInventoryPage() {
     post("stocktake", { items: payload });
   };
 
+  const toggleCounting = () => {
+    const next = !countingMode;
+    setCountingMode(next);
+    if (next) {
+      const init: Record<string, number> = {};
+      items.forEach((i) => (init[i.id] = i.currentStock));
+      setCounting(init);
+    }
+  };
+
+  const lowCount = items.filter(
+    (i) => Number(i.currentStock) <= Number(i.minStock ?? -1),
+  ).length;
+
   return (
     <main className="mx-auto max-w-3xl space-y-4 p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold">
-            <Boxes size={20} /> Stok Retail
-          </h1>
-          <p className="text-sm text-muted-foreground">Stok masuk & stocktake</p>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard"
+            aria-label="Kembali"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft size={18} />
+          </Link>
+          <div>
+            <h1 className="flex items-center gap-2 text-xl font-bold">
+              <Boxes size={20} /> Stok Retail
+              {lowCount > 0 && (
+                <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-bold text-rose-600">
+                  {lowCount} menipis
+                </span>
+              )}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Stok masuk & stocktake
+            </p>
+          </div>
         </div>
-        <Link
-          href="/dashboard/retail/inventory/tambah"
-          className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
-        >
-          <PackagePlus size={15} /> Tambah Barang
-        </Link>
-        <Link
-          href="/dashboard/retail/inventory/barang-titipan"
-          className="inline-flex items-center gap-1 rounded-lg border bg-background px-3 py-1.5 text-sm font-semibold hover:bg-accent"
-        >
-          <PackageOpen size={15} /> Barang Titipan
-        </Link>
-        <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Kembali
-        </Link>
+        <div className="flex shrink-0 gap-1.5">
+          <Link
+            href="/dashboard/retail/inventory/tambah"
+            className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
+          >
+            <PackagePlus size={15} /> Tambah
+          </Link>
+          <Link
+            href="/dashboard/retail/inventory/barang-titipan"
+            className="inline-flex items-center gap-1 rounded-lg border bg-background px-3 py-1.5 text-sm font-semibold hover:bg-accent"
+          >
+            <PackageOpen size={15} /> Titipan
+          </Link>
+        </div>
       </div>
 
       {err && (
@@ -157,6 +187,20 @@ export default function RetailInventoryPage() {
           {msg}
         </div>
       )}
+
+      <div className="flex items-center justify-end gap-1 text-xs">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => pickFilter(f.key)}
+            className={`rounded-lg border bg-background px-2 py-1 ${
+              filter === f.key ? "border-primary bg-primary/10" : ""
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
       {/* Stok masuk */}
       <form
@@ -194,7 +238,9 @@ export default function RetailInventoryPage() {
           />
           <input
             value={stockIn.unitPrice}
-            onChange={(e) => setStockIn({ ...stockIn, unitPrice: e.target.value })}
+            onChange={(e) =>
+              setStockIn({ ...stockIn, unitPrice: e.target.value })
+            }
             placeholder="Harga beli/biji (opsional)"
             type="number"
             min="0"
@@ -206,57 +252,50 @@ export default function RetailInventoryPage() {
           disabled={busy || !stockIn.itemId || !stockIn.qty}
           className="mt-3 inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
         >
-          {busy ? <Loader2 size={15} className="animate-spin" /> : <PackagePlus size={15} />}
+          {busy ? (
+            <Loader2 size={15} className="animate-spin" />
+          ) : (
+            <PackagePlus size={15} />
+          )}
           Tambah Stok
         </button>
       </form>
 
-      {/* Mode stocktake */}
+      {/* Stocktake + daftar */}
       <div className="rounded-xl border bg-card p-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
-            <ClipboardCheck size={16} /> Stocktake
+            <ClipboardCheck size={16} /> Daftar Barang ({items.length})
           </h2>
           <button
-            onClick={() => {
-              const next = !countingMode;
-              setCountingMode(next);
-              if (next) {
-                const init: Record<string, number> = {};
-                items.forEach((i) => (init[i.id] = i.currentStock));
-                setCounting(init);
-              }
-            }}
-            className="rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+            onClick={toggleCounting}
+            className="rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold"
           >
-            {countingMode ? "Batal" : "Mulai Hitung"}
+            {countingMode ? "Batal" : "Stocktake"}
           </button>
         </div>
 
-        {countingMode ? (
+        {loading ? (
+          <div className="py-8 text-center text-muted-foreground">
+            <Loader2 size={18} className="mx-auto animate-spin" />
+          </div>
+        ) : items.length === 0 ? (
+          <p className="py-3 text-center text-sm text-muted-foreground">
+            Tidak ada barang
+          </p>
+        ) : countingMode ? (
           <>
             <div className="max-h-80 space-y-2 overflow-y-auto">
-             {items.map((i) => (
-               <div key={i.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                 <div className="min-w-0">
-                   <p className="truncate font-medium">
-                     {i.name}
-                     {(i as any).isConsignment && (
-                       <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
-                         UMKM
-                       </span>
-                     )}
-                   </p>
-                   {(i as any).imageUrl ? (
-                     <img
-                       src={(i as any).imageUrl}
-                       alt={i.name}
-                       className="mt-0.5 h-8 w-8 rounded border object-cover"
-                     />
-                   ) : (
-                     <span className="mt-0.5 block h-8 w-8 shrink-0 rounded border bg-muted" />
-                   )}
-                    <p className="text-xs text-muted-foreground">catat: {i.currentStock}</p>
+              {items.map((i) => (
+                <div
+                  key={i.id}
+                  className="flex items-center justify-between gap-3 py-2 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{i.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      catat: {i.currentStock}
+                    </p>
                   </div>
                   <input
                     type="number"
@@ -275,83 +314,60 @@ export default function RetailInventoryPage() {
               disabled={busy}
               className="mt-3 inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
             >
-              {busy ? <Loader2 size={15} className="animate-spin" /> : <ClipboardCheck size={15} />}
+              {busy ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <ClipboardCheck size={15} />
+              )}
               Terapkan Hitungan
             </button>
           </>
         ) : (
-          <p className="py-2 text-center text-sm text-muted-foreground">
-            Klik &quot;Mulai Hitung&quot; untuk sesuaikan stok riil
-          </p>
-        )}
-      </div>
-
-      {/* Filter Pondok / Titipan */}
-      <div className="flex items-center justify-end gap-1 text-xs">
-        <button
-          onClick={() => setFilter("all")}
-          className={`rounded-lg border bg-background px-2 py-1 ${
-            filter === "all" ? "border-primary bg-primary/10" : ""
-          }`}
-        >
-          Semua
-        </button>
-        <button
-          onClick={() => setFilter("pondok")}
-          className={`rounded-lg border bg-background px-2 py-1 ${
-            filter === "pondok" ? "border-primary bg-primary/10" : ""
-          }`}
-        >
-          Pondok
-        </button>
-        <button
-          onClick={() => setFilter("titipan")}
-          className={`rounded-lg border bg-background px-2 py-1 ${
-            filter === "titipan" ? "border-primary bg-primary/10" : ""
-          }`}
-        >
-          Titipan (UMKM)
-        </button>
-      </div>
-
-      {/* Daftar stok */}
-      <div className="rounded-xl border bg-card p-4">
-        <h2 className="mb-2 text-sm font-semibold">
-          Daftar Barang ({items.length})
-        </h2>
-        {loading ? (
-          <div className="py-8 text-center text-muted-foreground">
-            <Loader2 size={18} className="mx-auto animate-spin" />
-          </div>
-        ) : items.length === 0 ? (
-          <p className="py-3 text-center text-sm text-muted-foreground">Tidak ada barang</p>
-        ) : (
           <div className="divide-y">
-            {items.map((i) => (
-              <div key={i.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{i.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {i.sku ? `${i.sku} · ` : ""}
-                    {i.unitPrice ? `${fmt(Number(i.unitPrice))}/biji` : "harga belum set"}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p
-                    className={`font-bold ${
-                      Number(i.currentStock) <= Number(i.minStock ?? -1)
-                        ? "text-rose-600"
-                        : ""
-                    }`}
-                  >
-                    {i.currentStock}
-                  </p>
-                  {Number(i.currentStock) <= Number(i.minStock ?? -1) && (
-                    <p className="text-[11px] text-rose-600">stok menipis</p>
+            {items.map((i) => {
+              const low =
+                Number(i.currentStock) <= Number(i.minStock ?? -1);
+              return (
+                <div
+                  key={i.id}
+                  className="flex items-center gap-3 py-2 text-sm"
+                >
+                  {i.imageUrl ? (
+                    <img
+                      src={i.imageUrl}
+                      alt={i.name}
+                      className="h-9 w-9 shrink-0 rounded-lg border object-cover"
+                    />
+                  ) : (
+                    <span className="h-9 w-9 shrink-0 rounded-lg border bg-muted" />
                   )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">
+                      {i.name}
+                      {i.isConsignment && (
+                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                          UMKM
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {i.sku ? `${i.sku} · ` : ""}
+                      {i.unitPrice
+                        ? `${fmt(Number(i.unitPrice))}/biji`
+                        : "harga belum set"}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className={`font-bold ${low ? "text-rose-600" : ""}`}>
+                      {i.currentStock}
+                    </p>
+                    {low && (
+                      <p className="text-[11px] text-rose-600">menipis</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

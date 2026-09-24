@@ -105,7 +105,7 @@ export function RetailManagerDashboard() {
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Transaksi POS Hari Ini" value={stats.posToday} change={`Rp ${stats.posRevenue.toLocaleString("id-ID")}`} icon={<ShoppingCart size={24} />} href="/dashboard/retail/pos" color="amber" />
-        <StatCard label="Pendapatan Hari Ini" value={`Rp ${stats.posRevenue.toLocaleString("id-ID")}`} icon={<TrendingUpIcon size={24} />} href="/dashboard/retail/laporan" color="green" />
+        <StatCard label="Pendapatan Hari Ini" value={`Rp ${stats.posRevenue.toLocaleString("id-ID")}`} icon={<TrendingUpIcon size={24} />} href="/dashboard/reports" color="green" />
         <StatCard label="Stok Menipis" value={stats.lowStock} icon={<AlertCircle size={24} />} href="/dashboard/retail/inventory" color="red" />
         <StatCard label="Belanja Pending" value={stats.pendingOrders} icon={<ShoppingBag size={24} />} href="/dashboard/retail/belanja" color="blue" />
         <StatCard label="Tabungan Aktif" value={stats.savingsActive} icon={<Wallet size={24} />} href="/dashboard/retail/tabungan" color="purple" />
@@ -121,7 +121,7 @@ export function RetailManagerDashboard() {
             { label: "Cek Stok", href: "/dashboard/retail/inventory", icon: <Package size={24} />, color: "from-blue-500 to-cyan-600" },
             { label: "Barang Titipan", href: "/dashboard/retail/inventory/barang-titipan", icon: <PackageOpen size={24} />, color: "from-amber-500 to-yellow-600" },
             { label: "Buat Belanja", href: "/dashboard/retail/belanja", icon: <ShoppingBag size={24} />, color: "from-violet-500 to-purple-600" },
-            { label: "Laporan Penjualan", href: "/dashboard/retail/laporan", icon: <BarChart2 size={24} />, color: "from-emerald-500 to-teal-600" },
+            { label: "Laporan Penjualan", href: "/dashboard/reports", icon: <BarChart2 size={24} />, color: "from-emerald-500 to-teal-600" },
             { label: "Cek Tabungan", href: "/dashboard/retail/tabungan", icon: <Wallet size={24} />, color: "from-purple-500 to-pink-600" },
           ].map((action) => (
             <Link key={action.href} href={action.href} className="group">

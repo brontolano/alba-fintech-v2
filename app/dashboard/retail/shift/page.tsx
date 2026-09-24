@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import {
@@ -72,7 +72,6 @@ export default function RetailShiftPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [clock, setClock] = useState(wibNow());
 
-  const [shift, setShift] = useState<any>(null);
   const [segments, setSegments] = useState<Segment[]>([]);
   const [totalActiveMin, setTotalActiveMin] = useState(0);
   const [history, setHistory] = useState<any[]>([]);
@@ -82,13 +81,7 @@ export default function RetailShiftPage() {
   const [countedCash, setCountedCash] = useState("");
   const [closeResult, setCloseResult] = useState<any>(null);
 
-  useEffect(() => {
-    const t = setInterval(() => setClock(wibNow()), 1000);
-    loadData();
-    return () => clearInterval(t);
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setErr(null);
     try {
@@ -100,7 +93,6 @@ export default function RetailShiftPage() {
       if (!hRes.ok) throw new Error(hBody.error || "Gagal memuat shift");
       const pBody = await pRes.json();
       if (!pRes.ok) throw new Error(pBody.error || "Gagal memuat sesi POS");
-      setShift(hBody.data?.history?.[0] ?? null);
       setSegments(hBody.data?.today?.segments ?? []);
       setTotalActiveMin(hBody.data?.today?.totalActiveMin ?? 0);
       setHistory(hBody.data?.history ?? []);
@@ -111,7 +103,13 @@ export default function RetailShiftPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => setClock(wibNow()), 1000);
+    loadData();
+    return () => clearInterval(t);
+  }, [loadData]);
 
   const post = async (body: any) => {
     setActing(true);
@@ -161,6 +159,7 @@ export default function RetailShiftPage() {
   };
 
   const isOn = segments.some((s) => s.running);
+  const running = segments.find((s) => s.running);
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 p-4">
@@ -198,7 +197,7 @@ export default function RetailShiftPage() {
         </div>
       ) : (
         <>
-          {/* 1. Ringkasan shift */}
+          {/* Ringkasan shift */}
           <div
             className={`rounded-2xl border p-5 text-center ${
               isOn
@@ -216,14 +215,11 @@ export default function RetailShiftPage() {
               {isOn ? "Shift aktif" : "Belum check-in"}
             </p>
             <p className="mt-1 text-2xl font-bold">
-              Total aktif hari ini: {fmtDur(totalActiveMin)}
+              {fmtDur(totalActiveMin)} hari ini
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {segments.length} sesi
-              {segments.some((s) => s.running) &&
-                ` · berjalan sejak ${fmtTime(
-                  segments.find((s) => s.running)?.checkInAt,
-                )}`}
+              {running && ` · berjalan sejak ${fmtTime(running.checkInAt)}`}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {!isOn ? (
@@ -258,9 +254,7 @@ export default function RetailShiftPage() {
               ) : (
                 <>
                   <button
-                    onClick={() =>
-                      post({ action: "set-service", service: "POS" })
-                    }
+                    onClick={() => post({ action: "set-service", service: "POS" })}
                     disabled={acting}
                     className="inline-flex items-center gap-1 rounded-lg border bg-card px-3 py-1.5 text-sm font-medium hover:border-primary/50 disabled:opacity-50"
                   >
@@ -280,7 +274,7 @@ export default function RetailShiftPage() {
                       if (
                         pos &&
                         !window.confirm(
-                          "Sesi POS masih terbuka. Check-out akan DITOLAK kecuali POS ditutup dulu. Lanjut coba check-out?",
+                          "Sesi POS masih terbuka — check-out akan ditolak kecuali POS ditutup dulu. Lanjut coba?",
                         )
                       )
                         return;
@@ -301,7 +295,7 @@ export default function RetailShiftPage() {
             </div>
           </div>
 
-          {/* 2. Kontrol POS */}
+          {/* Kontrol POS */}
           <div className="rounded-xl border bg-card p-4">
             <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
               <Wallet size={15} /> Kontrol POS
@@ -313,8 +307,7 @@ export default function RetailShiftPage() {
                     OPEN
                   </span>{" "}
                   <span className="text-muted-foreground">
-                    dibuka {fmtTime(pos.openedAt)} · modal{" "}
-                    {fmtRp(pos.openingCash)}
+                    dibuka {fmtTime(pos.openedAt)} · modal {fmtRp(pos.openingCash)}
                   </span>
                 </p>
                 <p className="text-muted-foreground">
@@ -335,10 +328,7 @@ export default function RetailShiftPage() {
                   />
                   <button
                     onClick={() =>
-                      postPos({
-                        action: "close",
-                        countedCash: Number(countedCash),
-                      })
+                      postPos({ action: "close", countedCash: Number(countedCash) })
                     }
                     disabled={acting || !countedCash}
                     className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
@@ -390,10 +380,7 @@ export default function RetailShiftPage() {
                   />
                   <button
                     onClick={() =>
-                      postPos({
-                        action: "open",
-                        openingCash: Number(openingCash),
-                      })
+                      postPos({ action: "open", openingCash: Number(openingCash) })
                     }
                     disabled={acting || !isOn || !openingCash}
                     className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
@@ -410,43 +397,37 @@ export default function RetailShiftPage() {
             )}
           </div>
 
-          {/* 3. Akses cepat */}
+          {/* Akses cepat */}
           <div className="grid grid-cols-2 gap-2">
-            <Link
-              href={isOn ? "/dashboard/pos" : "#"}
-              onClick={(e) => {
-                if (!isOn) e.preventDefault();
-              }}
-              aria-disabled={!isOn}
-              className={`flex items-center justify-center gap-2 rounded-xl border p-4 text-sm font-semibold ${
-                isOn
-                  ? "bg-card hover:border-primary/50"
-                  : "cursor-not-allowed bg-muted/50 text-muted-foreground"
-              }`}
-              title={isOn ? "Buka kasir" : "Check-in dulu untuk buka kasir"}
-            >
-              {!isOn && <AlertTriangle size={14} />}
-              <Store size={16} /> Kasir POS
-            </Link>
-            <Link
-              href={isOn ? "/dashboard/retail/inventory" : "#"}
-              onClick={(e) => {
-                if (!isOn) e.preventDefault();
-              }}
-              aria-disabled={!isOn}
-              className={`flex items-center justify-center gap-2 rounded-xl border p-4 text-sm font-semibold ${
-                isOn
-                  ? "bg-card hover:border-primary/50"
-                  : "cursor-not-allowed bg-muted/50 text-muted-foreground"
-              }`}
-              title={isOn ? "Buka inventaris" : "Check-in dulu untuk buka inventaris"}
-            >
-              {!isOn && <AlertTriangle size={14} />}
-              <Boxes size={16} /> Inventaris
-            </Link>
+            {[
+              { href: "/dashboard/pos", label: "Kasir POS", icon: <Store size={16} /> },
+              {
+                href: "/dashboard/retail/inventory",
+                label: "Inventaris",
+                icon: <Boxes size={16} />,
+              },
+            ].map((a) => (
+              <Link
+                key={a.href}
+                href={isOn ? a.href : "#"}
+                onClick={(e) => {
+                  if (!isOn) e.preventDefault();
+                }}
+                aria-disabled={!isOn}
+                className={`flex items-center justify-center gap-2 rounded-xl border p-4 text-sm font-semibold ${
+                  isOn
+                    ? "bg-card hover:border-primary/50"
+                    : "cursor-not-allowed bg-muted/50 text-muted-foreground"
+                }`}
+                title={isOn ? undefined : "Check-in dulu untuk akses"}
+              >
+                {!isOn && <AlertTriangle size={14} />}
+                {a.icon} {a.label}
+              </Link>
+            ))}
           </div>
 
-          {/* 4. Timeline hari ini */}
+          {/* Timeline hari ini */}
           <div className="rounded-xl border bg-card p-4">
             <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
               <Clock size={15} /> Timeline hari ini
@@ -456,7 +437,7 @@ export default function RetailShiftPage() {
                 Belum ada sesi hari ini
               </p>
             ) : (
-              <div className="space-y-0">
+              <div>
                 {segments.map((s, idx) => (
                   <div key={s.id} className="flex gap-3 text-sm">
                     <div className="flex flex-col items-center">
@@ -492,7 +473,7 @@ export default function RetailShiftPage() {
             )}
           </div>
 
-          {/* Riwayat 14 hari */}
+          {/* Riwayat */}
           <div className="rounded-xl border bg-card p-4">
             <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
               <Clock size={15} /> Riwayat (14 hari)
@@ -521,9 +502,7 @@ export default function RetailShiftPage() {
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {fmtTime(h.checkInAt)}
-                        {h.checkOutAt
-                          ? ` — ${fmtTime(h.checkOutAt)}`
-                          : " (berjalan)"}
+                        {h.checkOutAt ? ` — ${fmtTime(h.checkOutAt)}` : " (berjalan)"}
                         {h.durationMin != null && ` · ${fmtDur(h.durationMin)}`}
                         {h.txCount != null && ` · ${h.txCount} trx`}
                       </p>

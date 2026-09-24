@@ -40,7 +40,7 @@ export const RETAIL_NAV_GROUPS = {
     { key: "tabungan" as RetailPage, label: "Tabungan Santri", href: "/dashboard/retail/tabungan", iconName: "Wallet", roles: ["MANAGER","STAFF"] as const },
   ],
   tertiary: [
-    { key: "laporan" as RetailPage, label: "Laporan Retail", href: "/dashboard/retail/laporan", iconName: "BarChart2", roles: ["MANAGER","STAFF"] as const },
+    { key: "laporan" as RetailPage, label: "Laporan Retail", href: "/dashboard/reports", iconName: "BarChart2", roles: ["MANAGER","STAFF"] as const },
     { key: "profil" as RetailPage, label: "Profil", href: "/dashboard/profile", iconName: "User", roles: ["MANAGER","STAFF"] as const },
   ],
 } as const;

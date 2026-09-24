@@ -216,7 +216,7 @@ export function MobileNav({ user }: MobileNavProps) {
             },
             {
               label: "Inventori",
-              href: "/dashboard/inventory",
+              href: "/dashboard/retail/inventory",
               icon: <Package size={24} />,
             },
             {

@@ -98,6 +98,29 @@ export default function POSPage() {
   const PAGE_SIZE = 100;
   const LOW_STOCK_THRESHOLD = 5;
   const isManager = session?.user?.role === "MANAGER";
+  // R2: kasir retail wajib sesi POS terbuka miliknya sebelum checkout.
+  const needPosSession =
+    (session?.user?.role === "STAFF" ||
+      session?.user?.role === "MANAGER") &&
+    (session?.user as any)?.unitIsRetail === true;
+  const [posSessionId, setPosSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!needPosSession) return;
+    fetch("/api/retail/pos-session")
+      .then((r) => r.json())
+      .then((b) => setPosSessionId(b?.data?.open?.id ?? null))
+      .catch(() => setPosSessionId(null));
+  }, [needPosSession, (session?.user as any)?.id]);
+
+  const requirePosSession = () => {
+    if (needPosSession && !posSessionId) {
+      toast.error("Buka sesi POS dulu di halaman Shift");
+      router.push("/dashboard/retail/shift");
+      return false;
+    }
+    return true;
+  };
 
   useEffect(() => {
     if (session?.user?.role !== "MANAGER") return;
@@ -425,6 +448,7 @@ export default function POSPage() {
       }
     }
 
+    if (!requirePosSession()) return;
     setPayingSmart(true);
     try {
       const res = await fetch("/api/smartpay", {
@@ -433,6 +457,7 @@ export default function POSPage() {
         body: JSON.stringify({
           cardUid: uid,
           unitId: session?.user?.unitId,
+          posSessionId: posSessionId ?? undefined,
           items: cart.map((item) => ({
             itemId: item.id,
             quantity: item.quantity,
@@ -442,6 +467,12 @@ export default function POSPage() {
       });
       const data = await res.json();
       if (!res.ok) {
+        if (String(data?.error || "").includes("POS_BELUM_DIBUKA")) {
+          setPosSessionId(null);
+          toast.error("Sesi POS tidak valid — buka ulang di halaman Shift");
+          router.push("/dashboard/retail/shift");
+          return;
+        }
         throw new Error(data?.error || "Gagal memproses pembayaran kartu");
       }
 
@@ -485,6 +516,8 @@ export default function POSPage() {
       toast.error("Keranjang kosong");
       return;
     }
+
+    if (!requirePosSession()) return;
 
     // Validasi uang bayar untuk transaksi tunai
     if (paymentMethod === "cash") {
@@ -530,6 +563,7 @@ export default function POSPage() {
           unitId: session?.user?.unitId,
           description: `Penjualan ${cart.length} item${customerName ? ` untuk ${customerName}` : ""}`,
           paymentMethod,
+          posSessionId: posSessionId ?? undefined,
           orderItems: cart.map((item) => ({
             itemId: item.id,
             itemName: item.name,
@@ -542,6 +576,12 @@ export default function POSPage() {
 
       if (!res.ok) {
         const err = await res.json();
+        if (String(err?.error || "").includes("POS_BELUM_DIBUKA")) {
+          setPosSessionId(null);
+          toast.error("Sesi POS tidak valid — buka ulang di halaman Shift");
+          router.push("/dashboard/retail/shift");
+          return;
+        }
         throw new Error(err.error || "Gagal memproses transaksi");
       }
 
@@ -574,6 +614,20 @@ export default function POSPage() {
           Shift Kasir
         </button>
       </div>
+
+      {needPosSession && !posSessionId && (
+        <div className="flex flex-col gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-medium text-amber-700 dark:text-amber-400">
+            Sesi POS belum dibuka — transaksi ditahan sampai kasir dibuka.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard/retail/shift")}
+            className="shrink-0 rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+          >
+            Buka di Shift
+          </button>
+        </div>
+      )}
 
       {isManager && (
         <div className="grid gap-3 sm:grid-cols-3">

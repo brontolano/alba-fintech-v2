@@ -71,7 +71,7 @@ export function RetailMobileNav({ user }: RetailMobileNavProps) {
           { key: "pos", label: "POS", href: "/dashboard/retail/pos", iconName: "ShoppingCart" },
           { key: "inventory", label: "Stok", href: "/dashboard/retail/inventory", iconName: "Package" },
           { key: "belanja", label: "Belanja", href: "/dashboard/retail/belanja", iconName: "ShoppingBag" },
-          { key: "laporan", label: "Laporan", href: "/dashboard/retail/laporan", iconName: "BarChart2" },
+          { key: "laporan", label: "Laporan", href: "/dashboard/reports", iconName: "BarChart2" },
         ].map(item => (
           <button
             key={item.key}

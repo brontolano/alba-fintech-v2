@@ -63,15 +63,24 @@ interface UnitsResponse {
 }
 
 import { usePageGuard } from "@/lib/use-page-guard";
+import { useRouter } from "next/navigation";
 
 export default function InventoryPage() {
+  // Inventaris generik (CRUD penuh) untuk SUPERADMIN & MANAGER retail.
+  // STAFF retail memakai halaman operasional /dashboard/retail/inventory.
   usePageGuard([], {
     allow: (u) =>
       u?.role === "SUPERADMIN" ||
-      (u?.unitIsRetail === true &&
-        (u.role === "MANAGER" || u.role === "STAFF")),
+      (u?.unitIsRetail === true && u.role === "MANAGER"),
   });
+  const router = useRouter();
   const { data: session } = useSession();
+  useEffect(() => {
+    const u = session?.user as any;
+    if (u?.role === "STAFF" && u?.unitIsRetail === true) {
+      router.replace("/dashboard/retail/inventory");
+    }
+  }, [session, router]);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [units, setUnits] = useState<Unit[]>([]);
