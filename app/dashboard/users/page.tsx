@@ -39,6 +39,7 @@ interface Unit {
 
 import { usePageGuard } from "@/lib/use-page-guard";
 import { useSession } from "next-auth/react";
+import { PimpinanPegawai } from "@/components/pimpinan/PimpinanPegawai";
 
 export default function UsersPage() {
   usePageGuard(["SUPERADMIN", "PIMPINAN"]);
@@ -122,6 +123,11 @@ export default function UsersPage() {
       user.name?.toLowerCase().includes(search.toLowerCase()) ||
       user.email.toLowerCase().includes(search.toLowerCase()),
   );
+
+  // Pimpinan: pandangan rekap pegawai read-only (compact, serasi Papan Pantau).
+  if (session?.user?.role === "PIMPINAN") {
+    return <PimpinanPegawai />;
+  }
 
   return (
     <div className="space-y-5">

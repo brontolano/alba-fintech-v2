@@ -31,7 +31,7 @@ interface Unit {
 import { usePageGuard } from "@/lib/use-page-guard";
 
 export default function UnitsPage() {
-  usePageGuard(["SUPERADMIN"]);
+  usePageGuard(["SUPERADMIN", "PIMPINAN"]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

@@ -590,6 +590,23 @@ const PIMPINAN_GROUPS: NavGroup[] = [
     ],
   },
   {
+    title: "Kelola",
+    items: [
+      {
+        label: "Unit",
+        href: "/dashboard/units",
+        icon: <LayoutGrid size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Kategori Keuangan",
+        href: "/dashboard/settings/categories",
+        icon: <Tags size={20} />,
+        roles: ["PIMPINAN"],
+      },
+    ],
+  },
+  {
     title: "Kepegawaian",
     items: [
       {

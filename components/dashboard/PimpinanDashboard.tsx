@@ -10,6 +10,9 @@ import {
   Receipt,
   ClipboardList,
   BarChart3,
+  Building,
+  Tags,
+  Users,
   Clock,
   Monitor,
   ArrowUpRight,
@@ -126,20 +129,20 @@ export default function PimpinanDashboard() {
           {
             href: "/dashboard/transactions/create",
             icon: Receipt,
-            label: "Buku Kas",
+            label: "Input Data",
             color: "islamic",
+          },
+          {
+            href: "/dashboard/transactions",
+            icon: ClipboardList,
+            label: "Buku Kas",
+            color: "green",
           },
           {
             href: "/dashboard/monitor",
             icon: Monitor,
             label: "Papan Pantau",
             color: "blue",
-          },
-          {
-            href: "/dashboard/transactions",
-            icon: TrendingUp,
-            label: "Transaksi",
-            color: "green",
           },
           {
             href: "/dashboard/reports",
@@ -155,9 +158,27 @@ export default function PimpinanDashboard() {
           },
           {
             href: "/dashboard/approvals",
-            icon: ClipboardList,
+            icon: CheckCircle,
             label: "Persetujuan",
             color: "amber",
+          },
+          {
+            href: "/dashboard/units",
+            icon: Building,
+            label: "Unit",
+            color: "orange",
+          },
+          {
+            href: "/dashboard/settings/categories",
+            icon: Tags,
+            label: "Kategori",
+            color: "slate",
+          },
+          {
+            href: "/dashboard/users",
+            icon: Users,
+            label: "Pegawai",
+            color: "red",
           },
         ]}
       />

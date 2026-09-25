@@ -25,6 +25,7 @@ import {
   FinzoButton,
 } from "@/components/ui/finzo";
 import { RetailStaffLedger } from "@/components/retail/RetailStaffLedger";
+import { PimpinanBukuKas } from "@/components/pimpinan/PimpinanBukuKas";
 
 interface Transaction {
   id: string;
@@ -360,6 +361,11 @@ export default function TransactionsPage() {
         <RetailStaffLedger manage={isRetailManager} />
       </div>
     );
+  }
+
+  // Pimpinan: buku kas level lembaga — layout compact serasi Papan Pantau.
+  if (session?.user?.role === "PIMPINAN") {
+    return <PimpinanBukuKas />;
   }
 
   return (

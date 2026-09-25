@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, Save, Upload, X, BriefcaseBusiness } from "lucide-react";
 import { toast } from "sonner";
@@ -63,6 +64,9 @@ export default function CreateTransactionPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  // PIMPINAN: Unit & Kategori dipilih lewat input teks (datalist), bukan dropdown.
+  const [unitInput, setUnitInput] = useState("");
+  const [categoryInput, setCategoryInput] = useState("");
 
   const isPimpinan = role === "PIMPINAN";
   const activeUnit =
@@ -131,10 +135,49 @@ export default function CreateTransactionPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const isLembagaTx = isPimpinan && form.unitId === LEMBAGA_SENTINEL;
-    if (!form.amount || !form.description || (!form.unitId && !isLembagaTx)) {
+    if (!form.amount || !form.description || (!isPimpinan && !form.unitId)) {
       toast.error("Harap isi semua field yang wajib");
       return;
+    }
+
+    let resolvedUnitId = form.unitId;
+    let resolvedCategoryId = form.categoryId;
+
+    if (isPimpinan) {
+      const unitName = unitInput.trim();
+      if (!unitName) {
+        // Kosong = transaksi level lembaga (unit virtual pimpinan).
+        resolvedUnitId = LEMBAGA_SENTINEL;
+      } else {
+        const unitMatch = units.find(
+          (u) => u.name.trim().toLowerCase() === unitName.toLowerCase(),
+        );
+        if (!unitMatch) {
+          toast.error(
+            `Unit "${unitName}" tidak ditemukan. Gunakan nama unit persis dari menu Unit.`,
+          );
+          return;
+        }
+        resolvedUnitId = unitMatch.id;
+      }
+
+      const categoryName = categoryInput.trim();
+      if (categoryName) {
+        const categoryMatch = categories.find(
+          (c) =>
+            c.type === form.type &&
+            c.name.trim().toLowerCase() === categoryName.toLowerCase(),
+        );
+        if (!categoryMatch) {
+          toast.error(
+            `Kategori "${categoryName}" tidak ditemukan di daftar kategori ${form.type === "INCOME" ? "pemasukan" : "pengeluaran"}.`,
+          );
+          return;
+        }
+        resolvedCategoryId = categoryMatch.id;
+      } else {
+        resolvedCategoryId = "";
+      }
     }
 
     setSubmitting(true);
@@ -144,8 +187,8 @@ export default function CreateTransactionPage() {
       formData.append("amount", parseFloat(form.amount).toString());
       formData.append("description", form.description);
       formData.append("reference", form.reference);
-      formData.append("unitId", isLembagaTx ? LEMBAGA_SENTINEL : form.unitId);
-      formData.append("categoryId", form.categoryId);
+      formData.append("unitId", resolvedUnitId);
+      formData.append("categoryId", resolvedCategoryId);
       formData.append("date", form.date);
       if (form.photoFile) {
         formData.append("photo", form.photoFile);
@@ -354,54 +397,113 @@ export default function CreateTransactionPage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">
-                Unit
+                Unit {!isPimpinan && <span className="text-red-500">*</span>}
               </label>
-              <select
-                value={form.unitId}
-                onChange={(e) =>
-                  setForm({ ...form, unitId: e.target.value, categoryId: "" })
-                }
-                disabled={role === "MANAGER" || role === "STAFF"}
-                className={`w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10 ${
-                  role === "MANAGER" || role === "STAFF"
-                    ? "cursor-default bg-muted text-muted-foreground"
-                    : ""
-                }`}
-                required
-              >
-                {isPimpinan && (
-                  <option value={LEMBAGA_SENTINEL}>
-                    🏛️ Transaksi Lembaga (non-unit)
-                  </option>
-                )}
-                <option value="">Pilih Unit</option>
-                {units.map((unit) => (
-                  <option key={unit.id} value={unit.id}>
-                    {unit.name} ({unit.code}) · {unit.type || "UMUM"}
-                  </option>
-                ))}
-              </select>
+              {isPimpinan ? (
+                <div>
+                  <input
+                    type="text"
+                    list="pimpinan-unit-options"
+                    value={unitInput}
+                    onChange={(e) => {
+                      setUnitInput(e.target.value);
+                      setForm((prev) => ({ ...prev, unitId: "" }));
+                    }}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    placeholder="Ketik nama unit, atau biarkan kosong untuk Lembaga"
+                  />
+                  <datalist id="pimpinan-unit-options">
+                    {units.map((unit) => (
+                      <option key={unit.id} value={unit.name} />
+                    ))}
+                  </datalist>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Kosongkan = transaksi level lembaga. Unit dikelola di menu{" "}
+                    <Link
+                      href="/dashboard/units"
+                      className="font-medium text-primary underline-offset-2 hover:underline"
+                    >
+                      Unit
+                    </Link>
+                    .
+                  </p>
+                </div>
+              ) : (
+                <select
+                  value={form.unitId}
+                  onChange={(e) =>
+                    setForm({ ...form, unitId: e.target.value, categoryId: "" })
+                  }
+                  disabled={role === "MANAGER" || role === "STAFF"}
+                  className={`w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10 ${
+                    role === "MANAGER" || role === "STAFF"
+                      ? "cursor-default bg-muted text-muted-foreground"
+                      : ""
+                  }`}
+                  required
+                >
+                  <option value="">Pilih Unit</option>
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.name} ({unit.code}) · {unit.type || "UMUM"}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">
                 Kategori
               </label>
-              <select
-                value={form.categoryId}
-                onChange={(e) =>
-                  setForm({ ...form, categoryId: e.target.value })
-                }
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-              >
-                <option value="">Pilih Kategori</option>
-                {categories
-                  .filter((cat) => cat.type === form.type)
-                  .map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name} ({category.code})
-                    </option>
-                  ))}
-              </select>
+              {isPimpinan ? (
+                <div>
+                  <input
+                    type="text"
+                    list="pimpinan-category-options"
+                    value={categoryInput}
+                    onChange={(e) => {
+                      setCategoryInput(e.target.value);
+                      setForm((prev) => ({ ...prev, categoryId: "" }));
+                    }}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    placeholder="Ketik nama kategori, atau biarkan kosong"
+                  />
+                  <datalist id="pimpinan-category-options">
+                    {categories
+                      .filter((cat) => cat.type === form.type)
+                      .map((category) => (
+                        <option key={category.id} value={category.name} />
+                      ))}
+                  </datalist>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Kosongkan = tanpa kategori. Kelola di menu{" "}
+                    <Link
+                      href="/dashboard/settings/categories"
+                      className="font-medium text-primary underline-offset-2 hover:underline"
+                    >
+                      Kategori
+                    </Link>
+                    .
+                  </p>
+                </div>
+              ) : (
+                <select
+                  value={form.categoryId}
+                  onChange={(e) =>
+                    setForm({ ...form, categoryId: e.target.value })
+                  }
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                >
+                  <option value="">Pilih Kategori</option>
+                  {categories
+                    .filter((cat) => cat.type === form.type)
+                    .map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name} ({category.code})
+                      </option>
+                    ))}
+                </select>
+              )}
             </div>
           </div>
 

@@ -47,11 +47,12 @@ interface Props {
 import { usePageGuard } from "@/lib/use-page-guard";
 
 export default function EditUnitPage({ params }: Props) {
-  usePageGuard(["SUPERADMIN"]);
+  usePageGuard(["SUPERADMIN", "PIMPINAN"]);
   const router = useRouter();
   const unitId = use(params).id;
   const { data: session } = useSession();
   const role = session?.user?.role as string | undefined;
+  const isPimpinan = role === "PIMPINAN";
 
   const [lembihs, setLembihs] = useState<Array<{ id: string; name: string }>>(
     [],
@@ -76,8 +77,8 @@ export default function EditUnitPage({ params }: Props) {
 
   // Check authorization
   useEffect(() => {
-    if (role && role !== "SUPERADMIN") {
-      toast.error("Akses ditolak. Hanya SuperAdmin yang dapat mengedit unit.");
+    if (role && role !== "SUPERADMIN" && role !== "PIMPINAN") {
+      toast.error("Akses ditolak.");
       router.push("/dashboard/units");
     }
   }, [role, router]);
@@ -186,17 +187,28 @@ export default function EditUnitPage({ params }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.code || !form.lembagaId) {
-      toast.error("Harap isi semua field yang wajib");
+    if (!form.name) {
+      toast.error("Nama unit wajib diisi");
+      return;
+    }
+    if (!isPimpinan && !form.code) {
+      toast.error("Kode unit wajib diisi");
       return;
     }
 
     setSubmitting(true);
     try {
+      const payload = isPimpinan
+        ? {
+            name: form.name,
+            description: form.description,
+            isActive: form.isActive,
+          }
+        : form;
       const res = await fetch(`/api/units/${unitId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -288,154 +300,158 @@ export default function EditUnitPage({ params }: Props) {
         className="rounded-[22px] border border-border bg-card p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
       >
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {/* Name */}
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Nama Unit *
-            </label>
-            <div className="relative">
-              <Building
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                size={16}
-              />
+            {/* Name */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Nama Unit *
+              </label>
+              <div className="relative">
+                <Building
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  size={16}
+                />
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 pl-10 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                  placeholder="Misal: Kantin Umi"
+                  required
+                />
+              </div>
+            </div>
+
+            {!isPimpinan && (
+              <>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    Kode Unit *
+                  </label>
+                  <div className="relative">
+                    <Tag
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      size={16}
+                    />
+                    <input
+                      type="text"
+                      value={form.code}
+                      onChange={(e) => setForm({ ...form, code: e.target.value })}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 pl-10 text-sm uppercase text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                      placeholder="Kode unit"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    Lembaga *
+                  </label>
+                  <select
+                    value={form.lembagaId}
+                    onChange={(e) => setForm({ ...form, lembagaId: e.target.value })}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    required
+                  >
+                    <option value="">Pilih Lembaga</option>
+                    {lembihs.map((lembih) => (
+                      <option key={lembih.id} value={lembih.id}>
+                        {lembih.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    Jenis Unit *
+                  </label>
+                  <select
+                    value={form.type}
+                    onChange={(e) =>
+                      setForm({ ...form, type: e.target.value as any })
+                    }
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                  >
+                    {unitTypes.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center space-x-3 pt-6">
+                  <input
+                    type="checkbox"
+                    id="isRetail"
+                    checked={form.isRetail}
+                    onChange={(e) => setForm({ ...form, isRetail: e.target.checked })}
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
+                  />
+                  <label htmlFor="isRetail" className="text-sm text-muted-foreground">
+                    Unit Retail (dengan inventory & POS)
+                  </label>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    Unit Induk (Opsional)
+                  </label>
+                  <select
+                    value={form.parentId}
+                    onChange={(e) =>
+                      setForm({ ...form, parentId: e.target.value || "" })
+                    }
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                  >
+                    <option value="">Tidak ada induk (unit mandiri)</option>
+                    {units
+                      .filter((u) => u.id !== unitId && u.type !== form.type)
+                      .map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name} ({u.type})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </>
+            )}
+
+            <div className="flex items-center space-x-3 pt-6">
               <input
-                type="text"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 pl-10 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-                placeholder="Misal: Kantin Umi"
-                required
+                type="checkbox"
+                id="isActive"
+                checked={form.isActive}
+                onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
               />
+              <label htmlFor="isActive" className="text-sm text-muted-foreground">
+                Unit aktif
+              </label>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Deskripsi (opsional)
+              </label>
+              <div className="relative">
+                <FileText
+                  className="absolute left-3 top-3 text-muted-foreground"
+                  size={16}
+                />
+                <textarea
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                  className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 pl-10 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                  rows={3}
+                  placeholder="Deskripsi unit"
+                />
+              </div>
             </div>
           </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Kode Unit *
-            </label>
-            <div className="relative">
-              <Tag
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                size={16}
-              />
-              <input
-                type="text"
-                value={form.code}
-                onChange={(e) => setForm({ ...form, code: e.target.value })}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 pl-10 text-sm uppercase text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-                placeholder="Kode unit"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Lembaga *
-            </label>
-            <select
-              value={form.lembagaId}
-              onChange={(e) => setForm({ ...form, lembagaId: e.target.value })}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-              required
-            >
-              <option value="">Pilih Lembaga</option>
-              {lembihs.map((lembih) => (
-                <option key={lembih.id} value={lembih.id}>
-                  {lembih.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Jenis Unit *
-            </label>
-            <select
-              value={form.type}
-              onChange={(e) =>
-                setForm({ ...form, type: e.target.value as any })
-              }
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-            >
-              {unitTypes.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-3 pt-6">
-            <input
-              type="checkbox"
-              id="isRetail"
-              checked={form.isRetail}
-              onChange={(e) => setForm({ ...form, isRetail: e.target.checked })}
-              className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
-            />
-            <label htmlFor="isRetail" className="text-sm text-muted-foreground">
-              Unit Retail (dengan inventory & POS)
-            </label>
-          </div>
-
-          <div className="flex items-center space-x-3 pt-6">
-            <input
-              type="checkbox"
-              id="isActive"
-              checked={form.isActive}
-              onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-              className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
-            />
-            <label htmlFor="isActive" className="text-sm text-muted-foreground">
-              Unit aktif
-            </label>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Unit Induk (Opsional)
-            </label>
-            <select
-              value={form.parentId}
-              onChange={(e) =>
-                setForm({ ...form, parentId: e.target.value || "" })
-              }
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-            >
-              <option value="">Tidak ada induk (unit mandiri)</option>
-              {units
-                .filter((u) => u.id !== unitId && u.type !== form.type)
-                .map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.type})
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Deskripsi (opsional)
-            </label>
-            <div className="relative">
-              <FileText
-                className="absolute left-3 top-3 text-muted-foreground"
-                size={16}
-              />
-              <textarea
-                value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
-                className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 pl-10 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-                rows={3}
-                placeholder="Deskripsi unit"
-              />
-            </div>
-          </div>
-        </div>
 
         <div className="mt-6 flex justify-end gap-3 border-t border-border pt-6">
           <button
@@ -447,7 +463,7 @@ export default function EditUnitPage({ params }: Props) {
           </button>
           <button
             type="submit"
-            disabled={submitting || !form.name || !form.code}
+            disabled={submitting || !form.name || (!isPimpinan && !form.code)}
             className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
           >
             {submitting ? (

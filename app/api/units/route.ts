@@ -8,7 +8,7 @@ import { z } from 'zod';
 // Schema for creating units
 const createUnitSchema = z.object({
   name: z.string().min(1, 'Nama unit wajib diisi'),
-  code: z.string().min(1, 'Kode unit wajib diisi'),
+  code: z.string().optional(),
   description: z.string().optional(),
   isRetail: z.boolean().default(false),
   type: z.enum(['KPAK', 'KOPERASI', 'KANTIN', 'UMUM']).default('UMUM'),
@@ -99,6 +99,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
+function generateUnitCode(name: string): string {
+  const slug =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 24) || 'unit';
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `${slug}-${suffix}`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Auth check
@@ -107,10 +118,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // RBAC
-    const role = session.user.role;
-    if (role !== 'SUPERADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Only SuperAdmin can create units' }, { status: 403 });
+    // RBAC - only SuperAdmin or Pimpinan can create units
+    const role = session.user.role as string;
+    if (role !== 'SUPERADMIN' && role !== 'PIMPINAN') {
+      return NextResponse.json(
+        { error: 'Forbidden - Only SuperAdmin or Pimpinan can create units' },
+        { status: 403 }
+      );
     }
 
     // Parse body
@@ -120,23 +134,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid data', details: parsed.error.errors }, { status: 400 });
     }
 
-    // Create unit
-    const unit = await prisma.unit.create({
-      data: {
-        name: parsed.data.name,
-        code: parsed.data.code,
-        description: parsed.data.description,
-        isRetail: parsed.data.isRetail,
-        type: parsed.data.type,
-        lembagaId: parsed.data.lembagaId,
-        parentId: parsed.data.parentId,
-      },
-      include: {
-        lembaga: true,
-      },
-    });
+    let code = parsed.data.code;
+    let lembagaId = parsed.data.lembagaId;
 
-    return NextResponse.json({ data: unit }, { status: 201 });
+    if (role === 'PIMPINAN') {
+      // Pimpinan only manages units within their own lembaga
+      lembagaId = session.user.lembagaId ?? lembagaId;
+      if (!code) {
+        code = generateUnitCode(parsed.data.name);
+      }
+    } else if (!code) {
+      return NextResponse.json({ error: 'Kode unit wajib diisi' }, { status: 400 });
+    }
+
+    // Retry auto-generated codes on unique collision
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const unit = await prisma.unit.create({
+          data: {
+            name: parsed.data.name,
+            code,
+            description: parsed.data.description,
+            isRetail: parsed.data.isRetail,
+            type: parsed.data.type,
+            lembagaId,
+            parentId: parsed.data.parentId,
+          },
+          include: {
+            lembaga: true,
+          },
+        });
+
+        return NextResponse.json({ data: unit }, { status: 201 });
+      } catch (error: any) {
+        if (error.code === 'P2002' && !parsed.data.code) {
+          code = generateUnitCode(parsed.data.name);
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    return NextResponse.json({ error: 'Kode unit tidak unik, coba lagi' }, { status: 409 });
   } catch (error: any) {
     console.error('[Units API] Error:', error);
     if (error.code === 'P2002') {

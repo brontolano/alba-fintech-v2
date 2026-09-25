@@ -66,8 +66,9 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (session.user.role !== 'SUPERADMIN') {
-      return NextResponse.json({ error: 'Hanya SUPERADMIN yang dapat mengedit unit' }, { status: 403 });
+    const role = session.user.role as string;
+    if (role !== 'SUPERADMIN' && role !== 'PIMPINAN') {
+      return NextResponse.json({ error: 'Hanya SUPERADMIN atau PIMPINAN yang dapat mengedit unit' }, { status: 403 });
     }
 
     const { id } = await params;
@@ -82,6 +83,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Unit tidak ditemukan' }, { status: 404 });
     }
 
+    // Pimpinan hanya boleh edit unit di lembaga mereka
+    if (role === 'PIMPINAN' && existing.lembagaId !== session.user.lembagaId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const updated = await prisma.unit.update({
       where: { id },
       data: {
@@ -91,7 +97,7 @@ export async function PUT(
         isRetail: parsed.data.isRetail ?? existing.isRetail,
         type: parsed.data.type ?? existing.type,
         isActive: parsed.data.isActive ?? existing.isActive,
-        lembagaId: parsed.data.lembagaId ?? existing.lembagaId,
+        lembagaId: role === 'PIMPINAN' ? existing.lembagaId : (parsed.data.lembagaId ?? existing.lembagaId),
         parentId: parsed.data.parentId ?? existing.parentId,
       },
     });
@@ -115,9 +121,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has SUPERADMIN role
-    if (session.user.role !== 'SUPERADMIN') {
-      return NextResponse.json({ error: 'Hanya SUPERADMIN yang dapat menghapus unit' }, { status: 403 });
+    // RBAC - only SuperAdmin or Pimpinan can delete units
+    const role = session.user.role as string;
+    if (role !== 'SUPERADMIN' && role !== 'PIMPINAN') {
+      return NextResponse.json({ error: 'Hanya SUPERADMIN atau PIMPINAN yang dapat menghapus unit' }, { status: 403 });
     }
 
     const { id } = await params;
@@ -128,11 +135,16 @@ export async function DELETE(
 
     const unit = await prisma.unit.findUnique({
       where: { id },
-      select: { id: true, name: true },
+      select: { id: true, name: true, lembagaId: true },
     });
 
     if (!unit) {
       return NextResponse.json({ error: 'Unit tidak ditemukan' }, { status: 404 });
+    }
+
+    // Pimpinan hanya boleh hapus unit di lembaga mereka
+    if (role === 'PIMPINAN' && unit.lembagaId !== session.user.lembagaId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Check if unit has users
