@@ -299,7 +299,15 @@ export function PimpinanBukuKas() {
           </Link>
         </div>
       </div>
-<div className="grid grid-cols-3 gap-3">
+<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <StatCard
+            label="Saldo Bersih"
+            value={formatCurrency(summary.netBalance)}
+            tone={summary.netBalance >= 0 ? "income" : "expense"}
+            icon={<Wallet size={18} />}
+          />
+        </div>
         <StatCard
           label="Pemasukan"
           value={formatCurrency(summary.totalIncome)}
@@ -311,12 +319,6 @@ export function PimpinanBukuKas() {
           value={formatCurrency(summary.totalExpense)}
           tone="expense"
           icon={<ArrowUpRight size={18} />}
-        />
-        <StatCard
-          label="Saldo Bersih"
-          value={formatCurrency(summary.netBalance)}
-          tone={summary.netBalance >= 0 ? "income" : "expense"}
-          icon={<Wallet size={18} />}
         />
       </div>
 
