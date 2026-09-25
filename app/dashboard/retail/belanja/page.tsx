@@ -125,9 +125,13 @@ export default function RetailBelanjaPage() {
         const r = s?.user?.role || "STAFF";
         setRole(r);
         if (r === "SUPERADMIN" || r === "PIMPINAN") {
-          fetch("/api/units")
+          fetch("/api/units?isRetail=true&limit=100")
             .then((x) => x.json())
-            .then((b) => setUnits(Array.isArray(b) ? b : b.data || []))
+            .then((b) => {
+              const u = (Array.isArray(b) ? b : b.data || []) as { id: string; name: string }[];
+              setUnits(u);
+              if (u.length > 0) setUnitId((prev) => prev || u[0].id);
+            })
             .catch(() => {});
         }
       })
@@ -139,17 +143,19 @@ export default function RetailBelanjaPage() {
     setErr(null);
     try {
       const q = unitId ? new URLSearchParams({ unitId }).toString() : "";
-      const [sugRes, itRes, hisRes] = await Promise.all([
-        fetch(`/api/retail/reorder/suggest${q ? `?${q}` : ""}`),
+      const [itRes, hisRes, sugRes] = await Promise.all([
         fetch(`/api/inventory?limit=500`),
         fetch(`/api/purchase-requests?limit=20${q ? `&${q}` : ""}`),
+        unitId
+          ? fetch(`/api/retail/reorder/suggest?${q}`)
+          : Promise.resolve(null),
       ]);
-      const sugBody = await sugRes.json();
       const itBody = await itRes.json();
       const hisBody = await hisRes.json();
-      if (!sugRes.ok) throw new Error(sugBody.error || "Gagal memuat saran");
       if (!itRes.ok) throw new Error(itBody.error || "Gagal memuat stok");
       if (!hisRes.ok) throw new Error(hisBody.error || "Gagal memuat riwayat");
+      const sugBody = sugRes ? await sugRes.json() : { data: [] };
+      if (sugRes && !sugRes.ok) throw new Error(sugBody.error || "Gagal memuat saran");
       const listItems = (
         itBody.data && Array.isArray(itBody.data)
           ? itBody.data
@@ -437,7 +443,7 @@ export default function RetailBelanjaPage() {
             onChange={(e) => setUnitId(e.target.value)}
             className="rounded-lg border bg-background px-3 py-2 text-sm"
           >
-            <option value="">— Semua unit lembaga —</option>
+            <option value="">— Pilih unit retail —</option>
             {units.map((u) => (
               <option key={u.id} value={u.id}>{u.name}</option>
             ))}
