@@ -102,8 +102,8 @@ export function MobileNav({ user }: MobileNavProps) {
         ];
 
       // ── MANAGER RETAIL ──────────────────────────
-      // Pusat: POS — operasional harian utama retail
-      // Sisa: Beranda, Review, Inventori, Laporan
+      // Pusat: Shift Saya — check-in/out & layanan harian (tombol tengah)
+      // Sisa: Beranda, POS, Inventori, Laporan
       case "MANAGER":
         if (isRetail) {
           return [
@@ -113,19 +113,14 @@ export function MobileNav({ user }: MobileNavProps) {
               icon: <Home size={24} />,
             },
             {
-              label: "Shift Saya",
-              href: "/dashboard/retail/shift",
-              icon: <Clock size={24} />,
-            },
-            {
-              label: "Review",
-              href: "/dashboard/retail/stok-masuk/review",
-              icon: <ClipboardList size={24} />,
-            },
-            {
               label: "POS",
               href: "/dashboard/pos",
               icon: <ShoppingCart size={24} />,
+            },
+            {
+              label: "Shift Saya",
+              href: "/dashboard/retail/shift",
+              icon: <Clock size={24} />,
               isPrimary: true,
             },
             {
