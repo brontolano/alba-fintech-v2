@@ -53,6 +53,7 @@ model Unit {
   consignment_items   ConsignmentItem[]
   consignment_payouts ConsignmentPayout[]
   purchase_items      PurchaseItem[]
+  purchase_requests   PurchaseRequest[]
   stock_batches       StockBatch[]
   stock_counts        StockCount[]
   lembaga             Lembaga?            @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "units_ibfk_1")
@@ -99,6 +100,10 @@ model User {
   shiftReportReviewer                                   ShiftReport[]        @relation("shiftReportReviewer")
   allocationCreator                                     BudgetAllocation[]   @relation("allocationCreator")
   consignmentPayoutsPaid                                ConsignmentPayout[]  @relation("consignmentPayoutPaidBy")
+  purchase_requests_created                             PurchaseRequest[]    @relation("purchaseRequestCreator")
+  purchase_requests_ordered                             PurchaseRequest[]    @relation("purchaseRequestOrderer")
+  purchase_requests_received                            PurchaseRequest[]    @relation("purchaseRequestReceiver")
+  purchase_requests_paid                                PurchaseRequest[]    @relation("purchaseRequestPayer")
   units                                                 Unit?                @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "users_ibfk_1")
   lembagas                                              Lembaga?             @relation(fields: [lembagaId], references: [id], onUpdate: Restrict, map: "users_ibfk_2")
 
@@ -234,6 +239,7 @@ model Transaction {
   order_items                            OrderItem[]
   consignment_payouts                    ConsignmentPayout[]
   purchase_items                         PurchaseItem[]
+  purchase_request                       PurchaseRequest?
   units                                  Unit                @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "transactions_ibfk_1")
   financial_categories                   FinancialCategory?  @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "transactions_ibfk_2")
   bank_accounts                          BankAccount?        @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "transactions_ibfk_3")
@@ -343,6 +349,7 @@ model InventoryItem {
   order_items      OrderItem[]
   consignment_item ConsignmentItem?
   purchase_items   PurchaseItem[]
+  purchase_request_items PurchaseRequestItem[]
   stock_batch_items StockBatchItem[]
 
   @@index([unitId], map: "unitId")
@@ -443,6 +450,62 @@ model PurchaseItem {
   @@index([itemId], map: "purchase_items_itemId_idx")
   @@index([unitId], map: "purchase_items_unitId_idx")
   @@map("purchase_items")
+}
+
+model PurchaseRequest {
+  id             String               @id @default(cuid()) @db.VarChar(36)
+  unitId         String               @db.VarChar(36)
+  requestNo      String               @unique(map: "purchase_requests_requestNo_key") @db.VarChar(30)
+  title          String               @db.VarChar(255)
+  note           String?              @db.Text
+  status         String?              @default("REQUESTED") @db.VarChar(20)
+  estimatedTotal Decimal              @default(0.00) @db.Decimal(15, 2)
+  finalTotal     Decimal?             @db.Decimal(15, 2)
+  refusedReason  String?              @db.Text
+  supplierName   String?              @db.VarChar(255)
+  supplierPhone  String?              @db.VarChar(30)
+  orderAt        DateTime?            @db.DateTime(0)
+  orderById      String?              @db.VarChar(36)
+  receivedAt     DateTime?            @db.DateTime(0)
+  receivedById   String?              @db.VarChar(36)
+  receiveNote    String?              @db.Text
+  invoiceNumber  String?              @db.VarChar(100)
+  paidAt         DateTime?            @db.DateTime(0)
+  paidById       String?              @db.VarChar(36)
+  transactionId  String?              @unique(map: "purchase_requests_transactionId_key") @db.VarChar(36)
+  createdById    String               @db.VarChar(36)
+  createdAt      DateTime?            @default(now()) @db.DateTime(0)
+  updatedAt      DateTime?            @default(now()) @db.DateTime(0)
+  units          Unit                 @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "purchase_requests_ibfk_1")
+  creator        User                 @relation("purchaseRequestCreator", fields: [createdById], references: [id], onUpdate: Restrict, map: "purchase_requests_ibfk_2")
+  orderer        User?                @relation("purchaseRequestOrderer", fields: [orderById], references: [id], onUpdate: Restrict, map: "purchase_requests_ibfk_3")
+  receiver       User?                @relation("purchaseRequestReceiver", fields: [receivedById], references: [id], onUpdate: Restrict, map: "purchase_requests_ibfk_4")
+  payer          User?                @relation("purchaseRequestPayer", fields: [paidById], references: [id], onUpdate: Restrict, map: "purchase_requests_ibfk_5")
+  transactions   Transaction?         @relation(fields: [transactionId], references: [id], onDelete: SetNull, onUpdate: Restrict, map: "purchase_requests_ibfk_6")
+  items          PurchaseRequestItem[]
+
+  @@index([unitId, createdAt], map: "purchase_requests_unit_date_idx")
+  @@index([status], map: "purchase_requests_status_idx")
+  @@index([createdById], map: "purchase_requests_createdById_idx")
+  @@map("purchase_requests")
+}
+
+model PurchaseRequestItem {
+  id            String           @id @default(cuid()) @db.VarChar(36)
+  requestId     String           @db.VarChar(36)
+  itemId        String?          @db.VarChar(36)
+  name          String           @db.VarChar(200)
+  qtyRequested  Int              @default(1)
+  estUnitCost   Decimal          @default(0.00) @db.Decimal(15, 2)
+  isNewItem     Boolean?         @default(false)
+  qtyReceived   Int?
+  unitCost      Decimal?         @db.Decimal(15, 2)
+  purchase_request PurchaseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "purchase_request_items_ibfk_1")
+  inventory_items InventoryItem? @relation(fields: [itemId], references: [id], onUpdate: Restrict, map: "purchase_request_items_ibfk_2")
+
+  @@index([requestId], map: "purchase_request_items_requestId_idx")
+  @@index([itemId], map: "purchase_request_items_itemId_idx")
+  @@map("purchase_request_items")
 }
 
 model OrderItem {
