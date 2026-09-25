@@ -8,7 +8,6 @@ import {
   Package,
   PackagePlus,
   ShoppingBag,
-  Wallet,
   BarChart2,
   TrendingUp,
   AlertTriangle,
@@ -30,20 +29,20 @@ interface StatCardProps {
   change?: string;
   icon: React.ReactNode;
   href: string;
-  color: "amber" | "blue" | "green" | "purple" | "red";
+  color: "amber" | "blue" | "green" | "red";
+  className?: string;
 }
 
-function StatCard({ label, value, change, icon, href, color }: StatCardProps) {
+function StatCard({ label, value, change, icon, href, color, className }: StatCardProps) {
   const colors = {
     amber: "bg-amber-500/15 text-amber-600",
     blue: "bg-blue-500/15 text-blue-600",
     green: "bg-emerald-500/15 text-emerald-600",
-    purple: "bg-violet-500/15 text-violet-600",
     red: "bg-rose-500/15 text-rose-600",
   };
 
   return (
-    <Link href={href} className="group">
+    <Link href={href} className={className}>
       <div className="flex min-h-[92px] flex-col justify-between gap-3 rounded-xl border bg-card p-4 hover:border-primary/40 hover:shadow-sm">
         <div className="flex items-start justify-between gap-2">
           <span className="break-words text-[10px] font-medium uppercase leading-snug tracking-wider text-muted-foreground">
@@ -57,13 +56,13 @@ function StatCard({ label, value, change, icon, href, color }: StatCardProps) {
         </div>
         <div className="min-w-0">
           <p
-            className="break-words text-xs font-bold leading-tight text-foreground group-hover:text-primary sm:text-sm"
+            className="break-words text-base font-bold tabular-nums leading-tight text-foreground group-hover:text-primary"
             title={String(value)}
           >
             {value}
           </p>
           {change && (
-            <p className="mt-0.5 break-words text-[11px] leading-snug text-muted-foreground">
+            <p className="mt-1 break-words text-[11px] leading-snug text-muted-foreground">
               {change}
             </p>
           )}
@@ -182,7 +181,6 @@ export function RetailManagerDashboard() {
     posRevenue: 0,
     lowStock: 0,
     draftBatch: 0,
-    savingsActive: 0,
     pendingApprovals: 0,
   });
   const [data, setData] = useState<Summary | null>(null);
@@ -210,15 +208,13 @@ export function RetailManagerDashboard() {
       fetch("/api/transactions?range=today&limit=1&type=INCOME").then(r => r.json()).catch(() => ({})),
       fetch("/api/retail/dashboard").then(r => r.json()).catch(() => ({})),
       fetch("/api/retail/batches?status=DRAFT&limit=100").then(r => r.json()).catch(() => ({})),
-      fetch("/api/savings/limits").then(r => r.json()).catch(() => ({})),
       fetch("/api/approvals?status=PENDING").then(r => r.json()).catch(() => ({})),
-    ]).then(([sales, dash, drafts, sav, appr]) => {
+    ]).then(([sales, dash, drafts, appr]) => {
       setStats({
         posToday: sales?.summary?.todayCount ?? 0,
         posRevenue: sales?.summary?.todayIncome ?? 0,
         lowStock: dash?.data?.lowStock?.count ?? 0,
         draftBatch: Array.isArray(drafts?.data) ? drafts.data.length : 0,
-        savingsActive: (sav?.data ?? []).filter((a: any) => Number(a.balance) > 0).length || 0,
         pendingApprovals: Array.isArray(appr?.data) ? appr.data.length : 0,
       });
       if (dash?.data) setData(dash.data as Summary);
@@ -256,7 +252,7 @@ export function RetailManagerDashboard() {
   const active = mine?.active ?? false;
   const unitName = data?.unit.name ?? "Unit Retail";
   const unitCode = data?.unit.code ?? "";
-  const { posToday, posRevenue, lowStock, draftBatch, savingsActive, pendingApprovals } = stats;
+  const { posToday, posRevenue, lowStock, draftBatch, pendingApprovals } = stats;
 
   return (
     <div className="mx-auto max-w-5xl p-4 space-y-4">
@@ -320,12 +316,11 @@ export function RetailManagerDashboard() {
       <div className="rounded-xl border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">Ringkasan</h2>
         <div className="grid grid-cols-2 gap-2">
-          <StatCard label="Transaksi POS Hari Ini" value={posToday} change={`Rp ${posRevenue.toLocaleString("id-ID")}`} icon={<ShoppingCart size={16} />} href="/dashboard/pos" color="amber" />
-          <StatCard label="Pendapatan Hari Ini" value={`Rp ${posRevenue.toLocaleString("id-ID")}`} icon={<TrendingUp size={16} />} href="/dashboard/reports" color="green" />
-          <StatCard label="Stok Menipis" value={lowStock} icon={<AlertTriangle size={16} />} href="/dashboard/retail/inventory" color="red" />
-          <StatCard label="Draf Batch" value={draftBatch} icon={<ShoppingBag size={16} />} href="/dashboard/retail/stok-masuk/review" color="blue" />
-          <StatCard label="Tabungan Aktif" value={savingsActive} icon={<Wallet size={16} />} href="/dashboard/savings" color="purple" />
-          <StatCard label="Persetujuan Menunggu" value={pendingApprovals} icon={<ClipboardList size={16} />} href="/dashboard/approvals" color="red" />
+          <StatCard label="Transaksi POS Hari Ini" value={posToday} change="transaksi tercatat" icon={<ShoppingCart size={16} />} href="/dashboard/pos" color="amber" />
+          <StatCard label="Pendapatan Hari Ini" value={`Rp ${posRevenue.toLocaleString("id-ID")}`} change="pendapatan unit" icon={<TrendingUp size={16} />} href="/dashboard/reports" color="green" />
+          <StatCard label="Stok Menipis" value={lowStock} change="perlu restock" icon={<AlertTriangle size={16} />} href="/dashboard/retail/inventory" color="red" />
+          <StatCard label="Draf Batch" value={draftBatch} change="menunggu review" icon={<ShoppingBag size={16} />} href="/dashboard/retail/stok-masuk/review" color="blue" />
+          <StatCard label="Persetujuan Menunggu" value={pendingApprovals} change="perlu tindakan" icon={<ClipboardList size={16} />} href="/dashboard/approvals" color="red" className="col-span-2" />
         </div>
       </div>
 
