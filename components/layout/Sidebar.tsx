@@ -413,10 +413,10 @@ const MANAGER_KPAK_GROUPS: NavGroup[] = [
 
 /**
  * Menu khusus MANAGER unit Retail — disederhanakan fokus pekerjaan manager.
- * Shift/Stok Masuk (input)/Hitung Sisa (input) milik STAFF dan tidak tampil
+ * Stok Masuk (input) & Hitung Sisa (input) milik STAFF dan tidak tampil
  * di sini; route-nya tetap hidup untuk keadaan darurat.
- * Manager mengoperasikan: dashboard, review batch, persetujuan hitung sisa,
- * belanja, konsinyasi/serah terima, POS, dan keuangan unit.
+ * Manager mengoperasikan: dashboard, shift saya, review batch, persetujuan
+ * hitung sisa, belanja, konsinyasi/serah terima, POS, dan keuangan unit.
  * (Perubahan atas persetujuan pemilik; jalur STAFF di NAV_GROUPS tak tersentuh.)
  */
 const MANAGER_RETAIL_GROUPS: NavGroup[] = [
@@ -427,6 +427,12 @@ const MANAGER_RETAIL_GROUPS: NavGroup[] = [
         label: "Pusat Kerja",
         href: "/dashboard",
         icon: <LayoutDashboard size={20} />,
+        roles: ["MANAGER"],
+      },
+      {
+        label: "Shift Saya",
+        href: "/dashboard/retail/shift",
+        icon: <Clock size={20} />,
         roles: ["MANAGER"],
       },
       {
