@@ -168,6 +168,7 @@ interface Summary {
 const QUICK_ACTIONS = [
   { label: "Buka POS", desc: "Jual & bayar", href: "/dashboard/pos", icon: <ShoppingCart size={22} />, color: "bg-amber-500" },
   { label: "Cek Stok", desc: "Lihat & cari barang", href: "/dashboard/retail/inventory", icon: <Package size={22} />, color: "bg-blue-500" },
+  { label: "Belanja Stok", desc: "Pengajuan & pesan supplier", href: "/dashboard/retail/belanja", icon: <ShoppingBag size={22} />, color: "bg-teal-600" },
   { label: "Stok Masuk", desc: "Catat kedatangan", href: "/dashboard/retail/stok-masuk", icon: <PackagePlus size={22} />, color: "bg-violet-500" },
   { label: "Hitung Sisa", desc: "Sisa titipan", href: "/dashboard/retail/sisa", icon: <ClipboardCheck size={22} />, color: "bg-cyan-600" },
   { label: "Titipan UMKM", desc: "Pemilik & payout", href: "/dashboard/retail/konsinyasi", icon: <UserPlus size={22} />, color: "bg-orange-500" },

@@ -15,6 +15,7 @@ import {
   Users,
   Megaphone,
   Monitor,
+  ShoppingBag,
   ArrowUpRight,
   ArrowDownRight,
   Minus,
@@ -179,6 +180,12 @@ export default function PimpinanDashboard() {
             icon: Users,
             label: "Pegawai",
             color: "red",
+          },
+          {
+            href: "/dashboard/retail/belanja",
+            icon: ShoppingBag,
+            label: "Belanja",
+            color: "green",
           },
         ]}
       />

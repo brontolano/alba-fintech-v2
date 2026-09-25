@@ -18,6 +18,7 @@ import {
   PackagePlus,
   ClipboardCheck,
   UserPlus,
+  ShoppingBag,
 } from "lucide-react";
 
 const fmtRp = (n: number) =>
@@ -131,6 +132,13 @@ const SHORTCUTS = [
     href: "/dashboard/retail/stok-masuk",
     icon: <PackagePlus size={22} />,
     color: "bg-violet-500",
+  },
+  {
+    label: "Belanja Stok",
+    desc: "Ajukan belanja unit",
+    href: "/dashboard/retail/belanja",
+    icon: <ShoppingBag size={22} />,
+    color: "bg-teal-600",
   },
   {
     label: "Hitung Sisa",
