@@ -13,6 +13,11 @@
       "environment": {
         "HOSTINGER_API_TOKEN": "{env:HOSTINGER_API_TOKEN}"
       }
+    },
+    "opendesign": {
+      "type": "remote",
+      "url": "https://opendesign.cc/mcp/http",
+      "enabled": true
     }
   }
 }
