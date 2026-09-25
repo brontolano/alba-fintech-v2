@@ -12,27 +12,117 @@ import {
   ClipboardList,
   BarChart3,
   Clock,
+  Calendar,
+  Users,
+  Landmark,
+  Settings,
 } from "lucide-react";
-import { useDashboardData } from "@/components/dashboard/useDashboardData";
+import {
+  useDashboardData,
+  type RangeOption,
+} from "@/components/dashboard/useDashboardData";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatTiles } from "@/components/dashboard/StatTiles";
 import { QuickAccessGrid } from "@/components/dashboard/QuickAccessGrid";
 import { LiveTransactionFeed } from "@/components/dashboard/LiveTransactionFeed";
+import { PendingApprovalsWidget } from "@/components/dashboard/PendingApprovalsWidget";
 import Link from "next/link";
 import { BarChart } from "@/components/charts/BarChart";
+import { DoughnutChart } from "@/components/charts/DoughnutChart";
 import { ChartCard } from "@/components/charts/ChartCard";
-import { barChartOptions } from "@/components/charts/chartOptions";
+import {
+  barChartOptions,
+  doughnutChartOptions,
+} from "@/components/charts/chartOptions";
 import { UnitVirtualCard } from "@/components/dashboard/UnitVirtualCard";
 
+const RANGE_OPTIONS: { value: RangeOption; label: string }[] = [
+  { value: "today", label: "Hari Ini" },
+  { value: "7d", label: "7 Hari" },
+  { value: "30d", label: "30 Hari" },
+  { value: "90d", label: "90 Hari" },
+];
+
+const RANGE_LABELS: Record<RangeOption, string> = {
+  today: "Hari Ini",
+  "7d": "7 Hari Terakhir",
+  "30d": "30 Hari Terakhir",
+  "90d": "90 Hari Terakhir",
+};
+
+const DOUGHNUT_COLORS = [
+  "rgba(34, 197, 94, 0.85)",
+  "rgba(249, 112, 102, 0.85)",
+  "rgba(251, 191, 36, 0.85)",
+  "rgba(59, 130, 246, 0.85)",
+  "rgba(139, 92, 246, 0.85)",
+  "rgba(14, 165, 233, 0.85)",
+  "rgba(236, 72, 153, 0.85)",
+  "rgba(100, 116, 139, 0.85)",
+];
+
+function SuperadminDashboardSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="animate-pulse rounded-[22px] border border-border bg-card/90 p-5">
+        <div className="h-3 w-28 rounded-md bg-border/30" />
+        <div className="mt-3 h-7 w-64 max-w-full rounded-lg bg-border/30" />
+        <div className="mt-2 h-4 w-80 max-w-full rounded-md bg-border/30" />
+      </div>
+
+      <div className="flex flex-wrap animate-pulse items-center justify-between gap-3 rounded-[18px] border border-border bg-card/90 p-3">
+        <div className="h-5 w-36 rounded-lg bg-border/30" />
+        <div className="flex gap-1">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-8 w-16 rounded-full bg-border/30" />
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 lg:grid-cols-6">
+        {[...Array(9)].map((_, i) => (
+          <div key={i} className="flex flex-col items-center gap-2">
+            <div className="h-16 w-16 animate-pulse rounded-2xl bg-border/30" />
+            <div className="h-3 w-10 rounded-md bg-border/30" />
+          </div>
+        ))}
+      </div>
+
+      <div className="h-44 animate-pulse rounded-[24px] bg-emerald-500/15" />
+
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <div
+            key={i}
+            className="h-[88px] animate-pulse rounded-2xl border border-border bg-card/90"
+          />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div className="h-72 animate-pulse rounded-[22px] border border-border bg-card/90 lg:col-span-3" />
+        <div className="h-72 animate-pulse rounded-[22px] border border-border bg-card/90 lg:col-span-2" />
+      </div>
+    </div>
+  );
+}
+
 export default function SuperadminDashboard() {
-  const { data, loading, error, formatCurrency, refetch } = useDashboardData({
+  const {
+    data,
+    loading,
+    error,
+    formatCurrency,
+    refetch,
+    activeRange,
+  } = useDashboardData({
     range: "7d",
   });
 
-  if (loading) {
+  if (loading && !data) {
     return (
-      <div className="p-6 text-center py-12 text-muted-foreground">
-        Memuat data dashboard...
+      <div className="space-y-4">
+        <SuperadminDashboardSkeleton />
       </div>
     );
   }
@@ -58,10 +148,12 @@ export default function SuperadminDashboard() {
 
   if (!data) return null;
 
-  const { summary, units, chartData } = data;
+  const { summary, units, chartData, expenseByCategory } = data;
   const netIncome = summary.totalIncome - summary.totalExpense;
   const netMargin =
     summary.totalIncome > 0 ? (netIncome / summary.totalIncome) * 100 : 0;
+
+  const rangeLabel = RANGE_LABELS[activeRange];
 
   return (
     <div className="space-y-4">
@@ -70,6 +162,32 @@ export default function SuperadminDashboard() {
         subtitle="Superadmin"
         systemStatus={{ server: "Normal", sync: "Aktif" }}
       />
+
+      {/* Range Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-border bg-card/90 p-3 shadow-[0_10px_24px_rgba(15,23,42,0.04)] backdrop-blur-sm">
+        <div className="flex items-center gap-2 text-sm">
+          <Calendar className="h-4 w-4 text-primary" />
+          <span className="font-medium text-muted-foreground">
+            Periode:{" "}
+            <span className="font-semibold text-foreground">{rangeLabel}</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-1 rounded-full bg-muted/60 p-1">
+          {RANGE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => refetch(opt.value)}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors focus-visible-ring ${
+                activeRange === opt.value
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Quick Access — Semua Modul */}
       <QuickAccessGrid
@@ -108,6 +226,24 @@ export default function SuperadminDashboard() {
             href: "/dashboard/units",
             icon: LayoutGrid,
             label: "Unit",
+            color: "accent",
+          },
+          {
+            href: "/dashboard/users",
+            icon: Users,
+            label: "Pengguna",
+            color: "green",
+          },
+          {
+            href: "/dashboard/lembaga",
+            icon: Landmark,
+            label: "Lembaga",
+            color: "purple",
+          },
+          {
+            href: "/dashboard/settings",
+            icon: Settings,
+            label: "Pengaturan",
             color: "accent",
           },
         ]}
@@ -193,44 +329,84 @@ export default function SuperadminDashboard() {
         ]}
       />
 
+      {/* Menunggu Persetujuan */}
+      <PendingApprovalsWidget formatCurrency={formatCurrency} maxItems={5} />
+
       {/* Charts */}
-      <ChartCard
-        title="Arus Kas Global"
-        subtitle="Ringkasan pemasukan dan pengeluaran bulanan"
-      >
-        {chartData && chartData.labels.length > 0 ? (
-          <div className="h-52">
-            <BarChart
-              data={{
-                labels: chartData.labels,
-                datasets: [
-                  {
-                    label: "Pemasukan",
-                    data: chartData.income,
-                    backgroundColor: "rgba(34, 197, 94, 0.6)",
-                    borderColor: "rgb(34, 197, 94)",
-                    borderWidth: 1,
-                  },
-                  {
-                    label: "Pengeluaran",
-                    data: chartData.expense,
-                    backgroundColor: "rgba(249, 112, 102, 0.6)",
-                    borderColor: "rgb(249, 112, 102)",
-                    borderWidth: 1,
-                  },
-                ],
-              }}
-              options={barChartOptions(formatCurrency)}
-            />
-          </div>
-        ) : (
-          <div className="text-center py-12 text-muted-foreground">
-            <p className="text-sm text-muted-foreground/80">
-              Tidak ada data grafik
-            </p>
-          </div>
-        )}
-      </ChartCard>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <ChartCard
+          title="Arus Kas Global"
+          subtitle={`Ringkasan pemasukan dan pengeluaran · ${rangeLabel}`}
+          className="lg:col-span-3"
+        >
+          {chartData && chartData.labels.length > 0 ? (
+            <div className="h-60">
+              <BarChart
+                data={{
+                  labels: chartData.labels,
+                  datasets: [
+                    {
+                      label: "Pemasukan",
+                      data: chartData.income,
+                      backgroundColor: "rgba(34, 197, 94, 0.6)",
+                      borderColor: "rgb(34, 197, 94)",
+                      borderWidth: 1,
+                    },
+                    {
+                      label: "Pengeluaran",
+                      data: chartData.expense,
+                      backgroundColor: "rgba(249, 112, 102, 0.6)",
+                      borderColor: "rgb(249, 112, 102)",
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={barChartOptions(formatCurrency)}
+              />
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <p className="text-sm text-muted-foreground/80">
+                Tidak ada data grafik
+              </p>
+            </div>
+          )}
+        </ChartCard>
+
+        <ChartCard
+          title="Komposisi Pengeluaran"
+          subtitle="Pengeluaran per kategori"
+          className="lg:col-span-2"
+        >
+          {expenseByCategory && expenseByCategory.length > 0 ? (
+            <div className="h-60">
+              <DoughnutChart
+                data={{
+                  labels: expenseByCategory.map((c) => c.name),
+                  datasets: [
+                    {
+                      data: expenseByCategory.map((c) => c.amount),
+                      backgroundColor: DOUGHNUT_COLORS.slice(
+                        0,
+                        expenseByCategory.length,
+                      ),
+                      borderWidth: 2,
+                      borderColor: "hsl(var(--card))",
+                    },
+                  ],
+                }}
+                options={doughnutChartOptions(formatCurrency)}
+              />
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <p className="text-sm text-muted-foreground/80">
+                Tidak ada data pengeluaran
+              </p>
+            </div>
+          )}
+        </ChartCard>
+      </div>
 
       {/* Ringkasan per Unit */}
       <div>
