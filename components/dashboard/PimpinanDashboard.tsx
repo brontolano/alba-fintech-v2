@@ -12,6 +12,10 @@ import {
   BarChart3,
   Clock,
   Monitor,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
+  AlertTriangle,
 } from "lucide-react";
 import { useDashboardData } from "@/components/dashboard/useDashboardData";
 import { useLiveTransactions } from "@/components/dashboard/useLiveTransactions";
@@ -67,6 +71,47 @@ export default function PimpinanDashboard() {
   const netMargin =
     summary.totalIncome > 0 ? (netIncome / summary.totalIncome) * 100 : 0;
   const todayNet = summary.todayIncome - summary.todayExpense;
+
+  // Perbandingan kinerja vs periode sebelumnya
+  const incomeDelta =
+    summary.previousIncome > 0
+      ? ((summary.totalIncome - summary.previousIncome) /
+          summary.previousIncome) *
+        100
+      : 0;
+  const expenseDelta =
+    summary.previousExpense > 0
+      ? ((summary.totalExpense - summary.previousExpense) /
+          summary.previousExpense) *
+        100
+      : 0;
+  const burdenRatio =
+    summary.totalIncome > 0
+      ? (summary.totalExpense / summary.totalIncome) * 100
+      : 0;
+  const burdenStatus =
+    burdenRatio > 90
+      ? { label: "Kritis", cls: "bg-destructive/10 text-destructive" }
+      : burdenRatio > 75
+        ? { label: "Waspada", cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400" }
+        : { label: "Sehat", cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" };
+
+  const pctText = (delta: number) => `${Math.abs(delta).toFixed(0)}%`;
+  const deltaSymbol = (delta: number) =>
+    Math.abs(delta) < 1 ? (
+      <Minus size={12} />
+    ) : delta >= 0 ? (
+      <ArrowUpRight size={12} />
+    ) : (
+      <ArrowDownRight size={12} />
+    );
+  const deltaTone = (delta: number, isExpense = false) => {
+    if (Math.abs(delta) < 1) return "text-muted-foreground";
+    const good = isExpense ? delta <= 0 : delta >= 0;
+    return good
+      ? "text-emerald-600 dark:text-emerald-400"
+      : "text-rose-600 dark:text-rose-400";
+  };
 
   return (
     <div className="space-y-4">
@@ -150,29 +195,143 @@ export default function PimpinanDashboard() {
         ]}
       />
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-[22px] border border-border bg-card/90 p-4">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Margin Bersih
+      {/* Analisis Kinerja — perbandingan & simbol indikasi */}
+      <div className="rounded-[22px] border border-border bg-card/90 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">
+              Indikator Kinerja Keuangan
+            </h2>
+            <p className="text-[11px] text-muted-foreground">
+              Pemasukan / Pengeluaran 7 hari vs periode sebelumnya
+            </p>
           </div>
-          <div className="mt-2 text-2xl font-bold text-foreground">
-            {`${netMargin.toFixed(1)}%`}
+          <div className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />{" "}
+              Sehat
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />{" "}
+              Waspada
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-destructive" />{" "}
+              Kritis
+            </span>
           </div>
         </div>
-        <div className="rounded-[22px] border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">
-            <TrendingUp size={13} /> Masuk Hari Ini
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Pemasukan */}
+          <div className="rounded-2xl border border-border/70 p-3.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <TrendingUp size={13} className="text-emerald-500" />
+              Pemasukan
+            </div>
+            <div className="mt-2 text-lg font-bold text-foreground sm:text-xl">
+              {formatCurrency(summary.totalIncome)}
+            </div>
+            <div
+              className={`mt-1 flex items-center gap-1 text-[11px] font-semibold ${deltaTone(incomeDelta)}`}
+            >
+              {deltaSymbol(incomeDelta)}
+              <span>{pctText(incomeDelta)}</span>
+              <span className="font-medium text-muted-foreground/70">
+                vs sebelumnya
+              </span>
+            </div>
           </div>
-          <div className="mt-2 text-xl font-bold text-emerald-600 dark:text-emerald-400 sm:text-2xl">
-            {formatCurrency(summary.todayIncome)}
+
+          {/* Pengeluaran */}
+          <div className="rounded-2xl border border-border/70 p-3.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <TrendingDown size={13} className="text-rose-500" />
+              Pengeluaran
+            </div>
+            <div className="mt-2 text-lg font-bold text-foreground sm:text-xl">
+              {formatCurrency(summary.totalExpense)}
+            </div>
+            <div
+              className={`mt-1 flex items-center gap-1 text-[11px] font-semibold ${deltaTone(expenseDelta, true)}`}
+            >
+              {deltaSymbol(expenseDelta)}
+              <span>{pctText(expenseDelta)}</span>
+              <span className="font-medium text-muted-foreground/70">
+                vs sebelumnya
+              </span>
+            </div>
           </div>
-        </div>
-        <div className="rounded-[22px] border border-rose-500/20 bg-rose-500/[0.04] p-4">
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-600 dark:text-rose-400">
-            <TrendingDown size={13} /> Keluar Hari Ini
+
+          {/* Rasio Beban */}
+          <div className="rounded-2xl border border-border/70 p-3.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <Target size={13} className="text-amber-500" />
+              Rasio Beban
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="text-lg font-bold text-foreground sm:text-xl">
+                {`${burdenRatio.toFixed(1)}%`}
+              </div>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${burdenStatus.cls}`}
+              >
+                {burdenStatus.label}
+              </span>
+            </div>
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${Math.min(burdenRatio, 100)}%`,
+                  background:
+                    burdenRatio > 90
+                      ? "hsl(var(--destructive))"
+                      : burdenRatio > 75
+                        ? "#f59e0b"
+                        : "#22c55e",
+                }}
+              />
+            </div>
           </div>
-          <div className="mt-2 text-xl font-bold text-rose-600 dark:text-rose-400 sm:text-2xl">
-            {formatCurrency(summary.todayExpense)}
+
+          {/* Margin Bersih */}
+          <div className="rounded-2xl border border-border/70 p-3.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <CheckCircle size={13} className="text-primary" />
+              Margin Bersih
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="text-lg font-bold text-foreground sm:text-xl">
+                {`${netMargin.toFixed(1)}%`}
+              </div>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  netMargin >= 20
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : netMargin >= 10
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      : "bg-destructive/10 text-destructive"
+                }`}
+              >
+                {netMargin >= 20
+                  ? "Sehat"
+                  : netMargin >= 10
+                    ? "Waspada"
+                    : "Kritis"}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-muted-foreground/80">
+              <AlertTriangle
+                size={12}
+                className={netMargin >= 20 ? "text-emerald-500" : "text-amber-500"}
+              />
+              <span className="font-medium">
+                {netMargin >= 20
+                  ? "Kinerja stabil"
+                  : "Perlu evaluasi beban"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

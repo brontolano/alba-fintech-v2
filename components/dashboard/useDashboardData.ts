@@ -67,6 +67,8 @@ export interface DashboardSummary {
   todayTransactions: number;
   netToday: number;
   pendingApprovals: number;
+  previousIncome: number;
+  previousExpense: number;
 }
 
 export interface DashboardData {
@@ -107,6 +109,8 @@ const DEFAULT_DATA: DashboardData = {
     todayTransactions: 0,
     netToday: 0,
     pendingApprovals: 0,
+    previousIncome: 0,
+    previousExpense: 0,
   },
   recentTransactions: [],
   recentApprovals: [],
@@ -142,6 +146,8 @@ export function useDashboardData(
     todayTransactions: Number(raw.todayTransactions ?? 0),
     netToday: Number(raw.netToday ?? 0),
     pendingApprovals: Number(raw.pendingApprovals ?? 0),
+    previousIncome: Number(raw.previousIncome ?? 0),
+    previousExpense: Number(raw.previousExpense ?? 0),
   });
 
   const transformTx = (raw: Record<string, unknown>): Transaction => ({

@@ -240,6 +240,42 @@ export async function GET(request: NextRequest) {
     const todayTransactionsCount = todayTransactions.length;
     const netToday = todayIncome - todayExpense;
 
+    // Previous period comparison (same window length before the current range)
+    const prevPeriodMs =
+      parsed.data.range === "today"
+        ? 24 * 60 * 60 * 1000
+        : parsed.data.range === "7d"
+          ? 7 * 24 * 60 * 60 * 1000
+          : parsed.data.range === "30d"
+            ? 30 * 24 * 60 * 60 * 1000
+            : 90 * 24 * 60 * 60 * 1000;
+    const prevStart = startDate
+      ? new Date(startDate.getTime() - prevPeriodMs)
+      : null;
+
+    let previousIncome = 0;
+    let previousExpense = 0;
+    if (prevStart && startDate) {
+      const prevTxWhere: Record<string, unknown> = {
+        ...txWhere,
+        date: { gte: prevStart, lt: startDate },
+      };
+      const prevTransactions = await prisma.transaction.findMany({
+        where: prevTxWhere,
+        select: { id: true, date: true, type: true, amount: true },
+      });
+      const prevLedger = buildLedgerSummary(
+        prevTransactions.map((tx) => ({
+          id: tx.id,
+          date: tx.date,
+          type: tx.type,
+          amount: Number(tx.amount ?? 0),
+        })),
+      );
+      previousIncome = prevLedger.totalIncome;
+      previousExpense = prevLedger.totalExpense;
+    }
+
     // Build time-series chart data (income vs expense per period)
     const chartLabels: string[] = [];
     const incomeByPeriod: number[] = [];
@@ -362,6 +398,8 @@ export async function GET(request: NextRequest) {
             todayExpense,
             netToday,
             pendingApprovals,
+            previousIncome,
+            previousExpense,
           },
           units,
           recentTransactions: formattedRecent,
