@@ -38,9 +38,12 @@ interface Unit {
 }
 
 import { usePageGuard } from "@/lib/use-page-guard";
+import { useSession } from "next-auth/react";
 
 export default function UsersPage() {
-  usePageGuard(["SUPERADMIN"]);
+  usePageGuard(["SUPERADMIN", "PIMPINAN"]);
+  const { data: session } = useSession();
+  const isSuperAdmin = session?.user?.role === "SUPERADMIN";
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -125,19 +128,23 @@ export default function UsersPage() {
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            Manajemen Pengguna
+            {isSuperAdmin ? "Manajemen Pengguna" : "Pegawai Lembaga"}
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Kelola pengguna aplikasi keuangan
+            {isSuperAdmin
+              ? "Kelola pengguna aplikasi keuangan"
+              : "Pantau pengguna aplikasi keuangan di seluruh unit"}
           </p>
         </div>
-        <Link
-          href="/dashboard/users/create"
-          className="inline-flex items-center gap-2 self-start rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 sm:self-auto"
-        >
-          <Plus size={18} />
-          <span>Tambah Pengguna</span>
-        </Link>
+        {isSuperAdmin && (
+          <Link
+            href="/dashboard/users/create"
+            className="inline-flex items-center gap-2 self-start rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 sm:self-auto"
+          >
+            <Plus size={18} />
+            <span>Tambah Pengguna</span>
+          </Link>
+        )}
       </div>
 
       <div className="relative">
@@ -247,22 +254,24 @@ export default function UsersPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 border-t border-border pt-3">
-                    <Link
-                      href={`/dashboard/users/${user.id}`}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                      title="Edit"
-                    >
-                      <Edit size={16} />
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(user.id)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-rose-50 hover:text-rose-600"
-                      title="Hapus"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  {isSuperAdmin && (
+                    <div className="flex justify-end gap-2 border-t border-border pt-3">
+                      <Link
+                        href={`/dashboard/users/${user.id}`}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                        title="Edit"
+                      >
+                        <Edit size={16} />
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(user.id)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-rose-50 hover:text-rose-600"
+                        title="Hapus"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -290,9 +299,11 @@ export default function UsersPage() {
                   <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    Aksi
-                  </th>
+                  {isSuperAdmin && (
+                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      Aksi
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -346,24 +357,26 @@ export default function UsersPage() {
                         {user.isActive ? "Aktif" : "Non-aktif"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center" data-label="Aksi">
-                      <div className="flex justify-center gap-2">
-                        <Link
-                          href={`/dashboard/users/${user.id}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                          title="Edit"
-                        >
-                          <Edit size={16} />
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(user.id)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-rose-50 hover:text-rose-600"
-                          title="Hapus"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
+                    {isSuperAdmin && (
+                      <td className="px-4 py-3 text-center" data-label="Aksi">
+                        <div className="flex justify-center gap-2">
+                          <Link
+                            href={`/dashboard/users/${user.id}`}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                            title="Edit"
+                          >
+                            <Edit size={16} />
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(user.id)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-rose-50 hover:text-rose-600"
+                            title="Hapus"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

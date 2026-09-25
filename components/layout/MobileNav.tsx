@@ -74,14 +74,14 @@ export function MobileNav({ user }: MobileNavProps) {
 
       // ── PIMPINAN ────────────────────────────────
       // Pusat: Pengajuan — approve/reject, keputusan inti pimpinan
-      // Sisa: Beranda, Rekonsiliasi, Laporan, Profil
+      // Sisa: Beranda, Pantau (monitor lintas-unit), Laporan, Profil
       case "PIMPINAN":
         return [
           { label: "Beranda", href: "/dashboard", icon: <Home size={24} /> },
           {
-            label: "Rekonsiliasi",
-            href: "/dashboard/reconciliation",
-            icon: <Clock size={24} />,
+            label: "Pantau",
+            href: "/dashboard/monitor",
+            icon: <Monitor size={24} />,
           },
           {
             label: "Pengajuan",

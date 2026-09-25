@@ -534,6 +534,153 @@ const MANAGER_RETAIL_GROUPS: NavGroup[] = [
   },
 ];
 
+/**
+ * Menu khusus PIMPINAN — pusat kebijakan lembaga.
+ * Pimpinan memantau lintas unit (keuangan, data santri, pegawai), mengambil
+ * keputusan pengajuan/persetujuan, dan mengawasi layanan KPAK.
+ * (Perubahan atas persetujuan pemilik; jalur role lain di NAV_GROUPS tak tersentuh.)
+ */
+const PIMPINAN_GROUPS: NavGroup[] = [
+  {
+    items: [
+      {
+        label: "Dashboard",
+        href: "/dashboard",
+        icon: <LayoutDashboard size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Papan Pantau",
+        href: "/dashboard/monitor",
+        icon: <Monitor size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Pengumuman",
+        href: "/dashboard/announcements",
+        icon: <Bell size={20} />,
+        roles: ["PIMPINAN"],
+      },
+    ],
+  },
+  {
+    title: "Keuangan Lembaga",
+    items: [
+      {
+        label: "Buku Kas",
+        href: "/dashboard/transactions",
+        icon: <Receipt size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Pengajuan",
+        href: "/dashboard/approvals",
+        icon: <ClipboardList size={20} />,
+        roles: ["PIMPINAN"],
+        badgeKey: "review",
+      },
+      {
+        label: "Anggaran",
+        href: "/dashboard/kpak/budget",
+        icon: <Send size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Rekonsiliasi",
+        href: "/dashboard/reconciliation",
+        icon: <Clock size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Serah Terima Kas",
+        href: "/dashboard/handovers",
+        icon: <ClipboardCheck size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Laporan",
+        href: "/dashboard/reports",
+        icon: <BarChart3 size={20} />,
+        roles: ["PIMPINAN"],
+      },
+    ],
+  },
+  {
+    title: "Data & Pegawai",
+    items: [
+      {
+        label: "Data Santri",
+        href: "/dashboard/kpak/students",
+        icon: <BookOpen size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Tabungan Santri",
+        href: "/dashboard/savings",
+        icon: <Wallet size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Rekap KPAK",
+        href: "/dashboard/kpak/reports",
+        icon: <ClipboardCheck size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Pegawai",
+        href: "/dashboard/users",
+        icon: <Users size={20} />,
+        roles: ["PIMPINAN"],
+      },
+    ],
+  },
+  {
+    title: "Pengawasan KPAK",
+    items: [
+      {
+        label: "Perlu Keputusan",
+        href: "/dashboard/kpak/review",
+        icon: <ClipboardList size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Kru & Kinerja",
+        href: "/dashboard/kpak/crew",
+        icon: <CalendarCheck size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Layanan Keuangan",
+        href: "/dashboard/kpak/finance",
+        icon: <Landmark size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Tutup Hari",
+        href: "/dashboard/kpak/close-day",
+        icon: <PackagePlus size={20} />,
+        roles: ["PIMPINAN"],
+      },
+    ],
+  },
+  {
+    items: [
+      {
+        label: "Profil",
+        href: "/dashboard/profile",
+        icon: <User size={20} />,
+        roles: ["PIMPINAN"],
+      },
+      {
+        label: "Keluar",
+        href: "#",
+        icon: <LogOut size={20} />,
+        roles: ["PIMPINAN"],
+      },
+    ],
+  },
+];
+
 export function Sidebar({
   user,
   expanded,
@@ -554,6 +701,7 @@ export function Sidebar({
   const isManagerKpak = role === "MANAGER" && user?.unitType === "KPAK";
   const isManagerRetail =
     role === "MANAGER" && user?.unitIsRetail === true && user?.unitType !== "KPAK";
+  const isPimpinan = role === "PIMPINAN";
 
   // Badge pantau live khusus Manager (KPAK: review/crew; Retail: batch/count/review).
   const [badges, setBadges] = useState<{
@@ -573,7 +721,7 @@ export function Sidebar({
       if (!on) return;
       setBadges({ review: 0, crew: 0, batch: 0, count: 0 });
     };
-    if (!isManagerKpak && !isManagerRetail) {
+    if (!isManagerKpak && !isManagerRetail && !isPimpinan) {
       clear();
       return () => {
         on = false;
@@ -581,6 +729,19 @@ export function Sidebar({
     }
     const fetchBadges = async () => {
       try {
+        if (isPimpinan) {
+          // Badge Pimpinan: jumlah pengajuan menunggu persetujuan.
+          const apprRes = await fetch("/api/approvals").catch(() => null);
+          let review = 0;
+          if (apprRes && apprRes.ok) {
+            const j = await apprRes.json();
+            review += ((j.data ?? []) as any[]).filter(
+              (a) => a.status === "PENDING",
+            ).length;
+          }
+          if (on) setBadges({ review, crew: 0, batch: 0, count: 0 });
+          return;
+        }
         if (isManagerRetail) {
           const [apprRes, batchRes, sisaRes] = await Promise.all([
             fetch("/api/approvals").catch(() => null),
@@ -640,7 +801,7 @@ export function Sidebar({
     return () => {
       on = false;
     };
-  }, [isManagerKpak, isManagerRetail, pathname]);
+  }, [isManagerKpak, isManagerRetail, isPimpinan, pathname]);
 
   const canSeeItem = (item: NavItem) => {
     if (item.roles && !item.roles.includes(role)) return false;
@@ -675,7 +836,9 @@ export function Sidebar({
     ? MANAGER_KPAK_GROUPS
     : isManagerRetail
       ? MANAGER_RETAIL_GROUPS
-      : NAV_GROUPS;
+      : role === "PIMPINAN"
+        ? PIMPINAN_GROUPS
+        : NAV_GROUPS;
   const visibleGroups = baseGroups.map((g) => ({
     ...g,
     items: g.items.filter(canSeeItem),
