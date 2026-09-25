@@ -203,13 +203,17 @@ export function PimpinanPegawai() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-elevation-1">
-          <table className="w-full min-w-[720px] text-left text-sm">
+        <div className="rounded-2xl border border-border bg-card shadow-elevation-1">
+          <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
                 <th className="px-4 py-2.5 font-semibold">Pegawai</th>
-                <th className="px-4 py-2.5 font-semibold">Unit</th>
-                <th className="px-4 py-2.5 font-semibold">Role</th>
+                <th className="hidden px-4 py-2.5 font-semibold md:table-cell">
+                  Unit
+                </th>
+                <th className="hidden px-4 py-2.5 font-semibold sm:table-cell">
+                  Role
+                </th>
                 <th className="px-4 py-2.5 text-right font-semibold">Status</th>
               </tr>
             </thead>
@@ -230,16 +234,16 @@ export function PimpinanPegawai() {
                         <p className="truncate font-medium text-foreground">
                           {u.name || u.email}
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">
+                        <p className="hidden truncate text-xs text-muted-foreground sm:block">
                           {u.email}
                         </p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-2.5 text-muted-foreground">
+                  <td className="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
                     {unitName(u)}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="hidden px-4 py-2.5 sm:table-cell">
                     <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                       {roleIcon(u.role, 12)}
                       {roleLabel[u.role] || u.role}

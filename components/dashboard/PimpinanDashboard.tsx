@@ -13,7 +13,7 @@ import {
   Building,
   Tags,
   Users,
-  Clock,
+  Megaphone,
   Monitor,
   ArrowUpRight,
   ArrowDownRight,
@@ -151,9 +151,9 @@ export default function PimpinanDashboard() {
             color: "purple",
           },
           {
-            href: "/dashboard/reconciliation",
-            icon: Clock,
-            label: "Rekonsiliasi",
+            href: "/dashboard/announcements",
+            icon: Megaphone,
+            label: "Pengumuman",
             color: "accent",
           },
           {
