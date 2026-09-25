@@ -46,6 +46,24 @@ export async function middleware(req: NextRequest) {
     return response;
   }
 
+  // PIMPINAN: sederhana — blok profil operasional & layanan unit.
+  // Halaman/API-nya tetap ada untuk MANAGER/STAFF; pimpinan hanya
+  // navigasi tingkat lembaga (menu di Sidebar sudah dipangkas sejalan).
+  const UNIT_SERVICE_PATHS = [
+    "/dashboard/kpak/",
+    "/dashboard/savings",
+    "/dashboard/reconciliation",
+    "/dashboard/handovers",
+  ];
+  if (token.role === "PIMPINAN") {
+    const blocked = UNIT_SERVICE_PATHS.some((p) =>
+      url.pathname.startsWith(p),
+    );
+    if (blocked) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+  }
+
   return NextResponse.next();
 }
 

@@ -535,9 +535,11 @@ const MANAGER_RETAIL_GROUPS: NavGroup[] = [
 ];
 
 /**
- * Menu khusus PIMPINAN — pusat kebijakan lembaga.
- * Pimpinan memantau lintas unit (keuangan, data santri, pegawai), mengambil
- * keputusan pengajuan/persetujuan, dan mengawasi layanan KPAK.
+ * Menu khusus PIMPINAN — sederhana, fokus tugas kepemimpinan.
+ * Hanya navigasi tingkat lembaga: dashboard/pantauan, keputusan, buku kas,
+ * laporan, dan pegawai. Menu operasional & layanan unit (KPAK, tabungan,
+ * rekonsiliasi, handover) dihapus agar fokus pimpinan; akses rutenya pun
+ * diblok untuk PIMPINAN di middleware (role lain tetap bisa).
  * (Perubahan atas persetujuan pemilik; jalur role lain di NAV_GROUPS tak tersentuh.)
  */
 const PIMPINAN_GROUPS: NavGroup[] = [
@@ -580,24 +582,6 @@ const PIMPINAN_GROUPS: NavGroup[] = [
         badgeKey: "review",
       },
       {
-        label: "Anggaran",
-        href: "/dashboard/kpak/budget",
-        icon: <Send size={20} />,
-        roles: ["PIMPINAN"],
-      },
-      {
-        label: "Rekonsiliasi",
-        href: "/dashboard/reconciliation",
-        icon: <Clock size={20} />,
-        roles: ["PIMPINAN"],
-      },
-      {
-        label: "Serah Terima Kas",
-        href: "/dashboard/handovers",
-        icon: <ClipboardCheck size={20} />,
-        roles: ["PIMPINAN"],
-      },
-      {
         label: "Laporan",
         href: "/dashboard/reports",
         icon: <BarChart3 size={20} />,
@@ -606,59 +590,12 @@ const PIMPINAN_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Data & Pegawai",
+    title: "Kepegawaian",
     items: [
-      {
-        label: "Data Santri",
-        href: "/dashboard/kpak/students",
-        icon: <BookOpen size={20} />,
-        roles: ["PIMPINAN"],
-      },
-      {
-        label: "Tabungan Santri",
-        href: "/dashboard/savings",
-        icon: <Wallet size={20} />,
-        roles: ["PIMPINAN"],
-      },
-      {
-        label: "Rekap KPAK",
-        href: "/dashboard/kpak/reports",
-        icon: <ClipboardCheck size={20} />,
-        roles: ["PIMPINAN"],
-      },
       {
         label: "Pegawai",
         href: "/dashboard/users",
         icon: <Users size={20} />,
-        roles: ["PIMPINAN"],
-      },
-    ],
-  },
-  {
-    title: "Pengawasan KPAK",
-    items: [
-      {
-        label: "Perlu Keputusan",
-        href: "/dashboard/kpak/review",
-        icon: <ClipboardList size={20} />,
-        roles: ["PIMPINAN"],
-      },
-      {
-        label: "Kru & Kinerja",
-        href: "/dashboard/kpak/crew",
-        icon: <CalendarCheck size={20} />,
-        roles: ["PIMPINAN"],
-      },
-      {
-        label: "Layanan Keuangan",
-        href: "/dashboard/kpak/finance",
-        icon: <Landmark size={20} />,
-        roles: ["PIMPINAN"],
-      },
-      {
-        label: "Tutup Hari",
-        href: "/dashboard/kpak/close-day",
-        icon: <PackagePlus size={20} />,
         roles: ["PIMPINAN"],
       },
     ],
