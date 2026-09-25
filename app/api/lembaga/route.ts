@@ -21,11 +21,9 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // RBAC
-    const role = session.user.role;
-    if (role !== "SUPERADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    // Baca daftar lembaga aktif — semua role terautentikasi (PIMPINAN,
+    // MANAGER, STAFF) butuh untuk dropdown broadcast & unit.
+    // Buat/ubah lembaga tetap SUPERADMIN (lihat POST).
 
     // Fetch lembagas
     const lembagas = await prisma.lembaga.findMany({
