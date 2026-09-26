@@ -3,10 +3,11 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
-import { mkdir } from "fs/promises";
-import { join } from "path";
-import { v4 as uuidv4 } from "uuid";
-import * as fs from "fs";
+import {
+  ALLOWED_IMAGE_TYPES,
+  MAX_IMAGE_SIZE,
+  saveImage,
+} from "@/lib/storage";
 import {
   resolveApprover,
   resolveLembagaUnit,
@@ -15,15 +16,6 @@ import {
 } from "@/lib/approvalRouting";
 import { buildTransactionSummary } from "@/lib/modules/transactions/summary";
 import { validateBusinessFlow } from "@/lib/modules/units/business-rules";
-
-// Allowed file types for photo uploads
-const ALLOWED_PHOTO_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/jpg",
-];
-const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
 
 // Schema for creating transactions
 const createTransactionSchema = z.object({
@@ -398,7 +390,7 @@ export async function POST(request: NextRequest) {
       const photo = formData.get("photo") as File | null;
       if (photo && photo.size > 0) {
         // Validate file type
-        if (!ALLOWED_PHOTO_TYPES.includes(photo.type)) {
+        if (!ALLOWED_IMAGE_TYPES.has(photo.type)) {
           return NextResponse.json(
             {
               error:
@@ -409,7 +401,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate file size
-        if (photo.size > MAX_PHOTO_SIZE) {
+        if (photo.size > MAX_IMAGE_SIZE) {
           return NextResponse.json(
             { error: "Ukuran file terlalu besar. Maksimal 5MB." },
             { status: 400 },
@@ -417,26 +409,12 @@ export async function POST(request: NextRequest) {
         }
 
         try {
-          const uploadDir = join(
-            process.cwd(),
-            "public",
-            "uploads",
-            "transactions",
-          );
-
-          if (!fs.existsSync(uploadDir)) {
-            await mkdir(uploadDir, { recursive: true });
-          }
-
-          const buffer = await photo.arrayBuffer();
-          const extension = photo.type.split("/")[1] || "jpg";
-          const fileName = `transaction_${uuidv4()}.${extension}`;
-          const filePath = join(uploadDir, fileName);
-
-          const nodeBuffer = Buffer.from(buffer);
-          const { promises: fsPromises } = await import("fs");
-          await fsPromises.writeFile(filePath, nodeBuffer);
-          photoUrl = `/uploads/transactions/${fileName}`;
+          const stored = await saveImage({
+            bytes: Buffer.from(await photo.arrayBuffer()),
+            mimeType: photo.type,
+            folder: "transactions",
+          });
+          photoUrl = stored.url;
         } catch (error) {
           console.error("Error uploading photo:", error);
           return NextResponse.json(

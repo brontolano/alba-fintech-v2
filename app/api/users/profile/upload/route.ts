@@ -2,41 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/options";
-import { mkdir } from "fs/promises";
-import { join } from "path";
-import { v4 as uuidv4 } from "uuid";
-import * as fs from "fs";
-
-async function handleProfileImageUpload(
-  imageFile: File,
-): Promise<string | null> {
-  try {
-    const uploadDir = join(process.cwd(), "public", "uploads", "profiles");
-
-    if (!fs.existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
-    const buffer = await imageFile.arrayBuffer();
-    const ext =
-      imageFile.type === "image/png"
-        ? "png"
-        : imageFile.type === "image/webp"
-          ? "webp"
-          : "jpg";
-    const fileName = `profile_${uuidv4()}.${ext}`;
-    const filePath = join(uploadDir, fileName);
-
-    const nodeBuffer = Buffer.from(buffer);
-    const { promises: fsPromises } = require("fs");
-    await fsPromises.writeFile(filePath, nodeBuffer);
-
-    return `/uploads/profiles/${fileName}`;
-  } catch (error) {
-    console.error("Error uploading profile image:", error);
-    return null;
-  }
-}
+import { deleteStoredFile, saveImage } from "@/lib/storage";
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,42 +26,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No image provided" }, { status: 400 });
     }
 
-    // Validate image type
-    const validTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!validTypes.includes(image.type)) {
-      return NextResponse.json(
-        { error: "Invalid image type" },
-        { status: 400 },
-      );
-    }
+    // Simpan ke penyimpanan terpusat — saveImage memvalidasi tipe & ukuran
+    const stored = await saveImage({
+      bytes: Buffer.from(await image.arrayBuffer()),
+      mimeType: image.type,
+      folder: "profiles",
+    });
 
-    if (image.size > 5 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: "Ukuran gambar maksimal 5MB" },
-        { status: 400 },
-      );
-    }
-
-    const imageUrl = await handleProfileImageUpload(image);
-    if (!imageUrl) {
-      return NextResponse.json(
-        { error: "Gagal menyimpan gambar" },
-        { status: 500 },
-      );
+    // Hapus gambar profil lama (upload lokal) bila ada
+    const existing = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { image: true },
+    });
+    if (existing?.image && existing.image !== stored.url) {
+      await deleteStoredFile(existing.image);
     }
 
     // Update user profile image
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
-      data: { image: imageUrl },
+      data: { image: stored.url },
     });
 
     return NextResponse.json({ data: updatedUser }, { status: 200 });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Internal Server Error";
     console.error("[Profile Image API] Error:", error);
+    const isValidation =
+      message.includes("Tipe file") || message.includes("Ukuran file");
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
+      { error: message },
+      { status: isValidation ? 400 : 500 },
     );
   }
 }

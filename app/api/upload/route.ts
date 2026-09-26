@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/options';
 import { uploadToDrive } from '@/lib/upload-drive';
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, saveImage } from '@/lib/storage';
 
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+function extFor(mimeType: string): string {
+  if (mimeType === 'image/png') return 'png';
+  if (mimeType === 'image/webp') return 'webp';
+  return 'jpg';
+}
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -22,10 +24,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validasi tipe file: hanya gambar yang diizinkan
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
       return NextResponse.json(
         { error: 'Tipe file tidak didukung. Hanya JPEG, PNG, dan WebP yang diizinkan.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -33,32 +35,21 @@ export async function POST(request: NextRequest) {
     if (file.size > MAX_IMAGE_SIZE) {
       return NextResponse.json(
         { error: 'Ukuran file terlalu besar. Maksimal 5MB.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Sanitasi ekstensi dari whitelist, bukan dari nama file klien
-    const extMap: Record<string, string> = {
-      'image/jpeg': 'jpg',
-      'image/jpg': 'jpg',
-      'image/png': 'png',
-      'image/webp': 'webp',
-    };
-    const ext = extMap[file.type] ?? 'jpg';
-
     const bytes = Buffer.from(await file.arrayBuffer());
-    const timestamp = Date.now();
-    const filename = `item-${timestamp}.${ext}`;
     const { searchParams } = new URL(request.url);
     const isBukti = searchParams.get('folder') === 'bukti';
 
     // Bukti transaksi -> Google Drive pemilik (folder "Bukti Transaksi").
-    // Gagal/belum dikonfigurasi -> fallback lokal via /api/bukti.
+    // Gagal/belum dikonfigurasi -> fallback penyimpanan lokal terpusat.
     if (isBukti) {
       try {
         const drive = await uploadToDrive({
           bytes,
-          filename,
+          filename: `bukti-${Date.now()}.${extFor(file.type)}`,
           mimeType: file.type,
           folder: 'Bukti Transaksi',
         });
@@ -71,13 +62,11 @@ export async function POST(request: NextRequest) {
           '[Upload API] Drive gagal, fallback lokal:',
           (driveErr as Error).message,
         );
-        const dir = join(process.cwd(), 'data', 'bukti');
-        await mkdir(dir, { recursive: true });
-        await writeFile(join(dir, filename), bytes);
+        const stored = await saveImage({ bytes, mimeType: file.type, folder: 'bukti' });
         return NextResponse.json(
           {
-            url: `/api/bukti/${filename}`,
-            filename,
+            url: stored.url,
+            filename: stored.filename,
             storage: 'local',
             warning:
               'Tersimpan lokal (Google Drive belum dikonfigurasi). ' +
@@ -88,14 +77,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const dir = join(process.cwd(), 'public', 'uploads', 'inventory');
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, filename), bytes);
-
-    const url = `/uploads/inventory/${filename}`;
-    return NextResponse.json({ url, filename }, { status: 200 });
+    const stored = await saveImage({ bytes, mimeType: file.type, folder: 'inventory' });
+    return NextResponse.json({ url: stored.url, filename: stored.filename }, { status: 200 });
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Upload failed';
     console.error('[Upload API] Error:', error);
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    const isValidation = message.includes('Tipe file') || message.includes('Ukuran file');
+    return NextResponse.json({ error: message }, { status: isValidation ? 400 : 500 });
   }
 }

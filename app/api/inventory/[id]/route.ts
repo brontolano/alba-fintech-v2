@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/options';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
+import { deleteStoredFile } from '@/lib/storage';
 
 const updateItemSchema = z.object({
   name: z.string().min(1, 'Nama barang wajib diisi').optional(),
@@ -163,18 +164,9 @@ export async function DELETE(
       );
     }
 
-    // Hapus file gambar lokal jika ada
-    if (existing.imageUrl && existing.imageUrl.startsWith('/uploads/inventory/')) {
-      try {
-        const { unlink } = await import('fs/promises');
-        const { join } = await import('path');
-        const filename = existing.imageUrl.split('/').pop();
-        if (filename) {
-          await unlink(join(process.cwd(), 'public', 'uploads', 'inventory', filename));
-        }
-      } catch {
-        // File sudah tidak ada — abaikan
-      }
+    // Hapus file gambar tersimpan jika ada
+    if (existing.imageUrl) {
+      await deleteStoredFile(existing.imageUrl);
     }
 
     await prisma.inventoryItem.delete({ where: { id } });

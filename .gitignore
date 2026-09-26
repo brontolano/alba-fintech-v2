@@ -118,6 +118,7 @@ public/logo.png
 
 # Local app data
 /uploads
+data/
 recipes/
 secrets.yaml.example
 goose.config.yaml

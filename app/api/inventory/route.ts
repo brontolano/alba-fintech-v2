@@ -3,8 +3,7 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/options';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
-import { unlink } from 'fs/promises';
-import { join } from 'path';
+import { deleteStoredFile } from '@/lib/storage';
 
 
 // Schema for creating inventory items
@@ -306,13 +305,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete associated image file if it's a local upload
-    if (item.imageUrl && item.imageUrl.startsWith('/uploads/inventory/')) {
+    if (item.imageUrl) {
       try {
-        const filename = item.imageUrl.split('/').pop();
-        if (filename) {
-          const filePath = join(process.cwd(), 'public', 'uploads', 'inventory', filename);
-          await unlink(filePath);
-        }
+        await deleteStoredFile(item.imageUrl);
       } catch (unlinkError) {
         // Log error but don't fail the deletion if file doesn't exist
         console.warn('[Inventory API] Failed to delete image file:', unlinkError);
