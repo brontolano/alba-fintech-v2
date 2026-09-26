@@ -10,7 +10,7 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 
-const DEMO_PASSWORD = "Bismillah123!";
+const DEMO_PASSWORD = "bismillah";
 
 const DEFAULT_SETTINGS = [
   ["app_name", "ALBA Finance", "Nama aplikasi"],
@@ -75,38 +75,44 @@ const CATEGORIES = [
 ] as const;
 
 const DEMO_USERS = [
-  ["pimpinan.demo@alba.local", "Ust. Ahmad (Pimpinan)", "PIMPINAN", null],
-  ["manager.kpak.demo@alba.local", "Ali (Manager KPAK)", "MANAGER", "KPK-01"],
+  ["pimpinan@alba.app", "Ust. Ahmad (Pimpinan)", "PIMPINAN", null],
+  ["manager.kpak@alba.app", "Ali (Manager KPAK)", "MANAGER", "KPK-01"],
   [
-    "manager.kantinbaru.demo@alba.local",
+    "manager.kantinbaru@alba.app",
     "Eka (Manager Kantin Baru)",
     "MANAGER",
     "KNT-02",
   ],
   [
-    "manager.kantinumi.demo@alba.local",
+    "manager.kantinumi@alba.app",
     "Diana (Manager Kantin Umi)",
     "MANAGER",
     "KNT-01",
   ],
   [
-    "manager.koperasi.demo@alba.local",
+    "manager.koperasi@alba.app",
     "Budi (Manager Koperasi Buku)",
     "MANAGER",
     "KOP-01",
   ],
-  ["staff.kantinbaru.demo@alba.local", "Staff Kantin Baru", "STAFF", "KNT-02"],
-  ["staff.kantinumi.demo@alba.local", "Staff Kantin Umi", "STAFF", "KNT-01"],
-  ["staff.koperasi.demo@alba.local", "Staff Koperasi Buku", "STAFF", "KOP-01"],
+  ["staff.kpak@alba.app", "Firman (Staff KPAK)", "STAFF", "KPK-01"],
+  ["staff.kantinbaru@alba.app", "Gita (Staff Kantin Baru)", "STAFF", "KNT-02"],
+  ["staff.kantinumi@alba.app", "Hana (Staff Kantin Umi)", "STAFF", "KNT-01"],
+  ["staff.koperasi@alba.app", "Indra (Staff Koperasi Buku)", "STAFF", "KOP-01"],
 ] as const;
 
 const INVENTORY = [
   ["KNT-02", "Nasi Uduk", "DEMO-NU-KNT02", "Makanan", 80, 10, 12000, 8000],
   ["KNT-02", "Es Campur", "DEMO-EC-KNT02", "Minuman", 120, 20, 10000, 6000],
+  ["KNT-02", "Ayam Geprek", "DEMO-AG-KNT02", "Makanan", 60, 8, 15000, 9500],
   ["KNT-01", "Nasi Goreng", "DEMO-NG-KNT01", "Makanan", 100, 10, 15000, 10000],
   ["KNT-01", "Es Teh Manis", "DEMO-ET-KNT01", "Minuman", 150, 20, 8000, 5000],
+  ["KNT-01", "Mie Goreng", "DEMO-MG-KNT01", "Makanan", 90, 12, 12000, 7500],
+  ["KNT-01", "Kopi Susu", "DEMO-KS-KNT01", "Minuman", 110, 15, 10000, 6500],
   ["KOP-01", "Buku Tulis", "DEMO-BT-KOP01", "Alat Tulis", 300, 50, 5000, 3000],
   ["KOP-01", "Pensil 2B", "DEMO-P2B-KOP01", "Alat Tulis", 200, 30, 3000, 1500],
+  ["KOP-01", "Bolpoin", "DEMO-BP-KOP01", "Alat Tulis", 250, 40, 3000, 1800],
+  ["KOP-01", "Penggaris", "DEMO-PG-KOP01", "Alat Tulis", 150, 25, 4000, 2500],
 ];
 
 const SAVINGS = [
@@ -431,7 +437,15 @@ export async function seedDemoData(prisma: PrismaClient) {
         });
         users.set(email, user);
       }
-      const pimpinan = users.get("pimpinan.demo@alba.local");
+      const pimpinan = users.get("pimpinan@alba.app");
+      const managerKpak = users.get("manager.kpak@alba.app");
+      const managerKantinBaru = users.get("manager.kantinbaru@alba.app");
+      const managerKantinUmi = users.get("manager.kantinumi@alba.app");
+      const managerKoperasi = users.get("manager.koperasi@alba.app");
+      const staffKpak = users.get("staff.kpak@alba.app");
+      const staffKantinBaru = users.get("staff.kantinbaru@alba.app");
+      const staffKantinUmi = users.get("staff.kantinumi@alba.app");
+      const staffKoperasi = users.get("staff.koperasi@alba.app");
 
       const categories = new Map<string, any>();
       for (const [name, code, type] of CATEGORIES) {
@@ -443,7 +457,7 @@ export async function seedDemoData(prisma: PrismaClient) {
 
       const accounts = new Map<string, any>();
       for (const [code, unitCode, name, type, balance] of [
-        ["DEMO-KPK-KAS", "KPK-01", "Kas KPAK", "CASH", 50000000],
+        ["DEMO-KPK-KAS", "KPK-01", "Kas KPAK", "CASH", 62000000],
         ["DEMO-KNT02-KAS", "KNT-02", "Kas Kantin Baru", "CASH", 3200000],
         ["DEMO-KNT01-KAS", "KNT-01", "Kas Kantin Umi", "CASH", 2500000],
         ["DEMO-KOP-KAS", "KOP-01", "Kas Koperasi Buku", "CASH", 8500000],
@@ -465,122 +479,174 @@ export async function seedDemoData(prisma: PrismaClient) {
       const transactions = [
         [
           "KPK-01",
-          "manager.kpak.demo@alba.local",
+          "manager.kpak@alba.app",
           "INC-SETOR",
           "INCOME",
           12000000,
           "Setoran kas harian KPAK dari unit administrasi",
           "APPROVED",
+          1,
         ],
         [
           "KPK-01",
-          "manager.kpak.demo@alba.local",
+          "manager.kpak@alba.app",
           "EXP-UTIL",
           "EXPENSE",
           2500000,
           "Pembayaran listrik dan air kantor KPAK",
           "PENDING",
+          0,
         ],
         [
           "KPK-01",
-          "manager.kpak.demo@alba.local",
+          "manager.kpak@alba.app",
           "INC-LEMBAGA",
           "INCOME",
-          1800000,
-          "Pemasukan lembaga dari iuran operasional",
+          4950000,
+          "Iuran operasional santri lembaga periode bulan ini",
           "APPROVED",
+          2,
+        ],
+        [
+          "KPK-01",
+          "manager.kpak@alba.app",
+          "EXP-HONOR",
+          "EXPENSE",
+          3500000,
+          "Honorarium ustadz pengajar bulan ini",
+          "APPROVED",
+          4,
+        ],
+        [
+          "KPK-01",
+          "manager.kpak@alba.app",
+          "EXP-OPR",
+          "EXPENSE",
+          750000,
+          "ATK dan konsumsi rapat bulanan KPAK",
+          "REJECTED",
+          3,
+        ],
+        [
+          "KPK-01",
+          "manager.kpak@alba.app",
+          "TRANSFER",
+          "TRANSFER",
+          500000,
+          "Transfer kas KPAK ke Kantin Umi untuk modal operasional",
+          "APPROVED",
+          1,
         ],
         [
           "KNT-02",
-          "manager.kantinbaru.demo@alba.local",
-          "INC-PENJUALAN",
-          "INCOME",
-          680000,
-          "Penjualan harian menu siang Kantin Baru",
-          "APPROVED",
-        ],
-        [
-          "KNT-02",
-          "staff.kantinbaru.demo@alba.local",
+          "staff.kantinbaru@alba.app",
           "EXP-STOK",
           "EXPENSE",
           220000,
           "Pembelian stok bahan baku dan minuman",
           "PENDING",
+          0,
         ],
         [
           "KNT-02",
-          "staff.kantinbaru.demo@alba.local",
-          "EXP-OPR",
-          "EXPENSE",
-          150000,
-          "Biaya kebersihan, gas, dan operasional kecil",
-          "APPROVED",
-        ],
-        [
-          "KNT-01",
-          "manager.kantinumi.demo@alba.local",
+          "manager.kantinbaru@alba.app",
           "INC-PENJUALAN",
           "INCOME",
-          510000,
-          "Penjualan paket makan siang Kantin Umi",
+          680000,
+          "Penjualan harian menu siang Kantin Baru",
           "APPROVED",
+          1,
+        ],
+        [
+          "KNT-02",
+          "staff.kantinbaru@alba.app",
+          "INC-PENJUALAN",
+          "INCOME",
+          180000,
+          "Catatan penjualan sarapan yang belum dilengkapi bukti",
+          "DRAFT",
+          0,
         ],
         [
           "KNT-01",
-          "staff.kantinumi.demo@alba.local",
+          "staff.kantinumi@alba.app",
           "EXP-STOK",
           "EXPENSE",
           180000,
           "Pembelian bahan baku masakan hari ini",
           "PENDING",
+          0,
         ],
         [
           "KNT-01",
-          "manager.kantinumi.demo@alba.local",
-          "EXP-OPR",
-          "EXPENSE",
-          120000,
-          "Pembayaran kebersihan dan perlengkapan kantin",
-          "APPROVED",
-        ],
-        [
-          "KOP-01",
-          "manager.koperasi.demo@alba.local",
+          "manager.kantinumi@alba.app",
           "INC-PENJUALAN",
           "INCOME",
-          750000,
-          "Penjualan buku pelajaran dan perlengkapan sekolah",
+          510000,
+          "Penjualan paket makan siang Kantin Umi",
           "APPROVED",
+          2,
         ],
         [
           "KOP-01",
-          "staff.koperasi.demo@alba.local",
+          "staff.koperasi@alba.app",
           "EXP-STOK",
           "EXPENSE",
           300000,
           "Pembelian stok buku dan alat tulis baru",
           "PENDING",
+          0,
         ],
         [
           "KOP-01",
-          "manager.koperasi.demo@alba.local",
+          "manager.koperasi@alba.app",
+          "INC-PENJUALAN",
+          "INCOME",
+          750000,
+          "Penjualan buku pelajaran dan perlengkapan sekolah",
+          "APPROVED",
+          1,
+        ],
+        [
+          "KOP-01",
+          "staff.koperasi@alba.app",
+          "EXP-OPR",
+          "EXPENSE",
+          45000,
+          "Penggantian kantong plastik dan tali kemasan",
+          "APPROVED",
+          0,
+        ],
+        [
+          "KOP-01",
+          "manager.koperasi@alba.app",
           "INC-SETOR",
           "INCOME",
           900000,
           "Setoran kas dari penjualan buku dan admin koperasi",
           "APPROVED",
+          1,
         ],
       ] as const;
+      const unitManagerEmail: Record<string, string> = {
+        "KPK-01": "manager.kpak@alba.app",
+        "KNT-02": "manager.kantinbaru@alba.app",
+        "KNT-01": "manager.kantinumi@alba.app",
+        "KOP-01": "manager.koperasi@alba.app",
+      };
       for (const [
-        unitCode,
-        email,
-        categoryCode,
-        type,
-        amount,
-        description,
-        status,
-      ] of transactions) {
+        transactionIndex,
+        [
+          unitCode,
+          email,
+          categoryCode,
+          type,
+          amount,
+          description,
+          status,
+          days,
+        ],
+      ] of transactions.entries()) {
         const creator = users.get(email);
         const transaction = await tx.transaction.create({
           data: {
@@ -588,34 +654,49 @@ export async function seedDemoData(prisma: PrismaClient) {
             type: type as any,
             amount,
             description: `[DEMO] ${description}`,
-            reference: `DEMO-${unitCode}`,
+            reference: `DEMO-${unitCode}-${String(transactionIndex + 1).padStart(
+              2,
+              "0",
+            )}`,
             status: status as any,
             createdById: creator.id,
-            categoryId: categories.get(categoryCode).id,
+            categoryId:
+              categoryCode === "TRANSFER"
+                ? null
+                : categories.get(categoryCode).id,
             accountId: accounts.get(unitCode).id,
-            approvedById: status === "APPROVED" ? creator.id : null,
-            approvedAt: status === "APPROVED" ? dateDaysAgo(1) : null,
-            date: dateDaysAgo(1),
+            approvedById:
+              status === "APPROVED" || status === "REJECTED"
+                ? creator.id
+                : null,
+            approvedAt:
+              status === "APPROVED" || status === "REJECTED"
+                ? dateDaysAgo(Math.max(days, 1))
+                : null,
+            isReconciled: status === "APPROVED",
+            reconciledAt:
+              status === "APPROVED" ? dateDaysAgo(Math.max(days, 1)) : null,
+            date: dateDaysAgo(days),
           },
         });
-        if (status === "PENDING")
+        if (status === "PENDING" || status === "REJECTED") {
+          const approver =
+            creator.role === "STAFF"
+              ? users.get(unitManagerEmail[unitCode])
+              : pimpinan;
           await tx.approval.create({
             data: {
               transactionId: transaction.id,
               unitId: transaction.unitId,
-              approverId:
-                creator.role === "STAFF"
-                  ? users.get(
-                      unitCode === "KNT-02"
-                        ? "manager.kantinbaru.demo@alba.local"
-                        : unitCode === "KNT-01"
-                          ? "manager.kantinumi.demo@alba.local"
-                          : "manager.koperasi.demo@alba.local",
-                    ).id
-                  : pimpinan.id,
-              status: "PENDING",
+              approverId: approver.id,
+              status: status as any,
+              comment:
+                status === "REJECTED"
+                  ? "Bukti pendukung belum lengkap, silakan dilengkapi dan ajukan ulang"
+                  : null,
             },
           });
+        }
       }
 
       const inventoryItems = new Map<string, any>();
@@ -654,7 +735,6 @@ export async function seedDemoData(prisma: PrismaClient) {
       }
 
       const kpakUnit = units.get("KPK-01");
-      const kpakCreator = users.get("manager.kpak.demo@alba.local");
       for (const studentData of SAVINGS) {
         const student = await tx.student.create({
           data: {
@@ -681,7 +761,7 @@ export async function seedDemoData(prisma: PrismaClient) {
             data: {
               accountId: savingsAccount.id,
               unitId: kpakUnit.id,
-              type,
+              type: type as any,
               amount,
               balanceBefore: before,
               balanceAfter: balance,
@@ -694,7 +774,7 @@ export async function seedDemoData(prisma: PrismaClient) {
                   : `Penarikan tabungan ${studentData.name}`
               }`,
               cardUid: studentData.cardUid,
-              createdById: kpakCreator.id,
+              createdById: managerKpak.id,
               createdAt: dateDaysAgo(days),
             },
           });
@@ -721,13 +801,25 @@ export async function seedDemoData(prisma: PrismaClient) {
         999,
       );
 
-      const managerKpak = users.get("manager.kpak.demo@alba.local");
-      const managerKantinBaru = users.get("manager.kantinbaru.demo@alba.local");
-      const managerKantinUmi = users.get("manager.kantinumi.demo@alba.local");
-      const managerKoperasi = users.get("manager.koperasi.demo@alba.local");
-      const staffKantinBaru = users.get("staff.kantinbaru.demo@alba.local");
+      const addOrderItems = async (
+        transactionId: string,
+        rows: [string, string, number, number][],
+      ) => {
+        for (const [sku, itemName, quantity, unitPrice] of rows) {
+          await tx.orderItem.create({
+            data: {
+              transactionId,
+              itemId: inventoryItems.get(sku).id,
+              itemName,
+              quantity,
+              unitPrice,
+              totalPrice: quantity * unitPrice,
+            },
+          });
+        }
+      };
 
-      const closedPos = await tx.posSession.create({
+      const closedPosKnt02 = await tx.posSession.create({
         data: {
           unitId: units.get("KNT-02").id,
           userId: staffKantinBaru.id,
@@ -741,7 +833,7 @@ export async function seedDemoData(prisma: PrismaClient) {
           closeNote: "Penutupan shift siang sesuai hitungan kasir",
         },
       });
-      const closedPosSale = await tx.transaction.create({
+      const closedPosSaleKnt02 = await tx.transaction.create({
         data: {
           unitId: units.get("KNT-02").id,
           type: "INCOME",
@@ -755,29 +847,86 @@ export async function seedDemoData(prisma: PrismaClient) {
           approvedById: managerKantinBaru.id,
           approvedAt: daysAgoAt(1, 15, 0),
           date: daysAgoAt(1, 10, 15),
-          posSessionId: closedPos.id,
+          posSessionId: closedPosKnt02.id,
         },
       });
-      await tx.orderItem.create({
+      await addOrderItems(closedPosSaleKnt02.id, [
+        ["DEMO-NU-KNT02", "Nasi Uduk", 15, 12000],
+        ["DEMO-EC-KNT02", "Es Campur", 20, 10000],
+      ]);
+
+      const closedPosKnt01 = await tx.posSession.create({
         data: {
-          transactionId: closedPosSale.id,
-          itemId: inventoryItems.get("DEMO-NU-KNT02").id,
-          itemName: "Nasi Uduk",
-          quantity: 15,
-          unitPrice: 12000,
-          totalPrice: 180000,
+          unitId: units.get("KNT-01").id,
+          userId: managerKantinUmi.id,
+          date: dateDaysAgo(1),
+          openedAt: daysAgoAt(1, 6, 30),
+          openingCash: 250000,
+          closedAt: daysAgoAt(1, 14, 0),
+          expectedCash: 240000,
+          countedCash: 240000,
+          discrepancy: 0,
+          closeNote: "Penutupan shift siang Kantin Umi",
         },
       });
-      await tx.orderItem.create({
+      const closedPosSaleKnt01 = await tx.transaction.create({
         data: {
-          transactionId: closedPosSale.id,
-          itemId: inventoryItems.get("DEMO-EC-KNT02").id,
-          itemName: "Es Campur",
-          quantity: 20,
-          unitPrice: 10000,
-          totalPrice: 200000,
+          unitId: units.get("KNT-01").id,
+          type: "INCOME",
+          amount: 240000,
+          description: "[DEMO] Penjualan shift pagi Kantin Umi",
+          reference: "DEMO-POS-KNT01-02",
+          status: "APPROVED",
+          createdById: managerKantinUmi.id,
+          categoryId: categories.get("INC-PENJUALAN").id,
+          accountId: accounts.get("KNT-01").id,
+          approvedById: managerKantinUmi.id,
+          approvedAt: daysAgoAt(1, 15, 0),
+          date: daysAgoAt(1, 11, 0),
+          posSessionId: closedPosKnt01.id,
         },
       });
+      await addOrderItems(closedPosSaleKnt01.id, [
+        ["DEMO-NG-KNT01", "Nasi Goreng", 10, 15000],
+        ["DEMO-ET-KNT01", "Es Teh Manis", 5, 8000],
+        ["DEMO-KS-KNT01", "Kopi Susu", 5, 10000],
+      ]);
+
+      const closedPosKop01 = await tx.posSession.create({
+        data: {
+          unitId: units.get("KOP-01").id,
+          userId: managerKoperasi.id,
+          date: dateDaysAgo(1),
+          openedAt: daysAgoAt(1, 8, 0),
+          openingCash: 200000,
+          closedAt: daysAgoAt(1, 15, 0),
+          expectedCash: 180000,
+          countedCash: 180000,
+          discrepancy: 0,
+          closeNote: "Penutupan shift koperasi",
+        },
+      });
+      const closedPosSaleKop01 = await tx.transaction.create({
+        data: {
+          unitId: units.get("KOP-01").id,
+          type: "INCOME",
+          amount: 180000,
+          description: "[DEMO] Penjualan shift koperasi kemarin",
+          reference: "DEMO-POS-KOP01-02",
+          status: "APPROVED",
+          createdById: managerKoperasi.id,
+          categoryId: categories.get("INC-PENJUALAN").id,
+          accountId: accounts.get("KOP-01").id,
+          approvedById: managerKoperasi.id,
+          approvedAt: daysAgoAt(1, 16, 0),
+          date: daysAgoAt(1, 10, 30),
+          posSessionId: closedPosKop01.id,
+        },
+      });
+      await addOrderItems(closedPosSaleKop01.id, [
+        ["DEMO-BT-KOP01", "Buku Tulis", 24, 5000],
+        ["DEMO-P2B-KOP01", "Pensil 2B", 20, 3000],
+      ]);
 
       const openPosKnt02 = await tx.posSession.create({
         data: {
@@ -805,26 +954,10 @@ export async function seedDemoData(prisma: PrismaClient) {
           posSessionId: openPosKnt02.id,
         },
       });
-      await tx.orderItem.create({
-        data: {
-          transactionId: todaySaleKnt02.id,
-          itemId: inventoryItems.get("DEMO-NU-KNT02").id,
-          itemName: "Nasi Uduk",
-          quantity: 10,
-          unitPrice: 12000,
-          totalPrice: 120000,
-        },
-      });
-      await tx.orderItem.create({
-        data: {
-          transactionId: todaySaleKnt02.id,
-          itemId: inventoryItems.get("DEMO-EC-KNT02").id,
-          itemName: "Es Campur",
-          quantity: 3,
-          unitPrice: 10000,
-          totalPrice: 30000,
-        },
-      });
+      await addOrderItems(todaySaleKnt02.id, [
+        ["DEMO-NU-KNT02", "Nasi Uduk", 10, 12000],
+        ["DEMO-EC-KNT02", "Es Campur", 3, 10000],
+      ]);
 
       const openPosKnt01 = await tx.posSession.create({
         data: {
@@ -852,26 +985,10 @@ export async function seedDemoData(prisma: PrismaClient) {
           posSessionId: openPosKnt01.id,
         },
       });
-      await tx.orderItem.create({
-        data: {
-          transactionId: todaySaleKnt01.id,
-          itemId: inventoryItems.get("DEMO-NG-KNT01").id,
-          itemName: "Nasi Goreng",
-          quantity: 10,
-          unitPrice: 15000,
-          totalPrice: 150000,
-        },
-      });
-      await tx.orderItem.create({
-        data: {
-          transactionId: todaySaleKnt01.id,
-          itemId: inventoryItems.get("DEMO-ET-KNT01").id,
-          itemName: "Es Teh Manis",
-          quantity: 5,
-          unitPrice: 8000,
-          totalPrice: 40000,
-        },
-      });
+      await addOrderItems(todaySaleKnt01.id, [
+        ["DEMO-NG-KNT01", "Nasi Goreng", 10, 15000],
+        ["DEMO-ET-KNT01", "Es Teh Manis", 5, 8000],
+      ]);
 
       const openPosKop01 = await tx.posSession.create({
         data: {
@@ -899,27 +1016,28 @@ export async function seedDemoData(prisma: PrismaClient) {
           posSessionId: openPosKop01.id,
         },
       });
-      await tx.orderItem.create({
-        data: {
-          transactionId: todaySaleKop01.id,
-          itemId: inventoryItems.get("DEMO-BT-KOP01").id,
-          itemName: "Buku Tulis",
-          quantity: 20,
-          unitPrice: 5000,
-          totalPrice: 100000,
-        },
-      });
-      await tx.orderItem.create({
-        data: {
-          transactionId: todaySaleKop01.id,
-          itemId: inventoryItems.get("DEMO-P2B-KOP01").id,
-          itemName: "Pensil 2B",
-          quantity: 20,
-          unitPrice: 3000,
-          totalPrice: 60000,
-        },
-      });
+      await addOrderItems(todaySaleKop01.id, [
+        ["DEMO-BT-KOP01", "Buku Tulis", 20, 5000],
+        ["DEMO-P2B-KOP01", "Pensil 2B", 20, 3000],
+      ]);
 
+      await tx.cashHandover.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          date: dateDaysAgo(1),
+          totalIncome: 380000,
+          totalExpense: 0,
+          systemBalance: 380000,
+          cashHanded: 380000,
+          variance: 0,
+          status: "ACCEPTED",
+          submittedById: managerKantinBaru.id,
+          submittedAt: daysAgoAt(1, 15, 0),
+          acceptedById: pimpinan.id,
+          acceptedAt: daysAgoAt(1, 16, 0),
+          note: "Diterima dan dicocokkan oleh pimpinan",
+        },
+      });
       await tx.cashHandover.create({
         data: {
           unitId: units.get("KNT-02").id,
@@ -1021,8 +1139,23 @@ export async function seedDemoData(prisma: PrismaClient) {
           createdById: managerKpak.id,
         },
       });
+      await tx.budgetAllocation.create({
+        data: {
+          unitId: units.get("KNT-01").id,
+          categoryId: categories.get("EXP-STOK").id,
+          periodType: "MONTHLY",
+          period: `M${monthPrefix}`,
+          startDate: monthStart,
+          endDate: monthEnd,
+          amount: 4000000,
+          note: "[DEMO] Alokasi bulanan bahan baku Kantin Umi",
+          source: "LEMBAGA",
+          isActive: true,
+          createdById: pimpinan.id,
+        },
+      });
 
-      const purchase = await tx.purchaseRequest.create({
+      const prRequested = await tx.purchaseRequest.create({
         data: {
           unitId: units.get("KNT-02").id,
           requestNo: "PR-DEMO-001",
@@ -1038,7 +1171,7 @@ export async function seedDemoData(prisma: PrismaClient) {
       });
       await tx.purchaseRequestItem.create({
         data: {
-          requestId: purchase.id,
+          requestId: prRequested.id,
           itemId: inventoryItems.get("DEMO-NU-KNT02").id,
           name: "Nasi Uduk",
           qtyRequested: 50,
@@ -1048,12 +1181,166 @@ export async function seedDemoData(prisma: PrismaClient) {
       });
       await tx.purchaseRequestItem.create({
         data: {
-          requestId: purchase.id,
+          requestId: prRequested.id,
           itemId: null,
           name: "Saus Sambal (Baru)",
           qtyRequested: 10,
           estUnitCost: 5000,
           isNewItem: true,
+        },
+      });
+
+      const prReceived = await tx.purchaseRequest.create({
+        data: {
+          unitId: units.get("KNT-01").id,
+          requestNo: "PR-DEMO-003",
+          title: "Belanja Bahan Minuman Kantin Umi",
+          note: "[DEMO] Permintaan pembelian bahan minuman mingguan",
+          status: "RECEIVED",
+          estimatedTotal: 355000,
+          finalTotal: 355000,
+          supplierName: "Toko Sumber Rasa",
+          supplierPhone: "0813-9999-1122",
+          orderAt: daysAgoAt(3, 9, 0),
+          orderById: managerKantinUmi.id,
+          receivedAt: daysAgoAt(2, 13, 0),
+          receivedById: staffKantinUmi.id,
+          receiveNote: "Barang diterima lengkap sesuai nota",
+          invoiceNumber: "INV-DEMO-003",
+          createdById: managerKantinUmi.id,
+          createdAt: daysAgoAt(5, 7, 30),
+        },
+      });
+      await tx.purchaseRequestItem.create({
+        data: {
+          requestId: prReceived.id,
+          itemId: inventoryItems.get("DEMO-MG-KNT01").id,
+          name: "Mie Goreng",
+          qtyRequested: 30,
+          estUnitCost: 7500,
+          isNewItem: false,
+          qtyReceived: 30,
+          unitCost: 7500,
+        },
+      });
+      await tx.purchaseRequestItem.create({
+        data: {
+          requestId: prReceived.id,
+          itemId: inventoryItems.get("DEMO-KS-KNT01").id,
+          name: "Kopi Susu",
+          qtyRequested: 20,
+          estUnitCost: 6500,
+          isNewItem: false,
+          qtyReceived: 20,
+          unitCost: 6500,
+        },
+      });
+
+      const prPaidTx = await tx.transaction.create({
+        data: {
+          unitId: units.get("KOP-01").id,
+          type: "EXPENSE",
+          amount: 444000,
+          description: "[DEMO] Pembayaran invoice belanja stok koperasi",
+          reference: "DEMO-PR-KOP01",
+          status: "APPROVED",
+          createdById: managerKoperasi.id,
+          categoryId: categories.get("EXP-STOK").id,
+          accountId: accounts.get("KOP-01").id,
+          approvedById: managerKoperasi.id,
+          approvedAt: daysAgoAt(7, 14, 0),
+          date: daysAgoAt(7, 13, 30),
+        },
+      });
+      const prPaid = await tx.purchaseRequest.create({
+        data: {
+          unitId: units.get("KOP-01").id,
+          requestNo: "PR-DEMO-002",
+          title: "Belanja Buku dan Alat Tulis Koperasi",
+          note: "[DEMO] Pembelian rutin buku dan alat tulis untuk santri",
+          status: "PAID",
+          estimatedTotal: 444000,
+          finalTotal: 444000,
+          supplierName: "Distributor Buku Al-Basyariyah",
+          supplierPhone: "0812-8888-5566",
+          orderAt: daysAgoAt(8, 9, 0),
+          orderById: managerKoperasi.id,
+          receivedAt: daysAgoAt(7, 13, 0),
+          receivedById: staffKoperasi.id,
+          receiveNote: "Semua barang diterima dalam kondisi baik",
+          invoiceNumber: "INV-DEMO-002",
+          paidAt: daysAgoAt(7, 13, 30),
+          paidById: managerKoperasi.id,
+          transactionId: prPaidTx.id,
+          createdById: managerKoperasi.id,
+          createdAt: daysAgoAt(10, 8, 0),
+        },
+      });
+      await tx.purchaseRequestItem.create({
+        data: {
+          requestId: prPaid.id,
+          itemId: inventoryItems.get("DEMO-BT-KOP01").id,
+          name: "Buku Tulis",
+          qtyRequested: 100,
+          estUnitCost: 3000,
+          isNewItem: false,
+          qtyReceived: 100,
+          unitCost: 3000,
+        },
+      });
+      await tx.purchaseRequestItem.create({
+        data: {
+          requestId: prPaid.id,
+          itemId: inventoryItems.get("DEMO-BP-KOP01").id,
+          name: "Bolpoin",
+          qtyRequested: 80,
+          estUnitCost: 1800,
+          isNewItem: false,
+          qtyReceived: 80,
+          unitCost: 1800,
+        },
+      });
+      for (const [name, itemId, qty, estUnitCost] of [
+        ["Buku Tulis", "DEMO-BT-KOP01", 100, 3000],
+        ["Bolpoin", "DEMO-BP-KOP01", 80, 1800],
+      ] as const) {
+        await tx.purchaseItem.create({
+          data: {
+            unitId: units.get("KOP-01").id,
+            transactionId: prPaidTx.id,
+            itemId: inventoryItems.get(itemId).id,
+            name,
+            qty,
+            estUnitCost,
+            fulfilled: qty,
+            status: "FULFILLED",
+            note: "[DEMO] Diterima lengkap",
+          },
+        });
+      }
+
+      const prRejected = await tx.purchaseRequest.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          requestNo: "PR-DEMO-004",
+          title: "Belanja Perlengkapan Dapur Kantin Baru",
+          note: "[DEMO] Permintaan pembelian perlengkapan dapur",
+          status: "REJECTED",
+          estimatedTotal: 300000,
+          refusedReason:
+            "Pengajuan duplikat dengan permintaan minggu ini, silakan digabung",
+          createdById: staffKantinBaru.id,
+          createdAt: daysAgoAt(1, 10, 0),
+        },
+      });
+      await tx.purchaseRequestItem.create({
+        data: {
+          requestId: prRejected.id,
+          itemId: inventoryItems.get("DEMO-AG-KNT02").id,
+          name: "Ayam Geprek",
+          qtyRequested: 40,
+          estUnitCost: 7500,
+          isNewItem: false,
         },
       });
 
@@ -1088,6 +1375,35 @@ export async function seedDemoData(prisma: PrismaClient) {
           toDate: dateDaysAgo(1),
           status: "PENDING",
           note: "[DEMO] Pembayaran konsinyasi minggu lalu",
+        },
+      });
+      const payoutExpense = await tx.transaction.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          type: "EXPENSE",
+          amount: 220000,
+          description: "[DEMO] Pembayaran konsinyasi Toko Barokah periode lalu",
+          reference: "DEMO-KONS-KNT02-01",
+          status: "APPROVED",
+          createdById: managerKantinBaru.id,
+          categoryId: categories.get("EXP-STOK").id,
+          accountId: accounts.get("KNT-02").id,
+          approvedById: managerKantinBaru.id,
+          approvedAt: daysAgoAt(2, 10, 0),
+          date: daysAgoAt(2, 9, 30),
+        },
+      });
+      await tx.consignmentPayout.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          ownerId: consignmentOwner.id,
+          amount: 220000,
+          fromDate: dateDaysAgo(14),
+          toDate: dateDaysAgo(7),
+          status: "PAID",
+          transactionId: payoutExpense.id,
+          paidById: managerKantinBaru.id,
+          note: "[DEMO] Pembayaran konsinyasi periode sebelumnya",
         },
       });
 
@@ -1133,6 +1449,42 @@ export async function seedDemoData(prisma: PrismaClient) {
         },
       });
 
+      const draftBatch = await tx.stockBatch.create({
+        data: {
+          unitId: units.get("KNT-01").id,
+          batchNo: "BT-KNT01-DEMO-002",
+          date: today,
+          kind: "CAMPURAN",
+          status: "DRAFT",
+          totalQty: 50,
+          totalCost: 355000,
+          sourceType: "PEMBELIAN",
+          sourceRef: "PR-DEMO-003",
+          note: "[DEMO] Batch draft menunggu review",
+          createdById: staffKantinUmi.id,
+        },
+      });
+      await tx.stockBatchItem.create({
+        data: {
+          batchId: draftBatch.id,
+          inventoryItemId: inventoryItems.get("DEMO-MG-KNT01").id,
+          qty: 30,
+          unitCost: 7500,
+          lineTotal: 225000,
+          ownerId: null,
+        },
+      });
+      await tx.stockBatchItem.create({
+        data: {
+          batchId: draftBatch.id,
+          inventoryItemId: inventoryItems.get("DEMO-KS-KNT01").id,
+          qty: 20,
+          unitCost: 6500,
+          lineTotal: 130000,
+          ownerId: null,
+        },
+      });
+
       await tx.stockCount.create({
         data: {
           unitId: units.get("KNT-02").id,
@@ -1148,6 +1500,61 @@ export async function seedDemoData(prisma: PrismaClient) {
           totalHak: 120000,
           status: "DRAFT",
           createdById: staffKantinBaru.id,
+        },
+      });
+      await tx.stockCount.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          ownerId: consignmentOwner.id,
+          date: dateDaysAgo(2),
+          payload: {
+            items: [
+              { name: "Nasi Uduk", stock: 55 },
+              { name: "Es Campur", stock: 48 },
+            ],
+          },
+          totalSold: 8,
+          totalHak: 60000,
+          status: "APPROVED",
+          createdById: staffKantinBaru.id,
+          reviewedById: managerKantinBaru.id,
+          reviewedAt: daysAgoAt(2, 15, 0),
+          reviewNote: "Sesuai catatan penjualan",
+        },
+      });
+
+      await tx.shiftSession.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          userId: staffKantinBaru.id,
+          date: dateDaysAgo(1),
+          checkInAt: daysAgoAt(1, 6, 30),
+          checkOutAt: daysAgoAt(1, 14, 45),
+        },
+      });
+      await tx.shiftAttendance.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          userId: staffKantinBaru.id,
+          date: dateDaysAgo(1),
+          checkInAt: daysAgoAt(1, 6, 30),
+          checkOutAt: daysAgoAt(1, 14, 45),
+          late: false,
+          note: "[DEMO] Shift pagi Kantin Baru kemarin",
+        },
+      });
+      await tx.shiftReport.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          userId: staffKantinBaru.id,
+          date: dateDaysAgo(1),
+          cashIncomeCounted: 380000,
+          cashExpenseCounted: 0,
+          note: "[DEMO] Laporan shift pagi Kantin Baru",
+          status: "ACCEPTED",
+          submittedAt: daysAgoAt(1, 15, 0),
+          reviewedById: managerKantinBaru.id,
+          reviewedAt: daysAgoAt(1, 16, 0),
         },
       });
 
@@ -1184,21 +1591,196 @@ export async function seedDemoData(prisma: PrismaClient) {
         },
       });
 
+      await tx.shiftSession.create({
+        data: {
+          unitId: units.get("KNT-01").id,
+          userId: staffKantinUmi.id,
+          date: today,
+          checkInAt: todayAt(6, 30),
+          checkOutAt: todayAt(14, 30),
+        },
+      });
+      await tx.shiftAttendance.create({
+        data: {
+          unitId: units.get("KNT-01").id,
+          userId: staffKantinUmi.id,
+          date: today,
+          checkInAt: todayAt(6, 30),
+          checkOutAt: todayAt(14, 30),
+          late: false,
+          note: "[DEMO] Shift pagi Kantin Umi",
+        },
+      });
+      await tx.shiftReport.create({
+        data: {
+          unitId: units.get("KNT-01").id,
+          userId: staffKantinUmi.id,
+          date: today,
+          cashIncomeCounted: 190000,
+          cashExpenseCounted: 0,
+          note: "[DEMO] Laporan shift pagi Kantin Umi",
+          status: "SUBMITTED",
+          submittedAt: todayAt(14, 30),
+        },
+      });
+
+      await tx.shiftSession.create({
+        data: {
+          unitId: units.get("KOP-01").id,
+          userId: staffKoperasi.id,
+          date: today,
+          checkInAt: todayAt(8, 0),
+          checkOutAt: todayAt(15, 0),
+        },
+      });
+      await tx.shiftAttendance.create({
+        data: {
+          unitId: units.get("KOP-01").id,
+          userId: staffKoperasi.id,
+          date: today,
+          checkInAt: todayAt(8, 0),
+          checkOutAt: todayAt(15, 0),
+          late: false,
+          note: "[DEMO] Shift koperasi",
+        },
+      });
+      await tx.shiftReport.create({
+        data: {
+          unitId: units.get("KOP-01").id,
+          userId: staffKoperasi.id,
+          date: today,
+          cashIncomeCounted: 160000,
+          cashExpenseCounted: 0,
+          note: "[DEMO] Laporan shift koperasi",
+          status: "SUBMITTED",
+          submittedAt: todayAt(15, 0),
+        },
+      });
+
+      const broadcastSent = await tx.broadcastMessage.create({
+        data: {
+          lembagaId: lembaga.id,
+          title: "Pengumuman Kegiatan Santri",
+          message:
+            "Dalam rangka pembinaan santri, kegiatan ekstrakurikuler dilaksanakan setiap sore di halaman Masjid. Diharapkan seluruh pengurus ikut mendampingi.",
+          type: "INFO",
+          priority: "NORMAL",
+          status: "SENT",
+          isDraft: false,
+          isSent: true,
+          sentAt: daysAgoAt(2, 7, 30),
+          deliveredTo: 9,
+          senderId: pimpinan.id,
+        },
+      });
+      for (const user of users.values()) {
+        await tx.broadcastRecipient.create({
+          data: {
+            broadcastId: broadcastSent.id,
+            userId: user.id,
+            isRead: user.id !== pimpinan.id,
+          },
+        });
+      }
+      await tx.broadcastMessage.create({
+        data: {
+          lembagaId: lembaga.id,
+          title: "Renovasi Ruang Kelas",
+          message:
+            "Rencana renovasi ruang kelas akan dibahas pada rapat bulanan. Mohon pendapat dan usulan disampaikan sebelum rapat dimulai.",
+          type: "INFO",
+          priority: "HIGH",
+          status: "DRAFT",
+          isDraft: true,
+          isSent: false,
+          senderId: pimpinan.id,
+        },
+      });
+
       await tx.notification.create({
         data: {
           userId: pimpinan.id,
-          title: "Demo Modul Operasional Siap",
+          title: "Data Demo Siap",
           message:
-            "Data demo lengkap: 4 unit (KPAK, Kantin Baru, Kantin Umi, Koperasi Buku) beserta transaksi harian, persetujuan, inventori, tabungan santri, shift, POS, konsinyasi, stok, anggaran KPAK, dan permintaan pembelian.",
+            "Data demo lengkap: 4 unit (KPAK, Kantin Baru, Kantin Umi, Koperasi Buku) beserta transaksi harian, persetujuan, inventori, tabungan santri, shift, POS, konsinyasi, stok, anggaran, pengumuman, dan permintaan pembelian.",
           type: "INFO",
+          isRead: false,
         },
       });
+      await tx.notification.create({
+        data: {
+          userId: pimpinan.id,
+          title: "Pembaruan Aplikasi",
+          message: "Versi terbaru ALBA Finance telah aktif sejak minggu lalu.",
+          type: "SUCCESS",
+          isRead: true,
+          createdAt: dateDaysAgo(1),
+        },
+      });
+      await tx.notification.create({
+        data: {
+          userId: managerKantinBaru.id,
+          title: "Pengajuan Menunggu Persetujuan",
+          message: "Ada transaksi staff yang menunggu persetujuan Anda hari ini.",
+          type: "WARNING",
+          isRead: false,
+        },
+      });
+      await tx.notification.create({
+        data: {
+          userId: staffKantinBaru.id,
+          title: "Shift Pagi Tercatat",
+          message: "Shift pagi Anda tercatat pada menit 06:30 hari ini.",
+          type: "INFO",
+          isRead: true,
+          createdAt: todayAt(7, 0),
+        },
+      });
+      await tx.notification.create({
+        data: {
+          userId: managerKoperasi.id,
+          title: "Tagihan Konsinyasi",
+          message: "Terdapat pembayaran konsinyasi yang mendekati jatuh tempo.",
+          type: "WARNING",
+          isRead: false,
+          createdAt: dateDaysAgo(1),
+        },
+      });
+      await tx.notification.create({
+        data: {
+          userId: staffKoperasi.id,
+          title: "Stok Diinput",
+          message: "Pengisian stok buku dan alat tulis berhasil disimpan.",
+          type: "SUCCESS",
+          isRead: false,
+        },
+      });
+      await tx.notification.create({
+        data: {
+          userId: managerKantinUmi.id,
+          title: "Permintaan Pembelian Diterima",
+          message: "Belanja bahan minuman Kantin Umi telah diterima lengkap.",
+          type: "SUCCESS",
+          isRead: true,
+          createdAt: daysAgoAt(2, 14, 0),
+        },
+      });
+      await tx.notification.create({
+        data: {
+          userId: staffKpak.id,
+          title: "Tugas Mutasi Tabungan",
+          message: "Ada permintaan setoran tabungan santri dari kiosk hari ini.",
+          type: "INFO",
+          isRead: false,
+        },
+      });
+
       for (const [key, value, description] of DEFAULT_SETTINGS)
         await tx.systemSetting.create({ data: { key, value, description } });
 
       return {
         message:
-          "Data demo berhasil dibuat: 4 unit operasional, akun pengguna per unit, transaksi harian dengan alur approval, inventori retail, tabungan santri untuk kiosk, POS, shift, konsinyasi, stok, anggaran KPAK, dan pengaturan default.",
+          "Data demo berhasil dibuat: 4 unit operasional, 9 akun pengguna per unit, transaksi harian dengan alur approval (approve, pending, rejected, draft), inventori retail, tabungan santri untuk kiosk, POS, shift, konsinyasi, stok, anggaran, pengumuman, dan permintaan pembelian.",
         units: UNITS.map((unit) => unit.name),
         demoPassword: DEMO_PASSWORD,
       };
