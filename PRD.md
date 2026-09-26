@@ -1,4 +1,4 @@
-# 📚 Wiki: ALBA Finance v3 (Dokumen Hidup)
+# 📚 Wiki: ALBA Finance v7 (Dokumen Hidup)
 
 > Versi pengembangan aktif. Dokumen ini akan diperbarui seiring progres implementasi.
 > Status: `🚧 Beta` | Terakhir diupdate: {{TANGGAL}}
@@ -24,7 +24,7 @@
 
 > **[Kembali ke Atas](#daftar-isi-wiki)** | **[Changelog →](#changelog)**
 
-ALBA Finance v3 adalah platform manajemen keuangan dan operasional terpadu untuk **Pondok Pesantren Al-Basyariyah**. Sistem ini mendukung pencatatan transaksi, manajemen unit retail (KPAK, Koperasi Buku, Kantin Umi, Kantin Baru), workflow persetujuan, rekonsiliasi keuangan, inventori, dan point of sale (POS).
+ALBA Finance v7 adalah platform manajemen keuangan dan operasional terpadu untuk **Pondok Pesantren Al-Basyariyah**. Sistem ini mendukung pencatatan transaksi, manajemen unit retail (KPAK, Koperasi Buku, Kantin Umi, Kantin Baru), workflow persetujuan, rekonsiliasi keuangan, inventori, dan point of sale (POS).
 
 - **Tech Stack**: Next.js 14 (App Router) + TypeScript + Tailwind CSS + Prisma 5.
 - **DB**: MySQL 8.0.

@@ -7,7 +7,7 @@ import { MobileNav } from "@/components/layout/MobileNav";
 import { DashboardClient } from "./DashboardClient";
 
 export const metadata = {
-  title: "Dashboard - ALBA Finance v3",
+  title: "Dashboard - ALBA Finance v7",
 };
 
 export default async function DashboardLayout({

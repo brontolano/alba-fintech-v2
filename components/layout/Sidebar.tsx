@@ -998,7 +998,7 @@ export function Sidebar({
         {expanded && (
           <div className="p-3 border-t border-border">
             <p className="text-[10px] text-muted-foreground/70 text-center">
-              ALBA Finance v3
+              ALBA Finance v7
             </p>
           </div>
         )}

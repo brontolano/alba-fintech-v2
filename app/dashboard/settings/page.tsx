@@ -12,6 +12,8 @@ import {
   Bell,
   Palette,
   RefreshCw,
+  X,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,6 +62,12 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
+
+  const [credentialResult, setCredentialResult] = useState<null | {
+    title: string;
+    password: string;
+    accounts?: string[];
+  }>(null);
 
   const [notifications, setNotifications] = useState({
     email: true,
@@ -149,7 +157,7 @@ export default function SettingsPage() {
   };
 
   const [system, setSystem] = useState({
-    appName: "ALBA Finance v3",
+    appName: "ALBA Finance v7",
     appDescription: "Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
     currency: "IDR",
     timezone: "Asia/Jakarta",
@@ -174,7 +182,7 @@ export default function SettingsPage() {
 
       setSettings(data);
       setSystem({
-        appName: data.app_name || "ALBA Finance v3",
+        appName: data.app_name || "ALBA Finance v7",
         appDescription:
           data.app_description ||
           "Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
@@ -357,6 +365,7 @@ export default function SettingsPage() {
 
       toast.success("Data berhasil direset");
       setResetPassword("");
+      setCredentialResult(null);
     } catch (err: any) {
       toast.error(err.message || "Gagal mereset data");
     } finally {
@@ -380,7 +389,12 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal membuat data demo");
-      toast.success("Data demo 4 unit berhasil dibuat — akun, transaksi, inventori, dan tabungan siap");
+      setCredentialResult({
+        title: "Credential Data Demo",
+        password: data.demoPassword,
+        accounts: Array.isArray(data.units) ? data.units : undefined,
+      });
+      toast.success("Data demo berhasil dibuat — lengkap dengan POS, shift, konsinyasi, stok, anggaran KPAK, dan permintaan pembelian");
       await fetchSettings();
     } catch (err: any) {
       toast.error(err.message || "Gagal membuat data demo");
@@ -405,8 +419,13 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal instal ulang");
+      setCredentialResult({
+        title: "Credential Instal Ulang",
+        password: data.password,
+        accounts: Array.isArray(data.users) ? data.users : undefined,
+      });
       toast.success(
-        `Instal ulang berhasil — silakan login kembali dengan credential baru.`,
+        `Instal ulang berhasil — silakan login kembali dengan password baru.`,
       );
       await fetchSettings();
     } catch (err: any) {
@@ -581,6 +600,54 @@ export default function SettingsPage() {
                   <h2 className="text-lg font-semibold text-foreground">
                     Manajemen Data
                   </h2>
+
+                  {credentialResult && (
+                    <div className="rounded-[18px] border border-emerald-300 bg-emerald-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-emerald-900">
+                            {credentialResult.title}
+                          </h3>
+                          <p className="mt-1 text-sm text-emerald-800">
+                            Password (hanya ditampilkan sekali):{" "}
+                            <code className="rounded bg-emerald-100 px-1.5 py-0.5 font-mono text-xs font-semibold text-emerald-800">
+                              {credentialResult.password}
+                            </code>
+                          </p>
+                          {credentialResult.accounts && (
+                            <ul className="mt-2 list-inside list-disc text-xs text-emerald-800">
+                              {credentialResult.accounts.map((acc) => (
+                                <li key={acc}>{acc}</li>
+                              ))}
+                            </ul>
+                          )}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard
+                                ?.writeText(credentialResult.password)
+                                .then(() =>
+                                  toast.success("Password disalin"),
+                                )
+                                .catch(() =>
+                                  toast.error("Gagal menyalin password"),
+                                );
+                            }}
+                            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                          >
+                            <Copy size={14} />
+                            Salin Password
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => setCredentialResult(null)}
+                          className="rounded-lg p-1 text-emerald-700 transition hover:bg-emerald-100"
+                          aria-label="Tutup"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Export Section */}
                   <div className="rounded-[18px] border border-border bg-background/70 p-4">
@@ -799,8 +866,11 @@ export default function SettingsPage() {
                         <p className="text-sm text-amber-800">
                           Buat ulang data demo 4 unit: KPAK, Kantin Baru, Kantin
                           Umi, dan Koperasi Buku. Termasuk akun pengguna per unit,
-                          transaksi harian dengan alur approval, inventori retail,
-                          serta tabungan santri. Cocok untuk demo dan user testing.
+                          transaksi harian dengan alur approval, POS dan order
+                          item, shift kerja, penyerahan kas, konsinyasi barang
+                          titipan, stock batch & stok opname, anggaran KPAK,
+                          permintaan pembelian, inventori retail, serta tabungan
+                          santri. Cocok untuk demo dan user testing.
                         </p>
                       </div>
                     </div>

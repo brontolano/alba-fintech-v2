@@ -36,7 +36,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Jangan baca file yang sama berulang kali — cache path di memori.
 
 ## Project Overview
-ALBA Finance v3 adalah sistem manajemen keuangan berbasis web yang dirancang khusus untuk **Pondok Pesantren Al-Basyariyah**. Sistem ini mendukung pencatatan transaksi, manajemen unit, pencatatan keuangan pimpinan, workflow persetujuan, rekonsiliasi keuangan, inventori, dan point of sale (POS).
+ALBA Finance v7 adalah sistem manajemen keuangan berbasis web yang dirancang khusus untuk **Pondok Pesantren Al-Basyariyah**. Sistem ini mendukung pencatatan transaksi, manajemen unit, pencatatan keuangan pimpinan, workflow persetujuan, rekonsiliasi keuangan, inventori, dan point of sale (POS).
 
 ### Organisasi Struktur
 ```
