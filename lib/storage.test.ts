@@ -16,7 +16,7 @@ after(async () => {
 // tsx (output CJS) tidak mendukung top-level await; import dinamis di perkasus.
 // Modul ter-cache setelah dipanggil pertama — saat itu env sudah terset.
 async function loadStorage() {
-  return import("./storage");
+  return import("./storage.js");
 }
 
 test("store root mengikuti UPLOAD_DIR", async () => {
