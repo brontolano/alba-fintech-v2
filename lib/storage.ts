@@ -13,10 +13,20 @@
  */
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { homedir } from "node:os";
 import { randomUUID } from "node:crypto";
 
-export const STORAGE_ROOT =
-  process.env.UPLOAD_DIR || join(process.cwd(), "data", "uploads");
+function defaultStorageRoot(): string {
+  // Env override selalu menang (dipakai test & konfigurasi server).
+  if (process.env.UPLOAD_DIR) return process.env.UPLOAD_DIR;
+  // Produksi: simpan di luar project dir agar persisten saat auto-deploy Git
+  // Hostinger (document root ditimpa tiap deploy, `data/` ikut terhapus).
+  if (process.env.NODE_ENV === "production")
+    return join(homedir(), "alba-fintech-uploads");
+  return join(process.cwd(), "data", "uploads");
+}
+
+export const STORAGE_ROOT = defaultStorageRoot();
 
 export const ALLOWED_FOLDERS = new Set([
   "inventory",

@@ -34,10 +34,13 @@ Environment produksi dikelola di **hPanel → Node.js → Environment Variables*
 | `NODE_ENV` | `production` |
 | `BACKUP_DIRECTORY` | (opsional) folder backup, di luar `public/` |
 | `BACKUP_RETENTION_DAYS` | (opsional) default `14` |
+| `UPLOAD_DIR` | (opsional) lokasi penyimpanan bukti/foto. Jika KOSONG, produksi memakai `os.homedir()/alba-fintech-uploads` (= `/home/u826712707/alba-fintech-uploads`), dev memakai `<project>/data/uploads` |
 | `GOOGLE_APPS_SCRIPT_URL` | (opsional) URL web app backup Drive/Sheets |
 | `GOOGLE_APPS_SCRIPT_SECRET` | (opsional) secret bersama backup Drive |
 
 Template & contoh: `.env.production.example`.
+
+> **PENTING — upload tidak boleh di `public_html`**: saat Hostinger auto-deploy Git, `public_html` di-replace dari build sehingga file upload di dalamnya hilang. Aplikasi menyimpan bukti/foto di luar public_html. Jika `UPLOAD_DIR` tidak diset, produksi otomatis memakai `os.homedir()/alba-fintech-uploads` (persisten antar deploy). Cek status via `curl /api/health` → field `storage` (`ok` dan `external`).
 
 **Lupa variabel apa saja yang harus diisi?** Ada dua cara cek:
 
