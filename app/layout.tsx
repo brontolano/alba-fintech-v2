@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import SessionProvider from "@/components/providers/session-provider";
 import PerformanceGuard from "@/components/ui/PerformanceGuard";
 import AppViewportGuard from "@/components/ui/AppViewportGuard";
+import PwaRegister from "@/components/PwaRegister";
 
 // Font via CSS local (see globals.css) to avoid build-time network fetch
 const fontSans = { variable: "--font-sans" };
@@ -32,11 +33,13 @@ export const metadata: Metadata = {
     follow: true,
   },
   metadataBase: new URL("https://alba.brontolano.com"),
-  manifest: "/manifest.json",
   icons: {
-    icon: [{ url: "/logo-baru.png", type: "image/png", sizes: "512x512" }],
-    shortcut: "/logo-baru.png",
-    apple: "/logo-baru.png",
+    icon: [
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icons/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: "/icons/icon-192.png",
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
 
@@ -57,12 +60,13 @@ export default function RootLayout({
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"
         />
-        <link rel="icon" href="/logo-baru.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/logo-baru.png" />
+        <link rel="icon" href="/icons/icon-32.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
       <body
         className={`${fontSans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >
+        <PwaRegister />
         <AppViewportGuard />
         <SessionProvider>{children}</SessionProvider>
         <Toaster position="top-right" closeButton richColors />
