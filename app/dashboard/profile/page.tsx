@@ -17,6 +17,7 @@ import {
   Settings2,
   CheckCircle2,
   ArrowUpRight,
+  BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
@@ -421,6 +422,26 @@ export default function ProfilePage() {
                   </strong>
                   <small className="text-xs text-muted-foreground">
                     Preferensi aplikasi
+                  </small>
+                </span>
+                <ArrowUpRight
+                  size={16}
+                  className="text-muted-foreground transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                />
+              </button>
+              <button
+                onClick={() => (window.location.href = "/tutorial")}
+                className="group flex min-h-14 w-full items-center gap-3 rounded-xl border border-border px-3 text-left transition hover:border-primary/40 hover:bg-primary/5"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
+                  <BookOpen size={18} />
+                </span>
+                <span className="flex-1">
+                  <strong className="block text-sm text-foreground">
+                    Tutorial pengguna
+                  </strong>
+                  <small className="text-xs text-muted-foreground">
+                    Panduan langkah per peran
                   </small>
                 </span>
                 <ArrowUpRight
