@@ -98,8 +98,18 @@ Dataset demo mencakup:
 - Lembaga Pondok Pesantren Al-Basyariyah
 - KPAK, Kantin Baru, Kantin Umi, dan Koperasi Buku
 - User Pimpinan, Manager, dan Staff per unit
-- Kategori keuangan, rekening kas, transaksi approved/pending
-- Approval, inventori retail, financial notes, notifikasi, dan system settings
+- Kategori keuangan, rekening kas, transaksi approved/pending, dan approval
+- POS retail: 4 sesi kasir (1 closed, 3 open) lengkap dengan order item
+- Cash handover antar shift, shift kerja (sesi, kehadiran, laporan shift)
+- Konsinyasi barang titipan (owner, item, payout)
+- Stock batch pembelian dan stok opname (stock count)
+- Anggaran KPAK (budget allocation) dan permintaan pembelian
+- Tabungan santri untuk kiosk, inventori retail, financial notes,
+  notifikasi, dan system settings
+
+Dataset dibuat relatif terhadap hari ini (transaksi kemarin & hari ini) dengan
+nominal selaras antara transaksi, cash handover, dan laporan shift. Rincian
+lengkap per modul: [docs/DEMO-DATA.md](docs/DEMO-DATA.md).
 
 Password demo dikembalikan oleh API hanya pada respons operasi Demo Data. Ganti kredensial demo sebelum dipakai di lingkungan non-development.
 

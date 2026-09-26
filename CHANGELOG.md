@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Expanded demo data (`POST /api/data` dengan `{"action":"demo"}`) untuk modul operasional: POS retail (4 sesi — 1 closed, 3 open) dengan order items, cash handover antar shift, shift kerja (sesi/kehadiran/laporan), konsinyasi barang titipan, stock batch & stok opname, anggaran KPAK, dan permintaan pembelian. Data dibuat relatif terhadap hari ini dengan nominal konsisten (transaksi ↔ cash handover ↔ laporan shift) dan bertanda `[DEMO]`.
+- Dokumentasi lengkap dataset demo: `docs/DEMO-DATA.md`; pembaruan bagian Data Demo di README.
+
+### Fixed
+
+- Dynamic `import("./storage")` di `lib/storage.test.ts` kini memakai ekstensi eksplisit `./storage.js` sehingga `npx tsc --noEmit`, `npm test`, dan `npm run build` lolos dengan `moduleResolution: NodeNext`.
+
+---
+
 ## [7.0.0] - 2026-09-19 (Stable)
 
 ### Added
