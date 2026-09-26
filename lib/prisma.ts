@@ -11,9 +11,11 @@ function poolConfigFromUrl(url: string) {
     user: decodeURIComponent(u.username),
     password: decodeURIComponent(u.password),
     database: u.pathname.replace(/^\//, ''),
-    // Shared hosting MySQL membatasi koneksi per user — pool kecil agar
-    // beberapa proses Node tidak saling berebut hingga pool timeout.
-    connectionLimit: 5,
+    // Shared hosting MySQL membatasi koneksi per user (max_connections_per_hour,
+    // mis. 500/jam). Pool kecil + tetap memakai koneksi idle menekan jumlah
+    // handshake baru per jam; pool besar justru memboroskan kuota saat restart
+    // atau reconnect setelah pool timeout.
+    connectionLimit: 2,
     connectTimeout: 8000,
   };
 }
