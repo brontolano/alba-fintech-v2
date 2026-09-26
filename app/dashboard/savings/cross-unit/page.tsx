@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { BarChart3, Loader2, RefreshCw } from "lucide-react";
+import { BarChart3, Loader2, Printer, RefreshCw } from "lucide-react";
+import { printData, escapeHtml } from "@/lib/print";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -40,6 +41,58 @@ export default function SavingsCrossUnitPage() {
       setLoading(false);
     }
   }, [from, to]);
+
+  const printReport = () => {
+    if (data.length === 0) return;
+    const unitRows = data
+      .map((u) => {
+        const students = u.students.length ? u.students : [null];
+        return students
+          .map(
+            (s, idx) => `
+          <tr>
+            <td>${idx === 0 ? escapeHtml(u.unitName) : ""}</td>
+            <td>${s ? escapeHtml(s.name) : "-"}${s?.studentNumber ? `<br/><span class="muted">${escapeHtml(s.studentNumber)}</span>` : ""}</td>
+            <td class="num">${s ? s.count : 0}</td>
+            <td class="num">${s ? fmt(s.total) : fmt(0)}</td>
+          </tr>`,
+          )
+          .join("");
+      })
+      .join("");
+
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · Penggunaan Tabungan Lintas Unit</p>
+      </div>
+      <h2>Rekap Penggunaan Tabungan Lintas Unit</h2>
+      <p class="sub">Periode ${
+        from ? escapeHtml(from) : "semua tanggal"
+      } s.d. ${to ? escapeHtml(to) : "sekarang"} · Dicetak ${escapeHtml(
+        new Date().toLocaleString("id-ID"),
+      )}</p>
+      <table>
+        <thead>
+          <tr><th>Unit</th><th>Santri</th><th>Jumlah</th><th>Total</th></tr>
+        </thead>
+        <tbody>${unitRows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" class="num"><strong>Total transaksi</strong></td>
+            <td class="num"><strong>${summary?.count ?? 0}</strong></td>
+            <td class="num"><strong>${fmt(summary?.total ?? 0)}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="sign">
+        <div><p>Petugas KPAK</p><div class="space"></div><p>_______________</p></div>
+        <div><p>Pimpinan / Penyetuju</p><div class="space"></div><p>_______________</p></div>
+      </div>
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData("Rekap Lintas Unit", bodyHtml, { pageSize: "A4", margin: "12mm" });
+  };
 
   return (
     <main className="mx-auto max-w-4xl space-y-4 p-4">
@@ -83,6 +136,13 @@ export default function SavingsCrossUnitPage() {
         >
           {loading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
           Muat Laporan
+        </button>
+        <button
+          onClick={printReport}
+          disabled={loading || data.length === 0}
+          className="inline-flex items-center gap-1 rounded-lg border bg-background px-3 py-2 text-sm font-semibold disabled:opacity-50"
+        >
+          <Printer size={15} /> Cetak
         </button>
       </div>
 

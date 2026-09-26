@@ -14,10 +14,12 @@ import {
   PiggyBank,
   ClipboardCheck,
   PartyPopper,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePageGuard } from "@/lib/use-page-guard";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { printData, escapeHtml } from "@/lib/print";
 
 /**
  * Fase 2 Manager KPAK — Wizard "Tutup Hari".
@@ -75,6 +77,7 @@ export default function CloseDayPage() {
   const [confirming, setConfirming] = useState(false);
   const [done, setDone] = useState(false);
   const [handoverStatus, setHandoverStatus] = useState<string | null>(null);
+  const [lastCounted, setLastCounted] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -150,6 +153,7 @@ export default function CloseDayPage() {
       setDone(true);
       setHandoverStatus("PENDING");
       setStep(2);
+      setLastCounted(Number(cashCounted));
       setCashCounted("");
       toast.success("Hari ditutup — serah terima dibuat untuk pimpinan");
     } catch (e: any) {
@@ -157,6 +161,47 @@ export default function CloseDayPage() {
     } finally {
       setClosing(false);
     }
+  };
+
+  const printBeritaAcara = () => {
+    if (!preview) return;
+    const date = String(preview.date || todayLocal()).slice(0, 10);
+    const counted = lastCounted;
+    const selisih =
+      counted !== null ? counted - preview.expected : null;
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · KPAK</p>
+      </div>
+      <h2>Berita Acara Penutupan Kas</h2>
+      <p class="sub">Tanggal: ${escapeHtml(date)}</p>
+      <table>
+        <tbody>
+          <tr><td class="label">Uang masuk (laci)</td><td class="num">${escapeHtml(formatCurrency(preview.kasIn + preview.savIn))}</td></tr>
+          <tr><td class="label">Uang keluar (laci)</td><td class="num">${escapeHtml(formatCurrency(preview.kasOut + preview.savOut))}</td></tr>
+          <tr><td class="label">Bank masuk</td><td class="num">${escapeHtml(formatCurrency(preview.bankIn))}</td></tr>
+          <tr><td class="label">Bank keluar</td><td class="num">${escapeHtml(formatCurrency(preview.bankOut))}</td></tr>
+          <tr><td class="label">Pemasukan total</td><td class="num">${escapeHtml(formatCurrency(preview.totalIncome))}</td></tr>
+          <tr><td class="label">Pengeluaran total</td><td class="num">${escapeHtml(formatCurrency(preview.totalExpense))}</td></tr>
+          <tr><td class="label">Laci seharusnya berisi</td><td class="num"><strong>${escapeHtml(formatCurrency(preview.expected))}</strong></td></tr>
+          ${
+            counted === null
+              ? ""
+              : `<tr><td class="label">Uang fisik dicatat</td><td class="num">${escapeHtml(formatCurrency(counted))}</td></tr>
+                 <tr><td class="label">Selisih</td><td class="num">${selisih === 0 ? "Tidak ada (pas)" : escapeHtml(formatCurrency(selisih ?? 0))}</td></tr>`
+          }
+          <tr><td class="label">Transaksi layanan</td><td class="num">${escapeHtml(String(preview.txCount))}</td></tr>
+          <tr><td class="label">Transaksi tabungan</td><td class="num">${escapeHtml(String(preview.savingsCount))}</td></tr>
+        </tbody>
+      </table>
+      <div class="sign">
+        <div><p>Manager KPAK</p><div class="space"></div><p>_______________</p></div>
+        <div><p>Pimpinan</p><div class="space"></div><p>_______________</p></div>
+      </div>
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData(`Berita Acara Tutup Hari ${date}`, bodyHtml);
   };
 
   if (loading) {
@@ -371,6 +416,14 @@ export default function CloseDayPage() {
               Kembali ke Pusat Kerja
             </Link>
           </div>
+          <button
+            type="button"
+            onClick={printBeritaAcara}
+            className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+            title="Cetak berita acara penutupan kas hari ini"
+          >
+            <Printer size={14} /> Cetak Berita Acara
+          </button>
           <button
             type="button"
             onClick={() => load()}

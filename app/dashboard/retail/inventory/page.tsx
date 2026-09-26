@@ -13,7 +13,10 @@ import {
   X,
   Pencil,
   Trash2,
+  Printer,
 } from "lucide-react";
+import { printData, escapeHtml } from "@/lib/print";
+import { toast } from "sonner";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -289,6 +292,71 @@ export default function RetailInventoryPage() {
     (i) => Number(i.currentStock) <= Number(i.minStock ?? -1),
   ).length;
 
+  const printStock = () => {
+    if (visible.length === 0) {
+      toast.error("Tidak ada data untuk dicetak");
+      return;
+    }
+    const ownerName = (id?: string | null) => {
+      if (!id) return "-";
+      const o = owners.find((x) => x.id === id);
+      return o ? o.name : id.slice(0, 8);
+    };
+    const rows = visible
+      .map(
+        (i, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(i.name)}${i.isConsignment ? " (Titipan)" : ""}</td>
+          <td>${escapeHtml(i.sku || "-")}</td>
+          <td>${escapeHtml(i.category || "-")}</td>
+          <td>${i.isConsignment ? `Titipan — ${escapeHtml(ownerName(i.isConsignmentOwner))}` : "Pondok"}</td>
+          <td class="num">${i.currentStock}</td>
+          <td class="num">${escapeHtml(fmt(Number(i.unitPrice ?? 0)))}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · Unit Retail</p>
+      </div>
+      <h2>Laporan Stok Retail</h2>
+      <p class="sub">Daftar ${visible.length} barang · Dicetak ${escapeHtml(
+        new Date().toLocaleString("id-ID"),
+      )}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>No</th><th>Barang</th><th>SKU</th><th>Kategori</th><th>Kepemilikan</th><th>Stok</th><th>Harga</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" class="num"><strong>Item Pondok</strong></td>
+            <td colspan="3" class="num"><strong>${summary?.pondokCount ?? 0}</strong></td>
+          </tr>
+          <tr>
+            <td colspan="4" class="num"><strong>Item Titipan</strong></td>
+            <td colspan="3" class="num"><strong>${summary?.titipanCount ?? 0}</strong></td>
+          </tr>
+          <tr>
+            <td colspan="4" class="num"><strong>Nilai Modal</strong></td>
+            <td colspan="3" class="num"><strong>${escapeHtml(fmt(summary?.modalValuation ?? 0))}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="sign">
+        <div><p>Petugas Inventori</p><div class="space"></div><p>_______________</p></div>
+        <div><p>Manager Unit</p><div class="space"></div><p>_______________</p></div>
+      </div>
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData("Stok Retail", bodyHtml, { pageSize: "A4", margin: "12mm" });
+  };
+
   return (
     <main className="mx-auto w-full max-w-3xl space-y-3 overflow-x-hidden p-3 sm:p-4">
       <div className="flex min-w-0 items-center gap-2">
@@ -315,6 +383,14 @@ export default function RetailInventoryPage() {
             Review ({draftCount})
           </Link>
         )}
+        <button
+          onClick={printStock}
+          disabled={visible.length === 0}
+          title="Cetak laporan stok"
+          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Printer size={14} /> Cetak
+        </button>
         <Link
           href="/dashboard/retail/stok-masuk"
           className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground"

@@ -15,7 +15,9 @@ import {
   LockOpen,
   Lock,
   AlertTriangle,
+  Printer,
 } from "lucide-react";
+import { printData, escapeHtml } from "@/lib/print";
 
 const fmtRp = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -161,6 +163,58 @@ export default function RetailShiftPage() {
   const isOn = segments.some((s) => s.running);
   const running = segments.find((s) => s.running);
 
+  const printSummary = () => {
+    const name = escapeHtml((session?.user as any)?.name || "-");
+    const rows = segments
+      .map(
+        (s, idx) => `<tr>
+        <td class="num">${idx + 1}</td>
+        <td>${escapeHtml(fmtTime(s.checkInAt))}</td>
+        <td>${s.service === "INVENTORY" ? "Inventori" : "Kasir"}${s.running ? ` <em>(berjalan)</em>` : ""}</td>
+        <td>${s.checkOutAt ? escapeHtml(fmtTime(s.checkOutAt)) : "-"}</td>
+        <td class="num">${s.durationMin != null ? escapeHtml(fmtDur(s.durationMin)) : "-"}</td>
+      </tr>`,
+      )
+      .join("");
+    const posBlock = closeResult
+      ? `<table>
+        <tbody>
+          <tr><td class="label">POS ditutup pada</td><td>${escapeHtml(fmtTime(closeResult.closedAt))}</td></tr>
+          <tr><td class="label">Ekspektasi kas</td><td class="num">${escapeHtml(fmtRp(Number(closeResult.expectedCash)))}</td></tr>
+          <tr><td class="label">Kas dihitung</td><td class="num">${escapeHtml(fmtRp(Number(closeResult.countedCash)))}</td></tr>
+          <tr><td class="label">Selisih</td><td class="num"><strong>${escapeHtml(fmtRp(Number(closeResult.discrepancy)))}</strong></td></tr>
+        </tbody>
+      </table>`
+      : "";
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · Retail</p>
+      </div>
+      <h2>Ringkasan Shift</h2>
+      <p class="sub">Karyawan: ${name} · ${escapeHtml(new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }))}</p>
+      <table>
+        <tbody>
+          <tr><td class="label">Status</td><td>${isOn ? "Shift aktif" : "Belum check-in"}</td></tr>
+          <tr><td class="label">Total aktif hari ini</td><td class="num"><strong>${escapeHtml(fmtDur(totalActiveMin))}</strong></td></tr>
+          <tr><td class="label">Jumlah sesi</td><td class="num">${escapeHtml(String(segments.length))}</td></tr>
+        </tbody>
+      </table>
+      ${rows ? `<h3>Timeline hari ini</h3>
+      <table>
+        <thead><tr><th>No</th><th>Check-in</th><th>Layanan</th><th>Check-out</th><th>Durasi</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>` : `<p class="sub">Belum ada sesi hari ini.</p>`}
+      ${posBlock}
+      <div class="sign">
+        <div><p>Karyawan</p><div class="space"></div><p>_______________</p></div>
+        <div><p>Manager Unit</p><div class="space"></div><p>_______________</p></div>
+      </div>
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData("Ringkasan Shift", bodyHtml);
+  };
+
   return (
     <main className="mx-auto max-w-2xl space-y-4 p-4">
       <div className="flex items-center justify-between">
@@ -293,6 +347,13 @@ export default function RetailShiftPage() {
                 </>
               )}
             </div>
+            <button
+              type="button"
+              onClick={printSummary}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+            >
+              <Printer size={14} /> Cetak Ringkasan
+            </button>
           </div>
 
           {/* Kontrol POS */}

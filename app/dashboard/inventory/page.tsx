@@ -15,9 +15,11 @@ import {
   ImageIcon,
   Upload,
   X,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
+import { printData, escapeHtml } from "@/lib/print";
 import {
   FinzoList,
   FinzoListRow,
@@ -321,6 +323,74 @@ export default function InventoryPage() {
     0,
   );
 
+  const printStock = () => {
+    if (filteredItems.length === 0) {
+      toast.error("Tidak ada data untuk dicetak");
+      return;
+    }
+    const rows = filteredItems
+      .map(
+        (item, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(item.sku || "-")}</td>
+          <td>${escapeHtml(item.name)}</td>
+          <td>${escapeHtml(item.category || "-")}</td>
+          <td class="num">${item.currentStock}</td>
+          <td class="num">${item.minStock}</td>
+          <td class="num">${escapeHtml(formatCurrency(Number(item.unitPrice)))}</td>
+          <td class="num">${escapeHtml(
+            formatCurrency(Number(item.currentStock) * Number(item.unitPrice)),
+          )}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah</p>
+      </div>
+      <h2>Laporan Inventori Barang</h2>
+      <p class="sub">Jumlah: ${filteredItems.length} barang · Dicetak ${escapeHtml(
+        new Date().toLocaleString("id-ID"),
+      )}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>No</th><th>SKU</th><th>Barang</th><th>Kategori</th><th>Stok</th><th>Min</th><th>Harga Jual</th><th>Nilai Stok</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" class="num"><strong>Total Barang</strong></td>
+            <td colspan="4" class="num"><strong>${filteredItems.length}</strong></td>
+          </tr>
+          <tr>
+            <td colspan="4" class="num"><strong>Stok Rendah / Habis</strong></td>
+            <td colspan="4" class="num"><strong>${lowStockCount}</strong></td>
+          </tr>
+          <tr>
+            <td colspan="4" class="num"><strong>Total Nilai Stok</strong></td>
+            <td colspan="4" class="num"><strong>${escapeHtml(
+              formatCurrency(totalValue),
+            )}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="sign">
+        <div><p>Pengelola Inventori</p><div class="space"></div><p>_______________</p></div>
+        <div><p>Manager Unit</p><div class="space"></div><p>_______________</p></div>
+      </div>
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData("Laporan Inventori", bodyHtml, {
+      pageSize: "A4",
+      margin: "12mm",
+    });
+  };
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -340,6 +410,14 @@ export default function InventoryPage() {
           <Plus size={18} />
           <span>Tambah Barang</span>
         </Link>
+        <button
+          onClick={printStock}
+          disabled={filteredItems.length === 0}
+          className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-sm hover:bg-muted active:scale-[0.98] transition-all self-start sm:self-auto shrink-0 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Printer size={16} />
+          <span>Cetak</span>
+        </button>
       </div>
 
       {/* Summary — StatCard Finzo */}

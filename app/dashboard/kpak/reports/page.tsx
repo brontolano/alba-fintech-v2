@@ -15,6 +15,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { usePageGuard } from "@/lib/use-page-guard";
+import { printData, escapeHtml } from "@/lib/print";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -240,6 +241,96 @@ export default function KpakReportsPage() {
     { id: "internal", label: "Dana Internal" },
   ];
 
+  const fmtNum = (n: number) => formatCurrency(n);
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  const fmtPeriod = `${fmtDate(`${startDate}`)} s/d ${fmtDate(`${endDate}`)}`;
+
+  const rowsForTab = () => {
+    if (tab === "tabungan") {
+      return savings.map((t) => ({
+        date: fmtDate(t.createdAt),
+        note: `${t.type === "DEPOSIT" ? "Setoran" : "Penarikan"}${t.description ? ` — ${t.description}` : ""}`,
+        amount: `${t.type === "DEPOSIT" ? "+" : "-"}${formatCurrency(Number(t.amount))}`,
+        inOut: t.type === "DEPOSIT",
+      }));
+    }
+    const list = tab === "administrasi" ? adminTxs : internalTxs;
+    return list.map((t) => ({
+      date: fmtDate(t.date),
+      note: `${t.description} — ${catName(t)} (${t.status})`,
+      amount: `${t.type === "INCOME" ? "+" : "-"}${formatCurrency(Number(t.amount))}`,
+      inOut: t.type === "INCOME",
+    }));
+  };
+
+  const summaryForTab = () => {
+    if (tab === "tabungan") {
+      return [
+        ["Setoran", fmtNum(savingsIn)],
+        ["Penarikan", fmtNum(savingsOut)],
+        ["Selisih", fmtNum(savingsIn - savingsOut)],
+      ];
+    }
+    if (tab === "administrasi") {
+      return [["Total HER & Daftar Ulang", fmtNum(adminTotal)]];
+    }
+    return [
+      ["Masuk", fmtNum(internalIn)],
+      ["Keluar", fmtNum(internalOut)],
+      ["Selisih", fmtNum(internalIn - internalOut)],
+    ];
+  };
+
+  const handlePrint = () => {
+    if (loading) return;
+    const label = tabs.find((t) => t.id === tab)?.label ?? "Laporan";
+    const rows = rowsForTab();
+    const summary = summaryForTab();
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · Kantor Pelayanan Administrasi Keuangan</p>
+      </div>
+      <h2>${escapeHtml(label)}</h2>
+      <p class="sub">Periode: ${escapeHtml(fmtPeriod)}</p>
+      <p class="sub">Dicetak: ${escapeHtml(new Date().toLocaleString("id-ID"))}</p>
+      <table>
+        <thead>
+          <tr><th>Tanggal</th><th>Keterangan</th><th class="num">Jumlah</th></tr>
+        </thead>
+        <tbody>
+          ${
+            rows.length === 0
+              ? `<tr><td colspan="3" style="text-align:center;">Tidak ada data pada periode ini</td></tr>`
+              : rows
+                  .map(
+                    (r) =>
+                      `<tr><td>${escapeHtml(r.date)}</td><td>${escapeHtml(r.note)}</td><td class="num">${escapeHtml(r.amount)}</td></tr>`,
+                  )
+                  .join("")
+          }
+        </tbody>
+        ${
+          rows.length === 0
+            ? ""
+            : `<tfoot>${summary
+                .map(
+                  ([k, v]) =>
+                    `<tr class="total"><td colspan="2" style="text-align:right;">${escapeHtml(k)}</td><td class="num">${escapeHtml(v)}</td></tr>`,
+                )
+                .join("")}</tfoot>`
+        }
+      </table>
+      <p class="footer">Dokumen ini dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData(`Laporan KPAK — ${label}`, bodyHtml);
+  };
+
   // ── Staff: histori harian akun sendiri, list saja ──
   const isStaff = session?.user?.role === "STAFF";
   const myId = session?.user?.id;
@@ -393,8 +484,9 @@ export default function KpakReportsPage() {
           </p>
         </div>
         <button
-          onClick={() => window.print()}
-          className="inline-flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm font-medium hover:bg-muted"
+          onClick={handlePrint}
+          disabled={loading}
+          className="inline-flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm font-medium hover:bg-muted disabled:opacity-50"
         >
           <Printer size={16} /> Cetak Laporan
         </button>

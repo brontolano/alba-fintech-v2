@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { BarChart3, Loader2, Wallet, CheckCircle2, XCircle } from "lucide-react";
+import { BarChart3, Loader2, Wallet, CheckCircle2, XCircle, Printer } from "lucide-react";
+import { printData, escapeHtml } from "@/lib/print";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -109,6 +110,87 @@ export default function LaporanPage() {
     }
   };
 
+  const printReport = () => {
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · Barang Titipan</p>
+      </div>
+      <h2>Laporan Penjualan Titipan per Pemilik</h2>
+      <p class="sub">Periode: ${escapeHtml(from)} s.d. ${escapeHtml(to)}</p>
+      <table>
+        <thead>
+          <tr><th>No</th><th>Pemilik</th><th class="num">Qty Terjual</th><th class="num">Omzet</th><th class="num">Hak Pemilik</th><th class="num">Komisi Unit</th></tr>
+        </thead>
+        <tbody>
+          ${
+            rows.length === 0
+              ? `<tr><td colspan="6" style="text-align:center;">Tidak ada data pada rentang ini</td></tr>`
+              : rows
+                  .map(
+                    (r, i) => `<tr>
+                      <td>${escapeHtml(String(i + 1))}</td>
+                      <td>${escapeHtml(r.ownerName)}</td>
+                      <td class="num">${escapeHtml(String(r.qtySold))}</td>
+                      <td class="num">${escapeHtml(fmt(r.omzet))}</td>
+                      <td class="num">${escapeHtml(fmt(r.hakPemilik))}</td>
+                      <td class="num">${escapeHtml(fmt(r.komisiUnit))}</td>
+                    </tr>`,
+                  )
+                  .join("")
+          }
+        </tbody>
+        ${
+          rows.length === 0
+            ? ""
+            : `<tfoot>
+                <tr class="total">
+                  <td colspan="3" style="text-align:right;">Total ${escapeHtml(String(rows.length))} pemilik</td>
+                  <td class="num">${escapeHtml(fmt(totals.omzet))}</td>
+                  <td class="num">${escapeHtml(fmt(totals.hak))}</td>
+                  <td class="num">${escapeHtml(fmt(totals.komisi))}</td>
+                </tr>
+              </tfoot>`
+        }
+      </table>
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData(`Laporan Titipan ${from} s.d. ${to}`, bodyHtml);
+  };
+
+  const printPayout = (p: Payout) => {
+    const paid = p.status === "PAID";
+    const title = paid ? "Kuitansi Pembayaran Titipan" : "Nota Tagihan Titipan";
+    const statusLabel = paid ? "Lunas" : p.status === "CANCELLED" ? "Batal" : "Menunggu Pembayaran";
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · Barang Titipan</p>
+      </div>
+      <h2>${title}</h2>
+      <table>
+        <tbody>
+          <tr><td class="label">Nomor</td><td>${escapeHtml(p.id.slice(0, 8).toUpperCase())}</td></tr>
+          <tr><td class="label">Pemilik</td><td>${escapeHtml(p.ownerName || "—")}</td></tr>
+          <tr><td class="label">Periode</td><td>${escapeHtml(String(p.fromDate).slice(0, 10))} s.d. ${escapeHtml(String(p.toDate).slice(0, 10))}</td></tr>
+          ${
+            p.note
+              ? `<tr><td class="label">Catatan</td><td>${escapeHtml(p.note)}</td></tr>`
+              : ""
+          }
+          <tr><td class="label">Status</td><td>${escapeHtml(statusLabel)}</td></tr>
+          <tr><td class="label">Jumlah</td><td><strong>${escapeHtml(fmt(Number(p.amount)))}</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="sign">
+        <div><p>Penanggung Jawab Unit</p><div class="space"></div><p>_______________</p></div>
+        <div><p>Pemilik Titipan</p><div class="space"></div><p>_______________</p></div>
+      </div>
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData(`${title} — ${p.ownerName || "Titipan"}`, bodyHtml);
+  };
+
   const totals = rows.reduce(
     (t, r) => ({
       omzet: t.omzet + r.omzet,
@@ -165,6 +247,15 @@ export default function LaporanPage() {
         </label>
         <button className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground">
           Tampilkan
+        </button>
+        <button
+          type="button"
+          onClick={printReport}
+          className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground"
+          title="Cetak laporan per pemilik sesuai rentang"
+        >
+          <Printer size={14} />
+          Cetak Laporan
         </button>
       </form>
 
@@ -252,6 +343,13 @@ export default function LaporanPage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2 text-right text-xs">
+                      <button
+                        onClick={() => printPayout(p)}
+                        className="inline-flex items-center gap-1 rounded-lg border bg-card px-2 py-1 font-semibold text-muted-foreground hover:text-foreground"
+                        title={p.status === "PAID" ? "Cetak kuitansi" : "Cetak nota"}
+                      >
+                        <Printer size={12} /> Cetak
+                      </button>
                       <p className="font-semibold">{fmt(Number(p.amount))}</p>
                       {p.status === "PENDING" && (
                         <>

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle2, XCircle, Printer } from "lucide-react";
+import { printData, escapeHtml } from "@/lib/print";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -170,6 +171,91 @@ export default function SisaPage() {
     }
   };
 
+  const printSheet = () => {
+    const ownerName =
+      owners.find((o) => o.id === ownerId)?.name || "Semua UMKM";
+    const countedRows = items.filter(
+      (i) => counts[i.inventoryItemId] !== undefined && counts[i.inventoryItemId] !== "",
+    );
+    const totalTerjual = countedRows.reduce(
+      (s, i) => s + Math.max(0, i.tercatat - Number(counts[i.inventoryItemId])),
+      0,
+    );
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · HITUNG JAJANAN SISA</p>
+      </div>
+      <h2>Laporan Hitung Jajanan Sisa</h2>
+      <p class="sub">Tanggal: ${escapeHtml(date)} · UMKM: ${escapeHtml(ownerName)}</p>
+      <table>
+        <thead>
+          <tr><th>No</th><th>Barang</th><th>Pemilik</th><th class="num">Tercatat</th><th class="num">Laku Hari Ini</th><th class="num">Sisa (Hitung)</th><th class="num">Terjual</th></tr>
+        </thead>
+        <tbody>
+          ${
+            items.length === 0
+              ? `<tr><td colspan="7" style="text-align:center;">Tidak ada barang titipan aktif</td></tr>`
+              : items
+                  .map((i, idx) => {
+                    const counted =
+                      counts[i.inventoryItemId] !== undefined &&
+                      counts[i.inventoryItemId] !== ""
+                        ? Number(counts[i.inventoryItemId])
+                        : null;
+                    const terjual =
+                      counted === null ? null : Math.max(0, i.tercatat - counted);
+                    return `<tr>
+                      <td>${escapeHtml(String(idx + 1))}</td>
+                      <td>${escapeHtml(i.name)}</td>
+                      <td>${escapeHtml(i.ownerName)}</td>
+                      <td class="num">${escapeHtml(String(i.tercatat))}</td>
+                      <td class="num">${escapeHtml(String(i.soldToday))}</td>
+                      <td class="num">${counted === null ? "—" : escapeHtml(String(counted))}</td>
+                      <td class="num">${terjual === null ? "—" : escapeHtml(String(terjual))}</td>
+                    </tr>`;
+                  })
+                  .join("")
+          }
+        </tbody>
+        ${
+          countedRows.length === 0
+            ? ""
+            : `<tfoot>
+                <tr class="total">
+                  <td colspan="5" style="text-align:right;">Total terjual (${escapeHtml(String(countedRows.length))} item dihitung)</td>
+                  <td></td>
+                  <td class="num">${escapeHtml(String(totalTerjual))}</td>
+                </tr>
+              </tfoot>`
+        }
+      </table>
+      ${
+        history.length === 0
+          ? ""
+          : `<h2>Riwayat Hitungan (${escapeHtml(date)})</h2>
+             <table>
+               <thead><tr><th>Pemilik</th><th class="num">Terjual</th><th class="num">Hak</th><th>Status</th><th>Oleh</th></tr></thead>
+               <tbody>
+                 ${history
+                   .map(
+                     (h) => `<tr>
+                       <td>${escapeHtml(h.ownerName)}</td>
+                       <td class="num">${escapeHtml(String(h.totalSold))}</td>
+                       <td class="num">${escapeHtml(fmt(Number(h.totalHak)))}</td>
+                       <td>${escapeHtml(h.status)}</td>
+                       <td>${escapeHtml(h.by)}</td>
+                     </tr>`,
+                   )
+                   .join("")}
+               </tbody>
+             </table>`
+      }
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData(`Hitung Sisa ${date}`, bodyHtml);
+  };
+
   return (
     <main className="mx-auto max-w-3xl space-y-4 p-4">
       <div className="flex items-center gap-3">
@@ -185,6 +271,15 @@ export default function SisaPage() {
             Sisa fisik → terjual & estimasi hak pemilik otomatis
           </p>
         </div>
+        <button
+          type="button"
+          onClick={printSheet}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground"
+          title="Cetak laporan sisa (sesuai tampilan)"
+        >
+          <Printer size={14} />
+          Cetak
+        </button>
       </div>
 
       {err && (

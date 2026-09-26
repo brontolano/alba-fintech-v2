@@ -16,6 +16,7 @@ import {
   Search,
   Wallet,
   FileSearch,
+  Printer,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ import {
   finzoInputClass,
   finzoSelectClass,
 } from "@/components/ui/finzo";
+import { printData, escapeHtml } from "@/lib/print";
 
 interface Transaction {
   id: string;
@@ -224,6 +226,85 @@ export function PimpinanBukuKas() {
     setCurrentPage(1);
   };
 
+  const handlePrintBook = async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", "1000");
+      if (filters.search) params.set("search", filters.search);
+      if (filters.type) params.set("type", filters.type);
+      if (filters.status) params.set("status", filters.status);
+      if (filters.categoryId) params.set("categoryId", filters.categoryId);
+      if (filters.startDate) params.set("startDate", filters.startDate);
+      if (filters.endDate) params.set("endDate", filters.endDate);
+
+      const res = await fetch(`/api/transactions?${params.toString()}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Gagal memuat transaksi");
+      }
+      const result = await res.json();
+      const rows: Transaction[] = result.data ?? [];
+      const range =
+        filters.startDate && filters.endDate
+          ? `${filters.startDate} s.d. ${filters.endDate}`
+          : "Semua periode";
+      const pin = rows.reduce(
+        (s, t) => s + (t.type === "INCOME" ? Number(t.amount) : 0),
+        0,
+      );
+      const pout = rows.reduce(
+        (s, t) => s + (t.type !== "INCOME" ? Number(t.amount) : 0),
+        0,
+      );
+
+      const bodyHtml = `
+        <div class="site-header">
+          <h1>ALBA FINANCE</h1>
+          <p class="sub">Pondok Pesantren Al-Basyariyah · Buku Kas Lembaga</p>
+        </div>
+        <h2>Buku Kas Lembaga</h2>
+        <p class="sub">Periode: ${escapeHtml(range)}${filters.search ? ` · Cari: "${escapeHtml(filters.search)}"` : ""}</p>
+        <p class="sub">Dicetak: ${escapeHtml(new Date().toLocaleString("id-ID"))}</p>
+        <table>
+          <thead>
+            <tr><th>No</th><th>Tanggal</th><th>Unit</th><th>Keterangan</th><th class="num">Debet</th><th class="num">Kredit</th><th class="num">Saldo</th></tr>
+          </thead>
+          <tbody>
+            ${
+              rows.length === 0
+                ? `<tr><td colspan="7" style="text-align:center;">Tidak ada transaksi pada filter ini</td></tr>`
+                : rows
+                    .map(
+                      (tx, i) => `
+                        <tr>
+                          <td>${escapeHtml(String(i + 1))}</td>
+                          <td>${escapeHtml(new Date(tx.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }))}</td>
+                          <td>${escapeHtml(tx.unitName || "—")}</td>
+                          <td>${escapeHtml(tx.description || "(tanpa deskripsi)")}${tx.reference ? ` <span style="color:#888;">(${escapeHtml(tx.reference)})</span>` : ""}</td>
+                          <td class="num">${tx.type === "INCOME" ? escapeHtml(formatCurrency(tx.amount)) : "—"}</td>
+                          <td class="num">${tx.type !== "INCOME" ? escapeHtml(formatCurrency(tx.amount)) : "—"}</td>
+                          <td class="num">${escapeHtml(formatCurrency(tx.balanceAfter ?? 0))}</td>
+                        </tr>`,
+                    )
+                    .join("")
+            }
+          </tbody>
+          ${
+            rows.length === 0
+              ? ""
+              : `<tfoot>
+                  <tr class="total"><td colspan="4" style="text-align:right;">Total ${escapeHtml(String(rows.length))} transaksi</td><td class="num">${escapeHtml(formatCurrency(pin))}</td><td class="num">${escapeHtml(formatCurrency(pout))}</td><td class="num">${escapeHtml(formatCurrency(pin - pout))}</td></tr>
+                </tfoot>`
+          }
+        </table>
+        <p class="footer">Dokumen ini dihasilkan otomatis oleh ALBA Finance</p>
+      `;
+      printData("Buku Kas Lembaga", bodyHtml);
+    } catch (err: any) {
+      toast.error(err.message || "Gagal mencetak buku kas");
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Hapus transaksi ini? Tindakan ini tidak dapat dibatalkan."))
       return;
@@ -291,6 +372,15 @@ export function PimpinanBukuKas() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handlePrintBook}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+            title="Cetak buku kas sesuai filter (periode/status)"
+          >
+            <Printer size={15} />
+            Cetak Buku
+          </button>
           <Link href="/dashboard/transactions/create">
             <FinzoButton>
               <Plus size={16} />

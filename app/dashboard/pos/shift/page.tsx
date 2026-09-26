@@ -10,8 +10,10 @@ import {
   Users,
   Receipt,
   Timer,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
+import { printData, escapeHtml } from "@/lib/print";
 import { usePageGuard } from "@/lib/use-page-guard";
 
 interface ShiftRow {
@@ -129,6 +131,69 @@ export default function POSShiftPage() {
   const liveDuration =
     shiftStart != null && shiftOpen ? now - shiftStart : null;
 
+  const printSummary = () => {
+    if (!data) return;
+    const crewRows =
+      data.crew.length === 0
+        ? ""
+        : data.crew
+            .map(
+              (c) => `<tr>
+        <td>${escapeHtml(c.name)}</td>
+        <td>${c.role === "MANAGER" ? "Manager" : "Staff"}</td>
+        <td>${c.attendance ? escapeHtml(wibTime(c.attendance.checkInAt)) : "-"}</td>
+        <td>${c.attendance?.checkOutAt ? escapeHtml(wibTime(c.attendance.checkOutAt)) : "Bertugas"}</td>
+      </tr>`,
+            )
+            .join("");
+    const historyRows =
+      history.length === 0
+        ? ""
+        : history
+            .map(
+              (h) => `<tr>
+        <td>${escapeHtml(h.date)}</td>
+        <td>${escapeHtml(wibTime(h.checkInAt))}</td>
+        <td>${h.checkOutAt ? escapeHtml(wibTime(h.checkOutAt)) : "berjalan"}</td>
+        <td class="num">${h.durationMin != null ? escapeHtml(formatDuration(h.durationMin * 60000)) : "--:--"}</td>
+        <td class="num">${escapeHtml(String(h.txCount))}</td>
+      </tr>`,
+            )
+            .join("");
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · POS Retail</p>
+      </div>
+      <h2>Ringkasan Shift Kasir</h2>
+      <p class="sub">${escapeHtml(data.date)} · ${escapeHtml(data.nowWib)} WIB</p>
+      <table>
+        <tbody>
+          <tr><td class="label">Status shift saya</td><td>${shiftOpen ? "Sedang bertugas" : data.mine ? "Shift ditutup" : "Belum buka shift"}</td></tr>
+          <tr><td class="label">Durasi berjalan</td><td class="num">${liveDuration != null ? escapeHtml(formatDuration(liveDuration)) : "--:--"}</td></tr>
+          <tr><td class="label">Transaksi saya hari ini</td><td class="num"><strong>${escapeHtml(String(data.myTxToday ?? 0))}</strong></td></tr>
+          <tr><td class="label">Kru bertugas</td><td class="num">${escapeHtml(String(data.crew.filter((c) => c.attendance).length))} orang</td></tr>
+        </tbody>
+      </table>
+      ${crewRows ? `<h3>Kru unit bertugas</h3>
+      <table>
+        <thead><tr><th>Nama</th><th>Peran</th><th>Masuk</th><th>Keluar</th></tr></thead>
+        <tbody>${crewRows}</tbody>
+      </table>` : ""}
+      ${historyRows ? `<h3>Riwayat shift (14 hari)</h3>
+      <table>
+        <thead><tr><th>Tanggal</th><th>Masuk</th><th>Keluar</th><th>Durasi</th><th>Trx</th></tr></thead>
+        <tbody>${historyRows}</tbody>
+      </table>` : ""}
+      <div class="sign">
+        <div><p>Karyawan Kasir</p><div class="space"></div><p>_______________</p></div>
+        <div><p>Manager Unit</p><div class="space"></div><p>_______________</p></div>
+      </div>
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData("Ringkasan Shift Kasir", bodyHtml);
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -229,6 +294,14 @@ export default function POSShiftPage() {
                   </button>
                 )}
               </div>
+              <button
+                type="button"
+                onClick={printSummary}
+                disabled={!data}
+                className="mt-3 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-background px-4 py-2 text-xs font-semibold text-muted-foreground transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Printer size={14} /> Cetak Ringkasan Shift
+              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">

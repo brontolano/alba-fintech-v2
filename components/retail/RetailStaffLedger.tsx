@@ -11,10 +11,12 @@ import {
   Pencil,
   Eye,
   Trash2,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { StatusPill } from "@/components/ui/finzo";
+import { printData, escapeHtml } from "@/lib/print";
 
 interface Tx {
   id: string;
@@ -150,6 +152,77 @@ export function RetailStaffLedger({ manage = false }: { manage?: boolean }) {
   };
   const hasFilter = q !== "" || type !== "" || status !== "" || period !== "30d";
 
+  const handlePrint = async () => {
+    if (!unitId || loading) return;
+    const params = new URLSearchParams({ limit: "1000", unitId });
+    if (q) params.set("search", q);
+    if (type) params.set("type", type);
+    if (status) params.set("status", status);
+    if (period !== "all") {
+      const end = new Date();
+      const start = new Date();
+      if (period === "today") start.setHours(0, 0, 0, 0);
+      else if (period === "7d") start.setDate(end.getDate() - 6);
+      else start.setDate(end.getDate() - 29);
+      params.set("startDate", toInputDate(start));
+      params.set("endDate", toInputDate(end));
+    }
+    try {
+      const res = await fetch(`/api/transactions?${params.toString()}`);
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Gagal memuat");
+      const rows: Tx[] = body.data ?? [];
+      const pin = rows.reduce((s, t) => s + (t.type === "INCOME" ? Number(t.amount) : 0), 0);
+      const pout = rows.reduce((s, t) => s + (t.type !== "INCOME" ? Number(t.amount) : 0), 0);
+      const periodLabel =
+        period === "all" ? "Semua periode" : period === "today" ? "Hari ini" : period === "7d" ? "7 hari terakhir" : "30 hari terakhir";
+      const bodyHtml = `
+        <div class="site-header">
+          <h1>ALBA FINANCE</h1>
+          <p class="sub">Pondok Pesantren Al-Basyariyah · Buku Kas ${escapeHtml(unitName ? `· ${unitName}` : "")}</p>
+        </div>
+        <h2>Buku Kas ${escapeHtml(unitName)}</h2>
+        <p class="sub">Periode: ${escapeHtml(periodLabel)}${q ? ` · Cari: "${escapeHtml(q)}"` : ""}</p>
+        <p class="sub">Dicetak: ${escapeHtml(new Date().toLocaleString("id-ID"))}</p>
+        <table>
+          <thead>
+            <tr><th>No</th><th>Tanggal</th><th>Keterangan</th><th class="num">Masuk</th><th class="num">Keluar</th><th class="num">Saldo</th></tr>
+          </thead>
+          <tbody>
+            ${
+              rows.length === 0
+                ? `<tr><td colspan="6" style="text-align:center;">Tidak ada catatan pada periode ini</td></tr>`
+                : rows
+                    .map(
+                      (tx, i) =>
+                        `<tr>
+                          <td>${escapeHtml(i + 1)}</td>
+                          <td>${escapeHtml(new Date(tx.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }))}</td>
+                          <td>${escapeHtml(tx.description || tx.reference || "(tanpa deskripsi)")}${tx.reference ? ` <span style="color:#888;">(${escapeHtml(tx.reference)})</span>` : ""}</td>
+                          <td class="num">${tx.type === "INCOME" ? escapeHtml(fmtRp(tx.amount)) : "—"}</td>
+                          <td class="num">${tx.type !== "INCOME" ? escapeHtml(fmtRp(tx.amount)) : "—"}</td>
+                          <td class="num">${escapeHtml(fmtRp(tx.balanceAfter ?? 0))}</td>
+                        </tr>`,
+                    )
+                    .join("")
+            }
+          </tbody>
+          ${
+            rows.length === 0
+              ? ""
+              : `<tfoot>
+                  <tr class="total"><td colspan="3" style="text-align:right;">Total ${escapeHtml(rows.length)} catatan</td><td class="num">${escapeHtml(fmtRp(pin))}</td><td class="num">${escapeHtml(fmtRp(pout))}</td><td class="num">${escapeHtml(fmtRp(pin - pout))}</td></tr>
+                </tfoot>`
+          }
+        </table>
+        <p class="footer">Dokumen ini dihasilkan otomatis oleh ALBA Finance</p>
+      `;
+      printData(`Buku Kas — ${unitName || "Unit"}`, bodyHtml);
+    } catch (e: any) {
+      toast.error(e.message || "Gagal mencetak");
+    }
+  };
+
   const sel =
     "h-9 appearance-none rounded-lg border border-border bg-card pl-2.5 pr-7 text-xs outline-none transition focus:border-primary";
 
@@ -164,14 +237,24 @@ export function RetailStaffLedger({ manage = false }: { manage?: boolean }) {
             Catatan keuangan unit — pemasukan & pengeluaran tercatat otomatis.
           </p>
         </div>
-        {manage && (
-          <Link
-            href="/dashboard/transactions/create"
-            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground"
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            onClick={handlePrint}
+            disabled={!unitId || loading}
+            className="inline-flex h-9 items-center gap-1 rounded-lg border border-border px-3 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-50"
+            title="Cetak buku kas sesuai filter"
           >
-            <Plus size={14} /> Catat
-          </Link>
-        )}
+            <Printer size={14} /> Cetak
+          </button>
+          {manage && (
+            <Link
+              href="/dashboard/transactions/create"
+              className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground"
+            >
+              <Plus size={14} /> Catat
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">

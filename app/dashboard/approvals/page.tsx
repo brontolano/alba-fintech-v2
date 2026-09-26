@@ -12,11 +12,13 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Clock3,
+  Printer,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
+import { printData, escapeHtml } from "@/lib/print";
 
 interface ApprovalRequest {
   id: string;
@@ -145,6 +147,52 @@ export default function ApprovalsPage() {
     APPROVED: { label: "Disetujui", accent: "text-emerald-600" },
     REJECTED: { label: "Ditolak", accent: "text-rose-600" },
   } as const;
+
+  const printApproval = (approval: ApprovalRequest) => {
+    const isIncome = approval.transactions.type === "INCOME";
+    const statusLabel =
+      approval.status === "PENDING"
+        ? "Menunggu Persetujuan"
+        : approval.status === "APPROVED"
+          ? "Disetujui"
+          : "Ditolak";
+    const submitterName = approval.submittedBy?.name || "-";
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah</p>
+      </div>
+      <h2>Surat Pengajuan Persetujuan</h2>
+      <p class="sub">Nomor: ${escapeHtml(approval.id.slice(0, 8))} · ${escapeHtml(
+        format(new Date(approval.createdAt), "dd MMMM yyyy, HH:mm", { locale: id }),
+      )}</p>
+      <table>
+        <tbody>
+          <tr><td class="label">Unit</td><td>${escapeHtml(
+            approval.transactions.units?.name || approval.units?.name || "Unit Tidak Dikenal",
+          )} (${escapeHtml(approval.transactions.units?.code || approval.units?.code || "UNIT")})</td></tr>
+          <tr><td class="label">Jenis</td><td>${isIncome ? "Pemasukan" : "Pengeluaran"}</td></tr>
+          <tr><td class="label">Deskripsi</td><td>${escapeHtml(approval.description)}</td></tr>
+          ${
+            approval.reference
+              ? `<tr><td class="label">Referensi</td><td>${escapeHtml(approval.reference)}</td></tr>`
+              : ""
+          }
+          <tr><td class="label">Jumlah</td><td class="num"><strong>${isIncome ? "+" : "-"} ${escapeHtml(
+            formatCurrency(approval.amount),
+          )}</strong></td></tr>
+          <tr><td class="label">Status</td><td>${escapeHtml(statusLabel)}</td></tr>
+          <tr><td class="label">Diajukan oleh</td><td>${escapeHtml(submitterName)}${approval.submittedBy?.role ? ` (${escapeHtml(approval.submittedBy.role)})` : ""}</td></tr>
+        </tbody>
+      </table>
+      <div class="sign">
+        <div><p>Pengaju</p><div class="space"></div><p>_______________</p></div>
+        <div><p>Pimpinan / Penyetuju</p><div class="space"></div><p>_______________</p></div>
+      </div>
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData(`Pengajuan ${approval.id.slice(0, 8)}`, bodyHtml);
+  };
 
   return (
     <div className="space-y-5">
@@ -326,37 +374,47 @@ export default function ApprovalsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center" data-label="Aksi">
-                          {approval.status === "PENDING" ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() =>
-                                  handleApprove(
-                                    approval.id,
-                                    approval.transactionId,
-                                  )
-                                }
-                                disabled={processingId === approval.id}
-                                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                <CheckCircle size={12} />
-                                {processingId === approval.id
-                                  ? "..."
-                                  : "Approve"}
-                              </button>
-                              <button
-                                onClick={() => handleReject(approval.id)}
-                                disabled={processingId === approval.id}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                <XCircle size={12} />
-                                Reject
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">
-                              -
-                            </span>
-                          )}
+                          <div className="flex items-center justify-center gap-2">
+                            {approval.status === "PENDING" ? (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    handleApprove(
+                                      approval.id,
+                                      approval.transactionId,
+                                    )
+                                  }
+                                  disabled={processingId === approval.id}
+                                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  <CheckCircle size={12} />
+                                  {processingId === approval.id
+                                    ? "..."
+                                    : "Approve"}
+                                </button>
+                                <button
+                                  onClick={() => handleReject(approval.id)}
+                                  disabled={processingId === approval.id}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  <XCircle size={12} />
+                                  Reject
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                -
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => printApproval(approval)}
+                              title="Cetak surat pengajuan"
+                              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+                            >
+                              <Printer size={12} /> Cetak
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -459,6 +517,13 @@ export default function ApprovalsPage() {
                         </button>
                       </div>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => printApproval(approval)}
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-sm font-semibold text-muted-foreground transition hover:text-foreground"
+                    >
+                      <Printer size={14} /> Cetak Pengajuan
+                    </button>
                   </div>
                 );
               })}

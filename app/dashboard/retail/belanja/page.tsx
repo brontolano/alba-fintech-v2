@@ -14,7 +14,9 @@ import {
   Check,
   Send,
   ClipboardList,
+  Printer,
 } from "lucide-react";
+import { printData, escapeHtml } from "@/lib/print";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -267,6 +269,81 @@ export default function RetailBelanjaPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const printRequest = (r: Req) => {
+    const meta = STATUS_META[r.status] ?? STATUS_META.REQUESTED;
+    const hasReceived = r.items.some(
+      (it) => it.qtyReceived !== null && it.qtyReceived !== undefined,
+    );
+    const colSpan = hasReceived ? 5 : 4;
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · ${escapeHtml(r.unit?.name ?? "")} · Purchase Order</p>
+      </div>
+      <h2>Pengajuan Belanja ${escapeHtml(r.requestNo)}</h2>
+      <p class="sub">Tanggal: ${escapeHtml(new Date(r.createdAt).toLocaleString("id-ID"))}</p>
+      <p class="sub">Status: ${escapeHtml(meta.label)}</p>
+      ${r.title ? `<p class="sub">Judul: ${escapeHtml(r.title)}</p>` : ""}
+      ${r.creator?.name ? `<p class="sub">Diajukan oleh: ${escapeHtml(r.creator.name)}</p>` : ""}
+      ${r.supplierName ? `<p class="sub">Supplier: ${escapeHtml(r.supplierName)}${r.supplierPhone ? ` · ${escapeHtml(r.supplierPhone)}` : ""}</p>` : ""}
+      ${r.orderer?.name ? `<p class="sub">Dipesan oleh: ${escapeHtml(r.orderer.name)}</p>` : ""}
+      ${r.receiver?.name ? `<p class="sub">Diterima oleh: ${escapeHtml(r.receiver.name)}</p>` : ""}
+      ${r.payer?.name ? `<p class="sub">Dibayar oleh: ${escapeHtml(r.payer.name)}</p>` : ""}
+      ${r.note ? `<p class="sub">Catatan: ${escapeHtml(r.note)}</p>` : ""}
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Item</th>
+            <th class="num">Qty</th>
+            <th class="num">Harga/unit</th>
+            <th class="num">Estimasi</th>
+            ${hasReceived ? `<th class="num">Terima</th>` : ""}
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            r.items.length === 0
+              ? `<tr><td colspan="${escapeHtml(colSpan + 1)}" style="text-align:center;">Tidak ada item</td></tr>`
+              : r.items
+                  .map(
+                    (it, idx) =>
+                      `<tr>
+                        <td>${escapeHtml(idx + 1)}</td>
+                        <td>${it.isNewItem ? "[BARU] " : ""}${escapeHtml(it.name)}</td>
+                        <td class="num">${escapeHtml(it.qtyRequested)}</td>
+                        <td class="num">${escapeHtml(fmt(it.estUnitCost))}</td>
+                        <td class="num">${escapeHtml(fmt(it.qtyRequested * it.estUnitCost))}</td>
+                        ${hasReceived ? `<td class="num">${it.qtyReceived != null ? escapeHtml(it.qtyReceived) : "—"}</td>` : ""}
+                      </tr>`,
+                  )
+                  .join("")
+          }
+        </tbody>
+        <tfoot>
+          <tr class="total">
+            <td colspan="${escapeHtml(colSpan)}" style="text-align:right;">Total estimasi</td>
+            <td class="num">${escapeHtml(fmt(r.estimatedTotal))}</td>
+            ${hasReceived ? `<td></td>` : ""}
+          </tr>
+          ${
+            r.finalTotal !== null && r.finalTotal !== undefined
+              ? `<tr class="total">
+                  <td colspan="${escapeHtml(colSpan)}" style="text-align:right;">Total final (invoice${r.invoiceNumber ? ` ${escapeHtml(r.invoiceNumber)}` : ""})</td>
+                  <td class="num">${escapeHtml(fmt(r.finalTotal))}</td>
+                  ${hasReceived ? `<td></td>` : ""}
+                </tr>`
+              : ""
+          }
+        </tfoot>
+      </table>
+      ${r.status === "REJECTED" && r.refusedReason ? `<p class="sub">Alasan ditolak: ${escapeHtml(r.refusedReason)}</p>` : ""}
+      ${r.paidAt ? `<p class="sub">Dibayar: ${escapeHtml(new Date(r.paidAt).toLocaleString("id-ID"))}</p>` : ""}
+      <p class="footer">Dokumen ini dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData(`PO ${r.requestNo} — ${r.unit?.name ?? "Belanja Stok"}`, bodyHtml);
   };
 
   const openOrder = (r: Req) => {
@@ -674,6 +751,14 @@ export default function RetailBelanjaPage() {
                   )}
 
                   <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => printRequest(r)}
+                      disabled={busy}
+                      className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-50"
+                      title="Cetak Purchase Order"
+                    >
+                      <Printer size={14} /> Cetak PO
+                    </button>
                     {r.status === "REQUESTED" && !isHighRole && (
                       <button
                         onClick={() => deleteRequest(r.id)}

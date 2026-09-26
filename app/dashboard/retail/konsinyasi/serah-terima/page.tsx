@@ -8,8 +8,10 @@ import {
   CheckCircle2,
   XCircle,
   CheckCheck,
+  Printer,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { printData, escapeHtml } from "@/lib/print";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -72,6 +74,39 @@ export default function SerahTerimaPage() {
     } finally {
       setActing(null);
     }
+  };
+
+  const printPayout = (p: Payout) => {
+    const paid = p.status === "PAID";
+    const title = paid ? "Kuitansi Pembayaran Titipan" : "Nota Tagihan Titipan";
+    const statusLabel = paid ? "Lunas" : p.status === "CANCELLED" ? "Batal" : "Menunggu Pembayaran";
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · Barang Titipan</p>
+      </div>
+      <h2>${title}</h2>
+      <table>
+        <tbody>
+          <tr><td class="label">Nomor</td><td>${escapeHtml(p.id.slice(0, 8).toUpperCase())}</td></tr>
+          <tr><td class="label">Pemilik</td><td>${escapeHtml(p.ownerName || "—")}</td></tr>
+          <tr><td class="label">Periode</td><td>${escapeHtml(String(p.fromDate).slice(0, 10))} s.d. ${escapeHtml(String(p.toDate).slice(0, 10))}</td></tr>
+          ${
+            p.note
+              ? `<tr><td class="label">Catatan</td><td>${escapeHtml(p.note)}</td></tr>`
+              : ""
+          }
+          <tr><td class="label">Status</td><td>${escapeHtml(statusLabel)}</td></tr>
+          <tr><td class="label">Jumlah</td><td><strong>${escapeHtml(fmt(Number(p.amount)))}</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="sign">
+        <div><p>Penanggung Jawab Unit</p><div class="space"></div><p>_______________</p></div>
+        <div><p>Pemilik Titipan</p><div class="space"></div><p>_______________</p></div>
+      </div>
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData(`${title} — ${p.ownerName || "Titipan"}`, bodyHtml);
   };
 
   const pending = payouts.filter((p) => p.status === "PENDING");
@@ -150,6 +185,13 @@ export default function SerahTerimaPage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2 text-right text-xs">
+                      <button
+                        onClick={() => printPayout(p)}
+                        className="inline-flex items-center gap-1 rounded-lg border bg-card px-2 py-1 font-semibold text-muted-foreground hover:text-foreground"
+                        title={p.status === "PAID" ? "Cetak kuitansi" : "Cetak nota"}
+                      >
+                        <Printer size={12} /> Cetak
+                      </button>
                       <p className="font-semibold">{fmt(Number(p.amount))}</p>
                       {p.status === "PENDING" && isManager && (
                         <>

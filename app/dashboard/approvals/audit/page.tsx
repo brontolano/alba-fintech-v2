@@ -9,10 +9,12 @@ import {
   Clock,
   RefreshCw,
   User,
+  Printer,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
+import { printData, escapeHtml } from "@/lib/print";
 
 interface AuditItem {
   id: string;
@@ -64,12 +66,100 @@ export default function ApprovalAuditPage() {
     fetchAudit();
   }, [fetchAudit]);
 
-  const formatCurrency = (amount: number) =>
+const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(amount);
+
+  const statusLabel: Record<string, string> = {
+    APPROVED: "Disetujui",
+    REJECTED: "Ditolak",
+    PENDING: "Menunggu",
+    DRAFT: "Draft",
+  };
+
+  const printReport = () => {
+    if (items.length === 0) {
+      toast.error("Belum ada data untuk dicetak");
+      return;
+    }
+    const tabName =
+      tab === "ALL" ? "Semua Status" : (statusLabel[tab] ?? tab);
+    const rows = items
+      .map(
+        (i, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(
+            format(new Date(i.createdAt), "dd MMM yyyy HH:mm", { locale: id }),
+          )}</td>
+          <td>${escapeHtml(i.unitName || "-")}</td>
+          <td>${escapeHtml(i.description)}</td>
+          <td>${i.type === "INCOME" ? "Pemasukan" : i.type === "EXPENSE" ? "Pengeluaran" : "Transfer"}</td>
+          <td class="num">${i.type === "INCOME" ? "+" : i.type === "EXPENSE" ? "-" : ""} ${escapeHtml(formatCurrency(i.amount))}</td>
+          <td>${escapeHtml(statusLabel[i.status] ?? i.status)}</td>
+          <td>${escapeHtml(i.createdByName)}</td>
+          <td>${escapeHtml(i.deciderName || "-")}</td>
+        </tr>`,
+      )
+      .join("");
+
+    let total = 0;
+    const income = items
+      .filter((i) => i.type === "INCOME")
+      .reduce((s, i) => s + i.amount, 0);
+    const expense = items
+      .filter((i) => i.type === "EXPENSE")
+      .reduce((s, i) => s + i.amount, 0);
+    total = income - expense;
+
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah</p>
+      </div>
+      <h2>Laporan Riwayat Persetujuan</h2>
+      <p class="sub">Filter: ${escapeHtml(tabName)} · Jumlah: ${items.length} transaksi · Dicetak ${escapeHtml(
+        new Date().toLocaleString("id-ID"),
+      )}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>No</th><th>Tanggal</th><th>Unit</th><th>Deskripsi</th><th>Jenis</th><th>Jumlah</th><th>Status</th><th>Pembuat</th><th>Penilai</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="5" class="num"><strong>Total Pemasukan</strong></td>
+            <td class="num"><strong>${escapeHtml(formatCurrency(income))}</strong></td>
+            <td colspan="3"></td>
+          </tr>
+          <tr>
+            <td colspan="5" class="num"><strong>Total Pengeluaran</strong></td>
+            <td class="num"><strong>${escapeHtml(formatCurrency(expense))}</strong></td>
+            <td colspan="3"></td>
+          </tr>
+          <tr>
+            <td colspan="5" class="num"><strong>Selisih</strong></td>
+            <td class="num"><strong>${escapeHtml(formatCurrency(total))}</strong></td>
+            <td colspan="3"></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="sign">
+        <div><p>Diketahui oleh</p><div class="space"></div><p>_______________</p></div>
+        <div><p>Pimpinan / Penyetuju</p><div class="space"></div><p>_______________</p></div>
+      </div>
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData("Riwayat Persetujuan", bodyHtml, {
+      pageSize: "A4",
+      margin: "12mm",
+    });
+  };
 
   const statusMeta: Record<string, { label: string; cls: string; Icon: any }> =
     {
@@ -135,6 +225,15 @@ export default function ApprovalAuditPage() {
               </option>
             ))}
           </select>
+
+          <button
+            onClick={printReport}
+            disabled={items.length === 0}
+            className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Printer size={16} />
+            <span>Cetak Laporan</span>
+          </button>
 
           <button
             onClick={fetchAudit}

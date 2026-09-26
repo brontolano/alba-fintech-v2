@@ -1,8 +1,9 @@
 # Desain Integrasi Smart Card (RFID) — Pembayaran Darurat & POS
 
-Dokumen ini adalah rancangan (belum implementasi penuh) integrasi pembayaran
-dengan kartu santri berbasis RFID/NFC. Fase sekarang: **backend debit saldo
-atomik** — tanpa perubahan UI POS. UI menyusul di fase berikutnya.
+Dokumen ini adalah rancangan integrasi pembayaran dengan kartu santri berbasis
+RFID/NFC. Status sekarang: **implementasi penuh** — backend debit saldo atomik,
+UI POS, batas belanja harian, dan laporan lintas unit sudah aktif. Test freeze
+di `lib/modules/savings/savings-freeze.test.ts` mengunci integrasi ini.
 
 ---
 
@@ -195,8 +196,10 @@ prisma.$transaction(async (tx) => {
 ## 4. Roadmap
 
 - [x] Dokumentasi desain (file ini)
-- [ ] `POST /api/smartpay` — debit atomik (lihat §2)
-- [ ] Verifikasi: `npx tsc --noEmit`, `npm test`, `npm run build`
-- [ ] UI POS: tombol "Bayar Kartu" → input/tap UID → struk
+- [x] `POST /api/smartpay` — debit atomik (lihat §2)
+- [x] Verifikasi: `npx tsc --noEmit`, `npm test`, `npm run build`
+- [x] UI POS: tombol "Bayar Kartu" → input/tap UID → struk
+- [x] Batas belanja harian per santri (`dailySpendLimit`, zona WIB)
+- [x] Laporan penggunaan lintas unit (rekap per unit retail × santri + cetak)
 - [ ] Opsional: portal wali (saldo, riwayat, top-up), notifikasi WhatsApp
-- [ ] Opsional: batas belanja harian / kategori terlarang per santri
+- [ ] Opsional: kategori terlarang per santri

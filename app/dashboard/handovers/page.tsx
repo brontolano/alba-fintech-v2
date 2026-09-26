@@ -6,7 +6,8 @@ import { id } from "date-fns/locale";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { usePageGuard } from "@/lib/use-page-guard";
-import { CheckCircle, XCircle, Clock, Send } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Printer } from "lucide-react";
+import { printData, escapeHtml } from "@/lib/print";
 
 interface Handover {
   id: string;
@@ -105,6 +106,48 @@ export default function HandoversPage() {
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(amount);
+
+  const statusLabel = (status: string) =>
+    status === "ACCEPTED" ? "Diterima" : status === "REJECTED" ? "Ditolak" : "Pending";
+
+  const handlePrint = (h: Handover) => {
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · Berita Acara Serah Terima Kas</p>
+      </div>
+      <h2>Serah Terima Kas Harian</h2>
+      <p class="sub">Unit: ${escapeHtml(h.units.name)}</p>
+      <p class="sub">Tanggal: ${escapeHtml(format(new Date(h.date), "dd MMMM yyyy", { locale: id }))}</p>
+      <p class="sub">Diserahkan oleh: ${escapeHtml(h.submittedBy.name)} ${h.submittedAt ? `(${escapeHtml(format(new Date(h.submittedAt), "dd MMMM yyyy HH:mm", { locale: id }))})` : ""}</p>
+      <p class="sub">Diterima oleh: ${h.acceptedBy ? escapeHtml(h.acceptedBy.name) : "—"}${h.acceptedAt ? ` (${escapeHtml(format(new Date(h.acceptedAt), "dd MMMM yyyy HH:mm", { locale: id }))})` : ""}</p>
+      <p class="sub">Status: ${escapeHtml(statusLabel(h.status))}</p>
+      <table>
+        <tbody>
+          <tr><td>Pemasukan Sistem</td><td class="num">${escapeHtml(formatCurrency(h.totalIncome))}</td></tr>
+          <tr><td>Pengeluaran Sistem</td><td class="num">${escapeHtml(formatCurrency(h.totalExpense))}</td></tr>
+          <tr class="total"><td>Saldo Sistem</td><td class="num">${escapeHtml(formatCurrency(h.systemBalance))}</td></tr>
+          <tr class="total"><td>Kas Diserahkan</td><td class="num">${escapeHtml(formatCurrency(h.cashHanded))}</td></tr>
+          <tr><td>Selisih</td><td class="num">${h.variance !== 0 && (h.variance > 0 ? "+" : "- ")}${escapeHtml(formatCurrency(Math.abs(h.variance)))}</td></tr>
+        </tbody>
+      </table>
+      ${h.note ? `<p class="sub">Catatan: ${escapeHtml(h.note)}</p>` : ""}
+      <div style="margin-top:40px; display:flex; gap:48px;">
+        <div style="flex:1; text-align:center;">
+          <p>Penanggung Jawab (Kasir),</p>
+          <div style="height:72px;"></div>
+          <p><b>${escapeHtml(h.submittedBy.name)}</b></p>
+        </div>
+        <div style="flex:1; text-align:center;">
+          <p>Pimpinan,</p>
+          <div style="height:72px;"></div>
+          <p><b>${h.acceptedBy ? escapeHtml(h.acceptedBy.name) : "_____________"}</b></p>
+        </div>
+      </div>
+      <p class="footer">Dokumen ini dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData(`Serah Terima Kas — ${h.units.name}`, bodyHtml);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -235,29 +278,40 @@ export default function HandoversPage() {
                   </p>
                 </div>
 
-                {h.status === "PENDING" &&
-                  (canDecide ? (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleAccept(h.id)}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
-                      >
-                        <CheckCircle size={14} />
-                        Terima
-                      </button>
-                      <button
-                        onClick={() => handleReject(h.id)}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-700"
-                      >
-                        <XCircle size={14} />
-                        Tolak
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      Menunggu pimpinan
-                    </span>
-                  ))}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => handlePrint(h)}
+                    className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+                    title="Cetak berita acara serah terima"
+                  >
+                    <Printer size={14} />
+                    Cetak
+                  </button>
+
+                  {h.status === "PENDING" &&
+                    (canDecide ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleAccept(h.id)}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                        >
+                          <CheckCircle size={14} />
+                          Terima
+                        </button>
+                        <button
+                          onClick={() => handleReject(h.id)}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-700"
+                        >
+                          <XCircle size={14} />
+                          Tolak
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        Menunggu pimpinan
+                      </span>
+                    ))}
+                </div>
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">

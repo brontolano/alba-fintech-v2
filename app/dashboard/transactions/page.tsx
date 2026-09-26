@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Edit,
   ChevronDown,
+  Printer,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/finzo";
 import { RetailStaffLedger } from "@/components/retail/RetailStaffLedger";
 import { PimpinanBukuKas } from "@/components/pimpinan/PimpinanBukuKas";
+import { printData, escapeHtml } from "@/lib/print";
 
 interface Transaction {
   id: string;
@@ -254,6 +256,96 @@ export default function TransactionsPage() {
     setCurrentPage(1);
   };
 
+  const fmtRp = (n: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(n);
+
+  const handlePrintBook = async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", "1000");
+      if (filters.unitId) params.set("unitId", filters.unitId);
+      if (filters.type) params.set("type", filters.type);
+      if (filters.status) params.set("status", filters.status);
+      if (filters.categoryId) params.set("categoryId", filters.categoryId);
+      if (filters.search) params.set("search", filters.search);
+      if (filters.startDate) params.set("startDate", filters.startDate);
+      if (filters.endDate) params.set("endDate", filters.endDate);
+
+      const res = await fetch(`/api/transactions?${params.toString()}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Gagal memuat transaksi");
+      }
+      const result: TransactionsResponse = await res.json();
+      const rows: Transaction[] = result.data ?? [];
+
+      const unitName = units.find((u) => u.id === filters.unitId)?.name || "";
+      const who = session?.user?.name || "—";
+      const range =
+        filters.startDate && filters.endDate
+          ? `${filters.startDate} s.d. ${filters.endDate}`
+          : "Semua periode";
+      const pin = rows.reduce(
+        (s, t) => s + (t.type === "INCOME" ? Number(t.amount) : 0),
+        0,
+      );
+      const pout = rows.reduce(
+        (s, t) => s + (t.type !== "INCOME" ? Number(t.amount) : 0),
+        0,
+      );
+
+      const bodyHtml = `
+        <div class="site-header">
+          <h1>ALBA FINANCE</h1>
+          <p class="sub">Pondok Pesantren Al-Basyariyah · Buku Kas</p>
+        </div>
+        <h2>Buku Kas ${escapeHtml(unitName ? `· ${unitName}` : "")}</h2>
+        <p class="sub">Periode: ${escapeHtml(range)}${filters.search ? ` · Cari: "${escapeHtml(filters.search)}"` : ""}</p>
+        <p class="sub">Dicetak oleh: ${escapeHtml(who)} · ${escapeHtml(new Date().toLocaleString("id-ID"))}</p>
+        <table>
+          <thead>
+            <tr><th>No</th><th>Tanggal</th><th>Unit</th><th>Keterangan</th><th class="num">Debet</th><th class="num">Kredit</th><th class="num">Saldo</th></tr>
+          </thead>
+          <tbody>
+            ${
+              rows.length === 0
+                ? `<tr><td colspan="7" style="text-align:center;">Tidak ada transaksi pada filter ini</td></tr>`
+                : rows
+                    .map(
+                      (tx, i) => `
+                        <tr>
+                          <td>${escapeHtml(String(i + 1))}</td>
+                          <td>${escapeHtml(new Date(tx.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }))}</td>
+                          <td>${escapeHtml(tx.unitName || tx.accountName || "—")}</td>
+                          <td>${escapeHtml(tx.description || "(tanpa deskripsi)")}${tx.reference ? ` <span style="color:#888;">(${escapeHtml(tx.reference)})</span>` : ""}</td>
+                          <td class="num">${tx.type === "INCOME" ? escapeHtml(fmtRp(tx.amount)) : "—"}</td>
+                          <td class="num">${tx.type !== "INCOME" ? escapeHtml(fmtRp(tx.amount)) : "—"}</td>
+                          <td class="num">${escapeHtml(fmtRp(tx.balanceAfter ?? 0))}</td>
+                        </tr>`,
+                    )
+                    .join("")
+            }
+          </tbody>
+          ${
+            rows.length === 0
+              ? ""
+              : `<tfoot>
+                  <tr class="total"><td colspan="4" style="text-align:right;">Total ${escapeHtml(String(rows.length))} transaksi</td><td class="num">${escapeHtml(fmtRp(pin))}</td><td class="num">${escapeHtml(fmtRp(pout))}</td><td class="num">${escapeHtml(fmtRp(pin - pout))}</td></tr>
+                </tfoot>`
+          }
+        </table>
+        <p class="footer">Dokumen ini dihasilkan otomatis oleh ALBA Finance</p>
+      `;
+      printData(`Buku Kas — ${unitName || "Pimpinan"}`, bodyHtml);
+    } catch (err: any) {
+      toast.error(err.message || "Gagal mencetak buku kas");
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Hapus transaksi ini?")) return;
     try {
@@ -382,6 +474,15 @@ export default function TransactionsPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handlePrintBook}
+            className="inline-flex h-[46px] items-center justify-center gap-2 self-start rounded-full border border-border px-5 text-sm font-semibold text-muted-foreground transition hover:text-foreground active:scale-[0.99]"
+            title="Cetak buku kas sesuai filter (periode/unit/status)"
+          >
+            <Printer size={18} />
+            <span>Cetak Buku</span>
+          </button>
           <button
             type="button"
             onClick={openQuickForm}

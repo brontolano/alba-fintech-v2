@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, CheckCircle2, XCircle, ArrowLeft } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, ArrowLeft, Printer } from "lucide-react";
+import { printData, escapeHtml } from "@/lib/print";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -153,6 +154,74 @@ export default function ReviewBatchPage() {
     return s + l.qty * (Number.isFinite(f) ? f : l.unitCost);
   }, 0);
 
+  const printBerita = async (b: BatchRow) => {
+    if (lines.length === 0) return;
+    const rows = lines
+      .map(
+        (l, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(l.itemName)}</td>
+          <td>${escapeHtml(l.itemSku || "-")}</td>
+          <td class="num">${l.qty}</td>
+          <td class="num">${fmt(
+            finals[l.id] !== undefined
+              ? Number(finals[l.id])
+              : Number(l.unitCost),
+          )}</td>
+          <td class="num">${fmt(
+            l.qty *
+              (finals[l.id] !== undefined
+                ? Number(finals[l.id])
+                : Number(l.unitCost)),
+          )}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · Unit Retail</p>
+      </div>
+      <h2>Berita Acara Penerimaan Barang (Stok Masuk)</h2>
+      <p class="sub">${escapeHtml(b.batchNo)} · ${escapeHtml(
+        b.kind,
+      )} · Tanggal ${escapeHtml(new Date(b.date).toLocaleDateString("id-ID"))}</p>
+      <table>
+        <thead>
+          <tr><th>No</th><th>Barang</th><th>SKU</th><th>Qty</th><th>Harga Satuan</th><th>Total</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="num"><strong>Total ${lines.reduce(
+              (s, l) => s + l.qty,
+              0,
+            )} pcs</strong></td>
+            <td colspan="3" class="num"><strong>${fmt(liveTotal)}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+      ${
+        reviewNote.trim()
+          ? `<p class="sub">Catatan: ${escapeHtml(reviewNote.trim())}</p>`
+          : ""
+      }
+      <div class="sign">
+        <div><p>Pengaju / Petugas</p><div class="space"></div><p>_______________</p></div>
+        <div><p>Manager Unit</p><div class="space"></div><p>_______________</p></div>
+      </div>
+      <p class="footer">Dicetak ${escapeHtml(
+        new Date().toLocaleString("id-ID"),
+      )} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData("Berita Acara Stok Masuk", bodyHtml, {
+      pageSize: "A4",
+      margin: "12mm",
+    });
+  };
+
   if (!isManager && loading) {
     return (
       <main className="mx-auto max-w-3xl p-4">
@@ -263,6 +332,15 @@ export default function ReviewBatchPage() {
                           Total final:
                         </span>
                         <span className="font-bold">{fmt(liveTotal)}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => printBerita(b)}
+                          disabled={loadingDetail || lines.length === 0}
+                          className="inline-flex items-center justify-center gap-1 rounded-lg border bg-background px-3 py-2 text-sm font-semibold disabled:opacity-50"
+                        >
+                          <Printer size={15} /> Cetak Berita Acara
+                        </button>
                       </div>
                       <input
                         value={reviewNote}
