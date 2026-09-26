@@ -314,49 +314,54 @@ export async function createServerBackup(prisma: PrismaClient) {
 }
 
 async function clearAllData(tx: any, preserveSuperadmins: boolean) {
-  await tx.savingsTransaction.deleteMany({});
-  await tx.savingsAccount.deleteMany({});
-  await tx.student.deleteMany({});
-  await tx.notification.deleteMany({});
-  await tx.broadcastRecipient.deleteMany({});
-  await tx.approval.deleteMany({});
-  await tx.purchaseRequestItem.deleteMany({});
-  await tx.purchaseItem.deleteMany({});
-  await tx.stockBatchItem.deleteMany({});
-  await tx.consignmentItem.deleteMany({});
-  await tx.consignmentPayout.deleteMany({});
-  await tx.consignmentOwner.deleteMany({});
-  await tx.stockCount.deleteMany({});
-  await tx.stockBatch.deleteMany({});
-  await tx.purchaseRequest.deleteMany({});
-  await tx.budgetAllocation.deleteMany({});
-  await tx.cashHandover.deleteMany({});
-  await tx.shiftReport.deleteMany({});
-  await tx.shiftAttendance.deleteMany({});
-  await tx.shiftSession.deleteMany({});
-  await tx.posSession.deleteMany({});
-  await tx.orderItem.deleteMany({});
-  await tx.transaction.deleteMany({});
-  await tx.financialNote.deleteMany({});
-  await tx.broadcastMessage.deleteMany({});
-  await tx.inventoryItem.deleteMany({});
-  await tx.bankAccount.deleteMany({});
-  await tx.audit_logs.deleteMany({});
-  await tx.push_subscriptions.deleteMany({});
-  await tx.systemSetting.deleteMany({});
-  await tx.unitSetting.deleteMany({});
-  await tx.financialCategory.deleteMany({});
-  if (preserveSuperadmins) {
-    await tx.user.updateMany({
-      where: { role: "SUPERADMIN" },
-      data: { unitId: null, lembagaId: null },
-    });
-    await tx.user.deleteMany({ where: { role: { not: "SUPERADMIN" } } });
-  } else {
-    await tx.user.deleteMany({});
+  await tx.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 0");
+  try {
+    await tx.savingsTransaction.deleteMany({});
+    await tx.savingsAccount.deleteMany({});
+    await tx.student.deleteMany({});
+    await tx.notification.deleteMany({});
+    await tx.broadcastRecipient.deleteMany({});
+    await tx.approval.deleteMany({});
+    await tx.purchaseRequestItem.deleteMany({});
+    await tx.purchaseItem.deleteMany({});
+    await tx.stockBatchItem.deleteMany({});
+    await tx.consignmentItem.deleteMany({});
+    await tx.consignmentPayout.deleteMany({});
+    await tx.stockCount.deleteMany({});
+    await tx.consignmentOwner.deleteMany({});
+    await tx.stockBatch.deleteMany({});
+    await tx.purchaseRequest.deleteMany({});
+    await tx.budgetAllocation.deleteMany({});
+    await tx.cashHandover.deleteMany({});
+    await tx.shiftReport.deleteMany({});
+    await tx.shiftAttendance.deleteMany({});
+    await tx.shiftSession.deleteMany({});
+    await tx.transaction.deleteMany({});
+    await tx.orderItem.deleteMany({});
+    await tx.posSession.deleteMany({});
+    await tx.financialNote.deleteMany({});
+    await tx.broadcastMessage.deleteMany({});
+    await tx.inventoryItem.deleteMany({});
+    await tx.bankAccount.deleteMany({});
+    await tx.audit_logs.deleteMany({});
+    await tx.push_subscriptions.deleteMany({});
+    await tx.systemSetting.deleteMany({});
+    await tx.unitSetting.deleteMany({});
+    await tx.financialCategory.deleteMany({});
+    if (preserveSuperadmins) {
+      await tx.user.updateMany({
+        where: { role: "SUPERADMIN" },
+        data: { unitId: null, lembagaId: null },
+      });
+      await tx.user.deleteMany({ where: { role: { not: "SUPERADMIN" } } });
+    } else {
+      await tx.user.deleteMany({});
+    }
+    await tx.unit.deleteMany({});
+    await tx.lembaga.deleteMany({});
+  } finally {
+    await tx.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 1");
   }
-  await tx.unit.deleteMany({});
-  await tx.lembaga.deleteMany({});
 }
 
 export async function resetDatabase(prisma: PrismaClient) {
