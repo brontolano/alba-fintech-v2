@@ -160,6 +160,21 @@ const DATA_MODELS = [
   "notification",
   "broadcastRecipient",
   "approval",
+  "posSession",
+  "shiftSession",
+  "shiftAttendance",
+  "shiftReport",
+  "cashHandover",
+  "budgetAllocation",
+  "consignmentOwner",
+  "consignmentItem",
+  "stockBatch",
+  "stockBatchItem",
+  "stockCount",
+  "purchaseRequest",
+  "purchaseRequestItem",
+  "purchaseItem",
+  "consignmentPayout",
   "orderItem",
   "transaction",
   "financialNote",
@@ -181,6 +196,18 @@ const DATA_MODELS = [
 
 function dateDaysAgo(days: number) {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
+function todayAt(hour: number, minute = 0) {
+  const date = new Date();
+  date.setHours(hour, minute, 0, 0);
+  return date;
+}
+
+function daysAgoAt(days: number, hour: number, minute = 0) {
+  const date = dateDaysAgo(days);
+  date.setHours(hour, minute, 0, 0);
+  return date;
 }
 
 function jsonSafe(value: unknown): unknown {
@@ -293,6 +320,21 @@ async function clearAllData(tx: any, preserveSuperadmins: boolean) {
   await tx.notification.deleteMany({});
   await tx.broadcastRecipient.deleteMany({});
   await tx.approval.deleteMany({});
+  await tx.purchaseRequestItem.deleteMany({});
+  await tx.purchaseItem.deleteMany({});
+  await tx.stockBatchItem.deleteMany({});
+  await tx.consignmentItem.deleteMany({});
+  await tx.consignmentPayout.deleteMany({});
+  await tx.consignmentOwner.deleteMany({});
+  await tx.stockCount.deleteMany({});
+  await tx.stockBatch.deleteMany({});
+  await tx.purchaseRequest.deleteMany({});
+  await tx.budgetAllocation.deleteMany({});
+  await tx.cashHandover.deleteMany({});
+  await tx.shiftReport.deleteMany({});
+  await tx.shiftAttendance.deleteMany({});
+  await tx.shiftSession.deleteMany({});
+  await tx.posSession.deleteMany({});
   await tx.orderItem.deleteMany({});
   await tx.transaction.deleteMany({});
   await tx.financialNote.deleteMany({});
@@ -571,6 +613,7 @@ export async function seedDemoData(prisma: PrismaClient) {
           });
       }
 
+      const inventoryItems = new Map<string, any>();
       for (const [
         unitCode,
         name,
@@ -590,7 +633,7 @@ export async function seedDemoData(prisma: PrismaClient) {
         number,
         number,
       ][]) {
-        await tx.inventoryItem.create({
+        const inventoryItem = await tx.inventoryItem.create({
           data: {
             unitId: units.get(unitCode).id,
             name,
@@ -602,6 +645,7 @@ export async function seedDemoData(prisma: PrismaClient) {
             purchasePrice,
           },
         });
+        inventoryItems.set(sku, inventoryItem);
       }
 
       const kpakUnit = units.get("KPK-01");
@@ -656,12 +700,491 @@ export async function seedDemoData(prisma: PrismaClient) {
         });
       }
 
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const monthPrefix = `${today.getFullYear()}-${String(
+        today.getMonth() + 1,
+      ).padStart(2, "0")}`;
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      const monthEnd = new Date(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      );
+
+      const managerKpak = users.get("manager.kpak.demo@alba.local");
+      const managerKantinBaru = users.get("manager.kantinbaru.demo@alba.local");
+      const managerKantinUmi = users.get("manager.kantinumi.demo@alba.local");
+      const managerKoperasi = users.get("manager.koperasi.demo@alba.local");
+      const staffKantinBaru = users.get("staff.kantinbaru.demo@alba.local");
+
+      const closedPos = await tx.posSession.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          userId: staffKantinBaru.id,
+          date: dateDaysAgo(1),
+          openedAt: daysAgoAt(1, 6, 30),
+          openingCash: 300000,
+          closedAt: daysAgoAt(1, 14, 45),
+          expectedCash: 680000,
+          countedCash: 680000,
+          discrepancy: 0,
+          closeNote: "Penutupan shift siang sesuai hitungan kasir",
+        },
+      });
+      const closedPosSale = await tx.transaction.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          type: "INCOME",
+          amount: 380000,
+          description: "[DEMO] Penjualan shift pagi Kantin Baru",
+          reference: "DEMO-POS-KNT02-01",
+          status: "APPROVED",
+          createdById: staffKantinBaru.id,
+          categoryId: categories.get("INC-PENJUALAN").id,
+          accountId: accounts.get("KNT-02").id,
+          approvedById: managerKantinBaru.id,
+          approvedAt: daysAgoAt(1, 15, 0),
+          date: daysAgoAt(1, 10, 15),
+          posSessionId: closedPos.id,
+        },
+      });
+      await tx.orderItem.create({
+        data: {
+          transactionId: closedPosSale.id,
+          itemId: inventoryItems.get("DEMO-NU-KNT02").id,
+          itemName: "Nasi Uduk",
+          quantity: 15,
+          unitPrice: 12000,
+          totalPrice: 180000,
+        },
+      });
+      await tx.orderItem.create({
+        data: {
+          transactionId: closedPosSale.id,
+          itemId: inventoryItems.get("DEMO-EC-KNT02").id,
+          itemName: "Es Campur",
+          quantity: 20,
+          unitPrice: 10000,
+          totalPrice: 200000,
+        },
+      });
+
+      const openPosKnt02 = await tx.posSession.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          userId: staffKantinBaru.id,
+          date: today,
+          openedAt: todayAt(6, 30),
+          openingCash: 300000,
+        },
+      });
+      const todaySaleKnt02 = await tx.transaction.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          type: "INCOME",
+          amount: 150000,
+          description: "[DEMO] Penjualan sarapan Kantin Baru",
+          reference: "DEMO-POS-KNT02-02",
+          status: "APPROVED",
+          createdById: staffKantinBaru.id,
+          categoryId: categories.get("INC-PENJUALAN").id,
+          accountId: accounts.get("KNT-02").id,
+          approvedById: managerKantinBaru.id,
+          approvedAt: todayAt(8, 0),
+          date: todayAt(7, 45),
+          posSessionId: openPosKnt02.id,
+        },
+      });
+      await tx.orderItem.create({
+        data: {
+          transactionId: todaySaleKnt02.id,
+          itemId: inventoryItems.get("DEMO-NU-KNT02").id,
+          itemName: "Nasi Uduk",
+          quantity: 10,
+          unitPrice: 12000,
+          totalPrice: 120000,
+        },
+      });
+      await tx.orderItem.create({
+        data: {
+          transactionId: todaySaleKnt02.id,
+          itemId: inventoryItems.get("DEMO-EC-KNT02").id,
+          itemName: "Es Campur",
+          quantity: 3,
+          unitPrice: 10000,
+          totalPrice: 30000,
+        },
+      });
+
+      const openPosKnt01 = await tx.posSession.create({
+        data: {
+          unitId: units.get("KNT-01").id,
+          userId: managerKantinUmi.id,
+          date: today,
+          openedAt: todayAt(6, 30),
+          openingCash: 250000,
+        },
+      });
+      const todaySaleKnt01 = await tx.transaction.create({
+        data: {
+          unitId: units.get("KNT-01").id,
+          type: "INCOME",
+          amount: 190000,
+          description: "[DEMO] Penjualan makan siang Kantin Umi",
+          reference: "DEMO-POS-KNT01-01",
+          status: "APPROVED",
+          createdById: managerKantinUmi.id,
+          categoryId: categories.get("INC-PENJUALAN").id,
+          accountId: accounts.get("KNT-01").id,
+          approvedById: managerKantinUmi.id,
+          approvedAt: todayAt(12, 0),
+          date: todayAt(11, 45),
+          posSessionId: openPosKnt01.id,
+        },
+      });
+      await tx.orderItem.create({
+        data: {
+          transactionId: todaySaleKnt01.id,
+          itemId: inventoryItems.get("DEMO-NG-KNT01").id,
+          itemName: "Nasi Goreng",
+          quantity: 10,
+          unitPrice: 15000,
+          totalPrice: 150000,
+        },
+      });
+      await tx.orderItem.create({
+        data: {
+          transactionId: todaySaleKnt01.id,
+          itemId: inventoryItems.get("DEMO-ET-KNT01").id,
+          itemName: "Es Teh Manis",
+          quantity: 5,
+          unitPrice: 8000,
+          totalPrice: 40000,
+        },
+      });
+
+      const openPosKop01 = await tx.posSession.create({
+        data: {
+          unitId: units.get("KOP-01").id,
+          userId: managerKoperasi.id,
+          date: today,
+          openedAt: todayAt(8, 0),
+          openingCash: 200000,
+        },
+      });
+      const todaySaleKop01 = await tx.transaction.create({
+        data: {
+          unitId: units.get("KOP-01").id,
+          type: "INCOME",
+          amount: 160000,
+          description: "[DEMO] Penjualan buku dan alat tulis",
+          reference: "DEMO-POS-KOP01-01",
+          status: "APPROVED",
+          createdById: managerKoperasi.id,
+          categoryId: categories.get("INC-PENJUALAN").id,
+          accountId: accounts.get("KOP-01").id,
+          approvedById: managerKoperasi.id,
+          approvedAt: todayAt(9, 0),
+          date: todayAt(8, 45),
+          posSessionId: openPosKop01.id,
+        },
+      });
+      await tx.orderItem.create({
+        data: {
+          transactionId: todaySaleKop01.id,
+          itemId: inventoryItems.get("DEMO-BT-KOP01").id,
+          itemName: "Buku Tulis",
+          quantity: 20,
+          unitPrice: 5000,
+          totalPrice: 100000,
+        },
+      });
+      await tx.orderItem.create({
+        data: {
+          transactionId: todaySaleKop01.id,
+          itemId: inventoryItems.get("DEMO-P2B-KOP01").id,
+          itemName: "Pensil 2B",
+          quantity: 20,
+          unitPrice: 3000,
+          totalPrice: 60000,
+        },
+      });
+
+      await tx.cashHandover.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          date: today,
+          totalIncome: 150000,
+          totalExpense: 0,
+          systemBalance: 150000,
+          cashHanded: 150000,
+          variance: 0,
+          status: "PENDING",
+          submittedById: managerKantinBaru.id,
+          submittedAt: todayAt(14, 30),
+        },
+      });
+      await tx.cashHandover.create({
+        data: {
+          unitId: units.get("KNT-01").id,
+          date: today,
+          totalIncome: 190000,
+          totalExpense: 0,
+          systemBalance: 190000,
+          cashHanded: 190000,
+          variance: 0,
+          status: "PENDING",
+          submittedById: managerKantinUmi.id,
+          submittedAt: todayAt(14, 30),
+        },
+      });
+      await tx.cashHandover.create({
+        data: {
+          unitId: units.get("KOP-01").id,
+          date: today,
+          totalIncome: 160000,
+          totalExpense: 0,
+          systemBalance: 160000,
+          cashHanded: 160000,
+          variance: 0,
+          status: "PENDING",
+          submittedById: managerKoperasi.id,
+          submittedAt: todayAt(14, 30),
+        },
+      });
+
+      await tx.financialNote.create({
+        data: {
+          unitId: null,
+          title: "Donasi Bantuan Operasional Santri",
+          description:
+            "[DEMO] Pemasukan lembaga dari donasi untuk bantuan operasional santri",
+          amount: 1500000,
+          type: "INCOME",
+          date: daysAgoAt(2, 9, 0),
+          categoryId: categories.get("INC-LEMBAGA").id,
+          createdById: pimpinan.id,
+          approvedById: pimpinan.id,
+          approvedAt: daysAgoAt(2, 9, 5),
+          isReconciled: true,
+          reconciledAt: daysAgoAt(2, 9, 10),
+          reconciledById: pimpinan.id,
+        },
+      });
+      await tx.financialNote.create({
+        data: {
+          unitId: null,
+          title: "Kegiatan Sosial Bulanan",
+          description: "[DEMO] Pengeluaran lembaga untuk kegiatan sosial pesantren",
+          amount: 2500000,
+          type: "EXPENSE",
+          date: dateDaysAgo(3),
+          categoryId: categories.get("EXP-OPR").id,
+          createdById: pimpinan.id,
+          approvedById: pimpinan.id,
+          approvedAt: dateDaysAgo(3),
+          isReconciled: false,
+        },
+      });
+
+      const kpakOpsCategory = await tx.financialCategory.create({
+        data: {
+          name: "Operasional Kantor KPAK",
+          code: "EXP-OPR-KPAK",
+          type: "EXPENSE",
+          lembagaId: lembaga.id,
+          unitId: units.get("KPK-01").id,
+        },
+      });
+      await tx.budgetAllocation.create({
+        data: {
+          unitId: units.get("KPK-01").id,
+          categoryId: kpakOpsCategory.id,
+          periodType: "MONTHLY",
+          period: `M${monthPrefix}`,
+          startDate: monthStart,
+          endDate: monthEnd,
+          amount: 5000000,
+          note: "[DEMO] Alokasi operasional bulanan KPAK",
+          source: "KPAK",
+          isActive: true,
+          createdById: managerKpak.id,
+        },
+      });
+
+      const purchase = await tx.purchaseRequest.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          requestNo: "PR-DEMO-001",
+          title: "Belanja Bahan Baku Mingguan Kantin Baru",
+          note: "[DEMO] Permintaan pembelian stok mingguan",
+          status: "REQUESTED",
+          estimatedTotal: 450000,
+          supplierName: "Pasar Al-Basyariyah",
+          supplierPhone: "0812-3456-7890",
+          createdById: managerKantinBaru.id,
+          createdAt: daysAgoAt(2, 8, 0),
+        },
+      });
+      await tx.purchaseRequestItem.create({
+        data: {
+          requestId: purchase.id,
+          itemId: inventoryItems.get("DEMO-NU-KNT02").id,
+          name: "Nasi Uduk",
+          qtyRequested: 50,
+          estUnitCost: 8000,
+          isNewItem: false,
+        },
+      });
+      await tx.purchaseRequestItem.create({
+        data: {
+          requestId: purchase.id,
+          itemId: null,
+          name: "Saus Sambal (Baru)",
+          qtyRequested: 10,
+          estUnitCost: 5000,
+          isNewItem: true,
+        },
+      });
+
+      const consignmentOwner = await tx.consignmentOwner.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          name: "Toko Barokah",
+          phone: "0813-2222-3344",
+          whatsappVerified: true,
+          address: "Kp. Babakan, Margaasih",
+          isActive: true,
+        },
+      });
+      await tx.consignmentItem.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          ownerId: consignmentOwner.id,
+          inventoryItemId: inventoryItems.get("DEMO-EC-KNT02").id,
+          marginType: "PERCENT",
+          marginValue: 20,
+          costPrice: 6000,
+          agreedPrice: 10000,
+          isActive: true,
+        },
+      });
+      await tx.consignmentPayout.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          ownerId: consignmentOwner.id,
+          amount: 350000,
+          fromDate: dateDaysAgo(7),
+          toDate: dateDaysAgo(1),
+          status: "PENDING",
+          note: "[DEMO] Pembayaran konsinyasi minggu lalu",
+        },
+      });
+
+      const stockBatch = await tx.stockBatch.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          batchNo: "BT-DEMO-001",
+          date: daysAgoAt(1, 16, 0),
+          kind: "CAMPURAN",
+          status: "APPROVED",
+          totalQty: 90,
+          totalCost: 640000,
+          sourceType: "PEMBELIAN",
+          sourceRef: "PR-DEMO-001",
+          note: "[DEMO] Batch pembelian bahan baku dan barang konsinyasi",
+          createdById: managerKantinBaru.id,
+          reviewedById: pimpinan.id,
+          reviewedAt: dateDaysAgo(1),
+          reviewNote: "Data sesuai nota pembelian",
+        },
+      });
+      await tx.stockBatchItem.create({
+        data: {
+          batchId: stockBatch.id,
+          inventoryItemId: inventoryItems.get("DEMO-NU-KNT02").id,
+          qty: 50,
+          unitCost: 8000,
+          lineTotal: 400000,
+          ownerId: null,
+        },
+      });
+      await tx.stockBatchItem.create({
+        data: {
+          batchId: stockBatch.id,
+          inventoryItemId: inventoryItems.get("DEMO-EC-KNT02").id,
+          qty: 40,
+          unitCost: 6000,
+          finalUnitCost: 6000,
+          lineTotal: 240000,
+          ownerId: consignmentOwner.id,
+          marginType: "PERCENT",
+          marginValue: 20,
+        },
+      });
+
+      await tx.stockCount.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          ownerId: consignmentOwner.id,
+          date: today,
+          payload: {
+            items: [
+              { name: "Nasi Uduk", stock: 45 },
+              { name: "Es Campur", stock: 30 },
+            ],
+          },
+          totalSold: 12,
+          totalHak: 120000,
+          status: "DRAFT",
+          createdById: staffKantinBaru.id,
+        },
+      });
+
+      await tx.shiftSession.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          userId: staffKantinBaru.id,
+          date: today,
+          checkInAt: todayAt(6, 30),
+          checkOutAt: todayAt(14, 30),
+        },
+      });
+      await tx.shiftAttendance.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          userId: staffKantinBaru.id,
+          date: today,
+          checkInAt: todayAt(6, 30),
+          checkOutAt: todayAt(14, 30),
+          late: false,
+          note: "[DEMO] Shift pagi Kantin Baru",
+        },
+      });
+      await tx.shiftReport.create({
+        data: {
+          unitId: units.get("KNT-02").id,
+          userId: staffKantinBaru.id,
+          date: today,
+          cashIncomeCounted: 150000,
+          cashExpenseCounted: 0,
+          note: "[DEMO] Laporan shift pagi Kantin Baru",
+          status: "SUBMITTED",
+          submittedAt: todayAt(14, 30),
+        },
+      });
+
       await tx.notification.create({
         data: {
           userId: pimpinan.id,
           title: "Demo Modul Operasional Siap",
           message:
-            "Data demo lengkap: 4 unit (KPAK, Kantin Baru, Kantin Umi, Koperasi Buku) beserta transaksi harian, persetujuan, inventori, tabungan santri, dan akun pengguna untuk setiap unit.",
+            "Data demo lengkap: 4 unit (KPAK, Kantin Baru, Kantin Umi, Koperasi Buku) beserta transaksi harian, persetujuan, inventori, tabungan santri, shift, POS, konsinyasi, stok, anggaran KPAK, dan permintaan pembelian.",
           type: "INFO",
         },
       });
@@ -670,7 +1193,7 @@ export async function seedDemoData(prisma: PrismaClient) {
 
       return {
         message:
-          "Data demo berhasil dibuat: 4 unit operasional, akun pengguna per unit, transaksi harian dengan alur approval, inventori retail, tabungan santri untuk kiosk, dan pengaturan default.",
+          "Data demo berhasil dibuat: 4 unit operasional, akun pengguna per unit, transaksi harian dengan alur approval, inventori retail, tabungan santri untuk kiosk, POS, shift, konsinyasi, stok, anggaran KPAK, dan pengaturan default.",
         units: UNITS.map((unit) => unit.name),
         demoPassword: DEMO_PASSWORD,
       };
@@ -824,10 +1347,25 @@ export async function importDatabase(prisma: PrismaClient, payload: any) {
         "student",
         "savingsAccount",
         "savingsTransaction",
+        "posSession",
         "transaction",
         "orderItem",
+        "purchaseItem",
         "approval",
         "financialNote",
+        "shiftSession",
+        "shiftAttendance",
+        "shiftReport",
+        "cashHandover",
+        "budgetAllocation",
+        "consignmentOwner",
+        "consignmentItem",
+        "stockBatch",
+        "stockBatchItem",
+        "stockCount",
+        "purchaseRequest",
+        "purchaseRequestItem",
+        "consignmentPayout",
         "notification",
         "broadcastMessage",
         "broadcastRecipient",
