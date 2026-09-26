@@ -65,6 +65,9 @@ interface ReceiptData {
 }
 
 import { usePageGuard } from "@/lib/use-page-guard";
+import { printData, escapeHtml } from "@/lib/print";
+import NfcUidInput from "@/components/nfc/NfcUidInput";
+import { normalizeUid } from "@/lib/nfc";
 
 /**
  * Hook placeholder Computer Vision / Image Retrieval (CATATAN).
@@ -425,7 +428,7 @@ export default function POSPage() {
     }
     if (!requirePosSession()) return;
 
-    const uid = smartCardUid.trim().toUpperCase();
+    const uid = normalizeUid(smartCardUid);
     if (!uid) {
       toast.error("Masukkan UID kartu santri");
       return;
@@ -533,51 +536,51 @@ export default function POSPage() {
       method: paymentMethod as "cash" | "smartcard",
       date: format(new Date(), "dd MMM yyyy HH:mm", { locale: id }),
     };
-    const receiptWindow = window.open("", "_blank");
-    if (!receiptWindow) return;
     const itemsHtml = rc.items
       .map(
         (item) => `
       <tr>
-        <td style="padding:4px 8px;">${item.name}</td>
-        <td style="padding:4px 8px;text-align:right;">${item.qty}x</td>
-        <td style="padding:4px 8px;text-align:right;">${formatCurrency(item.price * item.qty)}</td>
+        <td>${escapeHtml(item.name)}</td>
+        <td class="num">${item.qty}x</td>
+        <td class="num">${formatCurrency(item.price * item.qty)}</td>
       </tr>
     `,
       )
       .join("");
-    const html = `
-      <html>
-        <head><title>Struk Penjualan</title>
-          <style>
-            /* Thermal 58/80mm: cetak ramping, font monospace */
-            @media print { @page { size: 80mm auto; margin: 2mm; } }
-            body { font-family: monospace; padding: 4px; width: 72mm; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { font-size: 12px; }
-            .total { font-weight: bold; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <h2 style="text-align:center;">ALBA Finance - Struk Penjualan</h2>
-          <p style="text-align:center;font-size:12px;">${rc.date}</p>
-          <p style="font-size:12px;">Pelanggan: ${customerName || "Umum"}</p>
-          <p style="font-size:12px;">Metode: ${rc.method === "cash" ? "Tunai" : "Kartu Santri"}</p>
-          <table className="rtable w-full">
-            <thead><tr><th align="left">Produk</th><th align="right">Qty</th><th align="right">Total</th></tr></thead>
-            <tbody>${itemsHtml}</tbody>
-          </table>
-          <p style="text-align:right;font-size:12px;">Subtotal: ${formatCurrency(rc.total)}</p>
-          <p style="text-align:right;font-size:12px;">Total: ${formatCurrency(rc.total)}</p>
-          ${rc.method === "cash" ? `<p style="text-align:right;font-size:12px;">Bayar: ${formatCurrency(rc.paid)}</p><p style="text-align:right;font-size:12px;">Kembalian: ${formatCurrency(rc.change)}</p>` : ""}
-          <p style="text-align:center;font-size:10px;margin-top:20px;">Terima kasih!</p>
-        </body>
-      </html>
+    const paymentRows =
+      rc.method === "cash"
+        ? `
+        <tr><td>Bayar</td><td class="num">${formatCurrency(rc.paid)}</td></tr>
+        <tr><td>Kembalian</td><td class="num">${formatCurrency(rc.change)}</td></tr>`
+        : rc.cardBalanceAfter != null
+          ? `<tr><td>Sisa saldo</td><td class="num">${formatCurrency(rc.cardBalanceAfter)}</td></tr>`
+          : "";
+    const bodyHtml = `
+      <div style="text-align:center;">
+        <div style="font-size:16px;font-weight:bold;">ALBA Finance</div>
+        <div>Struk Penjualan</div>
+        <div class="sub">${escapeHtml(rc.date)}</div>
+      </div>
+      <p>Pelanggan: ${escapeHtml(customerName || "Umum")}</p>
+      <p>Metode: ${rc.method === "cash" ? "Tunai" : "Kartu Santri"}</p>
+      <p>Jumlah item: ${rc.items.reduce((s, i) => s + i.qty, 0)}</p>
+      <hr>
+      <table>
+        <thead><tr><th align="left">Produk</th><th align="right">Qty</th><th align="right">Total</th></tr></thead>
+        <tbody>${itemsHtml}</tbody>
+      </table>
+      <hr>
+      <table>
+        ${paymentRows}
+        <tr class="total"><td>Total</td><td class="num">${formatCurrency(rc.total)}</td></tr>
+      </table>
+      <div style="text-align:center;margin-top:20px;font-size:10px;">Terima kasih!</div>
     `;
-    receiptWindow.document.write(html);
-    receiptWindow.document.close();
-    receiptWindow.focus();
-    receiptWindow.print();
+    printData("Struk Penjualan", bodyHtml, {
+      pageSize: "80mm auto",
+      margin: "2mm",
+      monospace: true,
+    });
   };
 
   const handleCheckout = async () => {
@@ -1023,13 +1026,12 @@ export default function POSPage() {
                 <ScanLine size={16} className="text-primary" />
                 UID Kartu Santri
               </label>
-              <input
-                type="text"
-                placeholder="Tempel / scan kartu, masukkan UID..."
+              <NfcUidInput
                 value={smartCardUid}
-                onChange={(e) => setSmartCardUid(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSmartPay()}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                onChange={setSmartCardUid}
+                onEnter={handleSmartPay}
+                placeholder="Tempel / scan kartu, masukkan UID..."
+                showHint={false}
               />
               <p className="mt-2 text-xs text-muted-foreground">
                 Saldo diverifikasi real-time dari tabungan santri. Bila saldo

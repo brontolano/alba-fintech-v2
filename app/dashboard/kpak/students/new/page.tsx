@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ArrowLeft, Loader2, UserPlus } from "lucide-react";
+import NfcUidInput from "@/components/nfc/NfcUidInput";
+import { normalizeUid } from "@/lib/nfc";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -40,7 +42,7 @@ export default function NewStudentPage() {
           studentNumber: form.studentNumber.trim(),
           name: form.name.trim(),
           className: form.className.trim() || undefined,
-          cardUid: form.cardUid.trim() || undefined,
+          cardUid: normalizeUid(form.cardUid) || undefined,
         }),
       });
       const json = await res.json();
@@ -117,12 +119,11 @@ export default function NewStudentPage() {
               (bisa diisi belakangan oleh Manager)
             </span>
           </label>
-          <input
-            type="text"
+          <NfcUidInput
             value={form.cardUid}
-            onChange={(e) => setForm({ ...form, cardUid: e.target.value })}
+            onChange={(v) => setForm({ ...form, cardUid: v })}
             placeholder="Contoh: AB:CD:EF:12"
-            className="w-full rounded-lg border bg-background px-3 py-2.5 font-mono text-sm"
+            showHint={false}
           />
         </div>
         <button

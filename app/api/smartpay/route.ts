@@ -140,7 +140,10 @@ export async function POST(request: NextRequest) {
     }
 
     // ---- Cari santri + akun tabungan aktif via UID kartu ----
-    const student = await prisma.student.findUnique({
+    // Fallback: bila tersimpan tanpa separator (AB:CD:EF:12 → ABCDEF12),
+    // tetap cocok dengan UID yang baru diformat. Normalisasi toUpperCase
+    // di atas dipertahankan.
+    let student = await prisma.student.findUnique({
       where: { cardUid },
       include: {
         account: {
@@ -154,6 +157,25 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+    if (!student) {
+      const cardUidStripped = cardUid.replace(/[\s:.\-]/g, "");
+      if (cardUidStripped !== cardUid) {
+        student = await prisma.student.findUnique({
+          where: { cardUid: cardUidStripped },
+          include: {
+            account: {
+              select: {
+                id: true,
+                balance: true,
+                status: true,
+                unitId: true,
+                dailySpendLimit: true,
+              },
+            },
+          },
+        });
+      }
+    }
 
     if (!student || student.isActive !== true) {
       return NextResponse.json(

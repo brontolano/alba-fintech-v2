@@ -13,6 +13,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { usePageGuard } from "@/lib/use-page-guard";
+import NfcUidInput from "@/components/nfc/NfcUidInput";
+import { normalizeUid } from "@/lib/nfc";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -130,7 +132,7 @@ export default function StudentDetailPage({
         body: JSON.stringify({
           name: editData.name.trim(),
           className: editData.className.trim() || null,
-          cardUid: editData.cardUid.trim() || null,
+          cardUid: normalizeUid(editData.cardUid) || null,
         }),
       });
       const json = await res.json();
@@ -236,13 +238,12 @@ export default function StudentDetailPage({
           <div className="col-span-2">
             <p className="text-xs text-muted-foreground">UID Kartu NFC</p>
             {editMode ? (
-              <input
+              <NfcUidInput
                 value={editData.cardUid}
-                onChange={(e) =>
-                  setEditData({ ...editData, cardUid: e.target.value })
-                }
+                onChange={(v) => setEditData({ ...editData, cardUid: v })}
                 placeholder="Kosongkan jika belum ada"
-                className="mt-1 w-full rounded-lg border bg-background px-2 py-1.5 font-mono"
+                showHint={false}
+                className="mt-1 w-full"
               />
             ) : (
               <p className="font-mono text-xs">

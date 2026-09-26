@@ -7,10 +7,16 @@ import {
   CreditCard,
   Search,
   UserPlus,
+  Printer,
+  Nfc,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { uploadProof } from "@/lib/upload-proof";
+import { printData, escapeHtml } from "@/lib/print";
+import NfcUidInput from "@/components/nfc/NfcUidInput";
+import { normalizeUid, isWebNfcSupported, scanNfcUid } from "@/lib/nfc";
 
 interface StudentData {
   id: string;
@@ -53,11 +59,11 @@ export default function SavingsPage() {
     cardUid: "",
   });
 
-  const lookup = async () => {
-    if (!lookupValue.trim()) return;
+  const lookup = async (keyOverride?: string) => {
+    const key = (keyOverride ?? lookupValue).trim();
+    if (!key) return;
     setLookupLoading(true);
     try {
-      const key = lookupValue.trim();
       const param = /^[0-9]+$/.test(key) ? "studentNumber" : "cardUid";
       const response = await fetch(
         `/api/savings/lookup?${param}=${encodeURIComponent(key)}`,
@@ -76,6 +82,19 @@ export default function SavingsPage() {
       );
     } finally {
       setLookupLoading(false);
+    }
+  };
+
+  const scanLookup = async () => {
+    if (lookupLoading) return;
+    try {
+      const uid = normalizeUid(await scanNfcUid());
+      setLookupValue(uid);
+      await lookup(uid);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Gagal membaca kartu",
+      );
     }
   };
 
@@ -154,7 +173,10 @@ export default function SavingsPage() {
     const response = await fetch("/api/savings/students", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(register),
+      body: JSON.stringify({
+          ...register,
+          cardUid: normalizeUid(register.cardUid) || undefined,
+        }),
     });
     const result = await response.json();
     if (!response.ok) {
@@ -165,6 +187,60 @@ export default function SavingsPage() {
     setRegister({ studentNumber: "", name: "", className: "", cardUid: "" });
     setStudent(result.data);
     toast.success("Santri dan rekening tabungan berhasil dibuat");
+  };
+
+  // Staff KPAK: layanan tabungan hanya saat shift Tabungan aktif
+  const printCard = () => {
+    if (!student) return;
+    const balance = Number(student.account?.balance || 0);
+    const bodyHtml = `
+      <div class="site-header">
+        <h1>ALBA FINANCE</h1>
+        <p class="sub">Pondok Pesantren Al-Basyariyah · KPAK Tabungan Santri</p>
+      </div>
+      <h2>Kartu Tabungan Santri</h2>
+      <p class="sub">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))}</p>
+      <table>
+        <tr>
+          <td class="label">Nomor Santri</td>
+          <td>${escapeHtml(student.studentNumber)}</td>
+        </tr>
+        <tr>
+          <td class="label">Nama</td>
+          <td>${escapeHtml(student.name)}</td>
+        </tr>
+        <tr>
+          <td class="label">Kelas</td>
+          <td>${escapeHtml(student.className || "-")}</td>
+        </tr>
+        ${
+          student.cardUid
+            ? `<tr>
+            <td class="label">UID Kartu NFC</td>
+            <td>${escapeHtml(student.cardUid)}</td>
+          </tr>`
+            : ""
+        }
+        <tr>
+          <td class="label">Status Akun</td>
+          <td>${
+            student.account?.status === "ACTIVE"
+              ? "Aktif"
+              : escapeHtml(student.account?.status || "-")
+          }</td>
+        </tr>
+        <tr>
+          <td class="label">Saldo Tersedia</td>
+          <td><strong>Rp ${balance.toLocaleString("id-ID")}</strong></td>
+        </tr>
+      </table>
+      <div class="sign">
+        <div><p>Santri / Wali</p><div class="space"></div><p>_______________</p></div>
+        <div><p>Petugas KPAK</p><div class="space"></div><p>_______________</p></div>
+      </div>
+      <p class="footer">Dicetak ${escapeHtml(new Date().toLocaleString("id-ID"))} · Dokumen dihasilkan otomatis oleh ALBA Finance</p>
+    `;
+    printData("Kartu Tabungan", bodyHtml, { pageSize: "A4", margin: "12mm" });
   };
 
   // Staff KPAK: layanan tabungan hanya saat shift Tabungan aktif
@@ -248,13 +324,12 @@ export default function SavingsPage() {
             }
             className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm"
           />
-          <input
-            placeholder="UID kartu NFC (opsional)"
+          <NfcUidInput
             value={register.cardUid}
-            onChange={(e) =>
-              setRegister({ ...register, cardUid: e.target.value })
-            }
-            className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm"
+            onChange={(v) => setRegister({ ...register, cardUid: v })}
+            placeholder="UID kartu NFC (opsional)"
+            showHint={false}
+            className="md:col-span-4"
           />
           <button className="rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background md:col-span-4">
             Simpan Santri
@@ -277,12 +352,22 @@ export default function SavingsPage() {
           />
         </div>
         <button
-          onClick={lookup}
+          onClick={() => lookup()}
           disabled={lookupLoading}
           className="rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground"
         >
           {lookupLoading ? "Mencari..." : "Cari"}
         </button>
+        {isWebNfcSupported() ? (
+          <button
+            onClick={scanLookup}
+            disabled={lookupLoading}
+            title="Tempel kartu NFC untuk mengisi UID"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary/10 px-4 text-sm font-semibold text-primary hover:bg-primary/15"
+          >
+            <Nfc size={16} /> Tempel
+          </button>
+        ) : null}
       </div>
 
       {!student && notFoundKey && !lookupLoading && (
@@ -350,6 +435,12 @@ export default function SavingsPage() {
             <p className="mt-3 text-xs text-muted-foreground">
               {student.cardUid ? `NFC: ${student.cardUid}` : ""}
             </p>
+            <button
+              onClick={printCard}
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
+            >
+              <Printer size={16} /> Cetak Kartu Tabungan
+            </button>
           </div>
           <form
             onSubmit={submitMutation}

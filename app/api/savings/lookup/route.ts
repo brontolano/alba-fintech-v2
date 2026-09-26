@@ -16,11 +16,20 @@ export async function GET(request: NextRequest) {
       { status: 400 },
     );
 
+  // Terima UID dengan ataupun tanpa separator (AB:CD:EF:12 = ABCDEF12).
+  const uidMatch = cardUid
+    ? {
+        cardUid: {
+          in: Array.from(new Set([cardUid, cardUid.replace(/[\s:.\-]/g, "")])),
+        },
+      }
+    : { studentNumber };
+
   const role = session.user.role;
   const student = await prisma.student.findFirst({
     where: {
       isActive: true,
-      ...(cardUid ? { cardUid } : { studentNumber }),
+      ...uidMatch,
       ...(role === "MANAGER" || role === "STAFF"
         ? { unitId: session.user.unitId }
         : {}),

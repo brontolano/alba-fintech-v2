@@ -30,6 +30,7 @@ import {
   PackagePlus,
   ClipboardCheck,
   ShoppingBag,
+  SmartphoneNfc,
 } from "lucide-react";
 import Image from "next/image";
 import { useShiftGate } from "@/components/kpak/useShiftGate";
@@ -94,6 +95,12 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/dashboard/announcements",
         icon: <Bell size={20} />,
         roles: ["SUPERADMIN", "PIMPINAN"],
+      },
+      {
+        label: "Modul NFC",
+        href: "/dashboard/nfc",
+        icon: <SmartphoneNfc size={20} />,
+        roles: ["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"],
       },
     ],
   },
