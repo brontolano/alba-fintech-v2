@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
           lembagaId: user.lembagaId,
           isActive: user.isActive,
           createdAt: user.createdAt,
+          image: user.image,
           unit: unitData,
           lembaga: lembagaData,
         },

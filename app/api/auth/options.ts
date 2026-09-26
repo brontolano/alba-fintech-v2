@@ -38,6 +38,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
+    image?: string | null;
     role?: string;
     unitId?: string | null;
     unitIsRetail?: boolean;
@@ -218,6 +219,7 @@ export const authOptions: NextAuthOptions = {
         // Initial sign-in: copy auth user fields into token
         const authUser = user as AuthUser;
         token.id = authUser.id;
+        token.image = authUser.image;
         token.role = authUser.role;
         token.unitId = authUser.unitId;
         token.unitIsRetail = authUser.unitIsRetail;
@@ -242,6 +244,7 @@ export const authOptions: NextAuthOptions = {
               isActive: true,
               unitId: true,
               lembagaId: true,
+              image: true,
               units: { select: { isRetail: true, type: true } },
             },
           });
@@ -252,6 +255,7 @@ export const authOptions: NextAuthOptions = {
             token.lembagaId = dbUser.lembagaId ?? null;
             token.unitIsRetail = dbUser.units?.isRetail ?? false;
             token.unitType = dbUser.units?.type ?? "UMUM";
+            token.image = dbUser.image ?? null;
           } else {
             // User no longer exists — invalidate token
             token.isActive = false;
@@ -274,6 +278,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id;
+        session.user.image = token.image ?? null;
         session.user.role = token.role;
         session.user.unitId = token.unitId;
         session.user.unitIsRetail = token.unitIsRetail;
