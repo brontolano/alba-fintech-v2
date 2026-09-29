@@ -60,6 +60,7 @@ export async function GET(
         date: true,
         status: true,
         reference: true,
+        photoUrl: true,
         units: { select: { name: true } },
         bank_accounts: { select: { name: true } },
         financial_categories: { select: { name: true } },

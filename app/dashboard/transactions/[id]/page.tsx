@@ -553,14 +553,31 @@ export default function TransactionDetailPage({
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Bukti Foto
             </h3>
-            <img
-              src={`/${transaction.photoUrl}`}
-              alt="Transaction receipt"
-              className="max-w-xs rounded-xl border border-border bg-background object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
+            <a
+              href={
+                transaction.photoUrl.startsWith("http") ||
+                transaction.photoUrl.startsWith("/")
+                  ? transaction.photoUrl
+                  : `/${transaction.photoUrl}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Klik untuk memperbesar"
+            >
+              <img
+                src={
+                  transaction.photoUrl.startsWith("http") ||
+                  transaction.photoUrl.startsWith("/")
+                    ? transaction.photoUrl
+                    : `/${transaction.photoUrl}`
+                }
+                alt="Bukti foto transaksi"
+                className="max-w-xs rounded-xl border border-border bg-background object-cover transition hover:opacity-90"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </a>
           </div>
         )}
       </div>
