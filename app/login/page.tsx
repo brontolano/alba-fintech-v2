@@ -21,7 +21,11 @@ export default async function LoginPage({
     // Invalid JWT / DB error — show login form, don't throw
   }
 
-  if (session?.user) {
+  // Hanya sesi AKTIF beridentitas yang boleh lanjut ke dashboard. Sesi
+  // hantu (JWT basi milik user yang sudah dihapus dari DB: tanpa id /
+  // isActive=false) TIDAK boleh di-redirect — kalau tidak, browser
+  // memantul /login ↔ /dashboard tanpa henti (ERR_TOO_MANY_REDIRECTS).
+  if (session?.user?.id && session.user.isActive !== false) {
     redirect("/dashboard");
   }
 

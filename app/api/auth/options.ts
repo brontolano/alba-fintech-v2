@@ -276,8 +276,24 @@ export const authOptions: NextAuthOptions = {
             token.unitType = dbUser.units?.type ?? "UMUM";
             token.image = dbUser.image ?? null;
           } else {
-            // User no longer exists — invalidate token
+            // User sudah tidak ada di DB (mis. setelah reset/seed ulang):
+            // kupas identitas dari token + tandai nonaktif agar sesi hantu
+            // tidak bisa dipakai lagi. Tanpa ini, cookie JWT basi yang masih
+            // valid memantul /login ↔ /dashboard (ERR_TOO_MANY_REDIRECTS)
+            // di perangkat yang pernah login.
+            // PENTING: hanya saat DB terjangkau (dbUser null = pasti
+            // terhapus). Gangguan koneksi DB ditangani catch di bawah dan
+            // TIDAK boleh memutus sesi semua orang.
+            token.id = undefined;
+            token.role = undefined;
+            token.unitId = undefined;
+            token.lembagaId = undefined;
+            token.unitIsRetail = undefined;
+            token.unitType = undefined;
+            token.image = undefined;
             token.isActive = false;
+            token.roleCheckedAt = now;
+            return token;
           }
           token.roleCheckedAt = now;
         } catch (dbErr: unknown) {

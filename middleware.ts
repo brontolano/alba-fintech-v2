@@ -38,11 +38,23 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  if (token.isActive === false) {
-    const response = NextResponse.redirect(
-      new URL("/login?error=deactivated", req.url),
-    );
+  // Tolak token tanpa identitas (sesi hantu pasca reset data) atau yang
+  // sudah ditandai nonaktif. Null-safe: tanpa cookie pun langsung ke login
+  // (sebelumnya `token.isActive` bisa throw saat token null).
+  if (!token?.id || token.isActive === false) {
+    // Sesi hantu (user sudah dihapus dari DB): paksa ke login + pastikan
+    // cookie sesi benar-benar mati. delete() saja kadang tidak menempel
+    // di browser (atribut Secure/Path), jadi timpa eksplisit dengan cookie
+    // kedaluwarsa beratribut sama persis seperti saat dibuat.
+    const response = NextResponse.redirect(new URL("/login", req.url));
     response.cookies.delete(SESSION_COOKIE);
+    response.cookies.set(SESSION_COOKIE, "", {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      secure: isProduction,
+      maxAge: 0,
+    });
     return response;
   }
 

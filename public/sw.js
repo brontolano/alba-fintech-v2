@@ -4,7 +4,7 @@
    - /api/* TIDAK pernah di-cache (data keuangan sensitif).
    Bump CACHE_VERSION setiap rilis dengan perubahan SW/aset.
  */
-const CACHE_VERSION = "alba-v1";
+const CACHE_VERSION = "alba-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 
