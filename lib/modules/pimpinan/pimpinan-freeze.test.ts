@@ -118,3 +118,33 @@ test("audit approvals: PIMPINAN hanya melihat lembaganya", () => {
   assert.ok(audit.includes("PIMPINAN"), "role PIMPINAN hilang");
   assert.ok(audit.includes('role === \'PIMPINAN\''), "cabang PIMPINAN hilang");
 });
+
+test("amandemen pemilik: PIMPINAN bisa buka serah terima (middleware tak blokir)", () => {
+  const mw = read("middleware.ts");
+  assert.ok(!mw.includes('"/dashboard/handovers"'), "handovers masih diblokir untuk PIMPINAN");
+  const page = read("app/dashboard/handovers/page.tsx");
+  assert.ok(page.includes('usePageGuard(["SUPERADMIN", "PIMPINAN", "MANAGER"])'), "guard handovers berubah");
+});
+
+test("amandemen pemilik: nav pimpinan ada Serah Terima + Anggaran", () => {
+  const sidebar = read("components/layout/Sidebar.tsx");
+  assert.ok(sidebar.includes('label: "Serah Terima"'), "link Serah Terima hilang");
+  assert.ok(sidebar.includes('href: "/dashboard/handovers"'), "href handovers hilang");
+  assert.ok(sidebar.includes('label: "Anggaran"'), "link Anggaran hilang");
+  assert.ok(sidebar.includes('href: "/dashboard/budget"'), "href budget hilang");
+});
+
+test("amandemen pemilik: halaman anggaran pimpinan ada + pakai API alokasi", () => {
+  assert.ok(fs.existsSync(path.join(ROOT, "app/dashboard/budget/page.tsx")), "halaman budget hilang");
+  const page = read("app/dashboard/budget/page.tsx");
+  assert.ok(page.includes("/api/kpak/allocations"), "API alokasi hilang");
+  assert.ok(page.includes('usePageGuard(["SUPERADMIN", "PIMPINAN"])'), "guard budget berubah");
+  const api = read("app/api/kpak/allocations/route.ts");
+  assert.ok(api.includes("PIMPINAN"), "role PIMPINAN hilang di API alokasi");
+});
+
+test("amandemen pemilik: manager bisa setor kas dari halaman handovers", () => {
+  const page = read("app/dashboard/handovers/page.tsx");
+  assert.ok(page.includes("Setor Kas ke Pimpinan"), "form setor hilang");
+  assert.ok(page.includes('method: "POST"'), "POST setor hilang");
+});

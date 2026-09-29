@@ -559,8 +559,10 @@ const MANAGER_RETAIL_GROUPS: NavGroup[] = [
  * Menu khusus PIMPINAN — sederhana, fokus tugas kepemimpinan.
  * Hanya navigasi tingkat lembaga: dashboard/pantauan, keputusan, buku kas,
  * laporan, dan pegawai. Menu operasional & layanan unit (KPAK, tabungan,
- * rekonsiliasi, handover) dihapus agar fokus pimpinan; akses rutenya pun
+ * rekonsiliasi) dihapus agar fokus pimpinan; akses rutenya pun
  * diblok untuk PIMPINAN di middleware (role lain tetap bisa).
+ * PENGECUALIAN (atas persetujuan pemilik): "Serah Terima" (terima/tolak stor
+ * kas unit) dan "Anggaran" (alokasi + pantau realisasi) dibuka untuk PIMPINAN.
  * (Perubahan atas persetujuan pemilik; jalur role lain di NAV_GROUPS tak tersentuh.)
  */
 const PIMPINAN_GROUPS: NavGroup[] = [
@@ -601,6 +603,19 @@ const PIMPINAN_GROUPS: NavGroup[] = [
         icon: <ClipboardList size={20} />,
         roles: ["PIMPINAN"],
         badgeKey: "review",
+      },
+      {
+        label: "Serah Terima",
+        href: "/dashboard/handovers",
+        icon: <ClipboardCheck size={20} />,
+        roles: ["PIMPINAN"],
+        badgeKey: "review",
+      },
+      {
+        label: "Anggaran",
+        href: "/dashboard/budget",
+        icon: <Wallet size={20} />,
+        roles: ["PIMPINAN"],
       },
       {
         label: "Laporan",

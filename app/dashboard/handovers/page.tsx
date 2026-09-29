@@ -35,12 +35,18 @@ export default function HandoversPage() {
   const canDecide =
     session?.user?.role === "SUPERADMIN" ||
     session?.user?.role === "PIMPINAN";
+  const isManager = session?.user?.role === "MANAGER";
   const [handovers, setHandovers] = useState<Handover[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     status: "",
     date: format(new Date(), "yyyy-MM-dd"),
   });
+  // Form setor kas unit → pimpinan (manager saja)
+  const [storDate, setStorDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [storCash, setStorCash] = useState("");
+  const [storNote, setStorNote] = useState("");
+  const [storSaving, setStorSaving] = useState(false);
 
   const fetchHandovers = async () => {
     try {
@@ -100,8 +106,43 @@ export default function HandoversPage() {
     }
   };
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("id-ID", {
+  const handleStorSubmit = async () => {
+    const unitId = (session?.user as any)?.unitId as string | undefined;
+    const cash = Number(String(storCash).replace(/[^0-9]/g, ""));
+    if (!unitId) {
+      toast.error("Unit Anda tidak terdeteksi");
+      return;
+    }
+    if (!storDate || !cash || cash <= 0) {
+      toast.error("Isi tanggal dan jumlah kas yang disetor");
+      return;
+    }
+    setStorSaving(true);
+    try {
+      const res = await fetch("/api/handovers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          unitId,
+          date: storDate,
+          cashHanded: cash,
+          note: storNote.trim() || undefined,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || "Gagal menyimpan setoran");
+      toast.success("Setoran kas dikirim ke pimpinan");
+      setStorCash("");
+      setStorNote("");
+      fetchHandovers();
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menyimpan setoran");
+    } finally {
+      setStorSaving(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) =>    new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
@@ -191,9 +232,62 @@ export default function HandoversPage() {
           Serah Terima Kas Harian
         </h1>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          Review dan terima serah terima kas dari unit
+          {isManager
+            ? "Setor kas unit ke pimpinan dan pantau statusnya"
+            : "Review dan terima serah terima kas dari unit"}
         </p>
       </div>
+
+      {isManager && (
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+          <p className="text-sm font-semibold text-foreground">
+            Setor Kas ke Pimpinan
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Kas fisik yang diserahkan akan dibandingkan dengan saldo sistem
+            (transaksi APPROVED tanggal tersebut).
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              Tanggal
+              <input
+                type="date"
+                value={storDate}
+                onChange={(e) => setStorDate(e.target.value)}
+                className="rounded-full border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              Jumlah kas (Rp)
+              <input
+                type="number"
+                min={0}
+                value={storCash}
+                onChange={(e) => setStorCash(e.target.value)}
+                placeholder="cth: 1500000"
+                className="rounded-full border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+              />
+            </label>
+            <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
+              Catatan (opsional)
+              <input
+                type="text"
+                value={storNote}
+                onChange={(e) => setStorNote(e.target.value)}
+                placeholder="cth: setoran tutup hari"
+                className="rounded-full border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+              />
+            </label>
+            <button
+              onClick={handleStorSubmit}
+              disabled={storSaving}
+              className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+            >
+              {storSaving ? "Mengirim..." : "Kirim Setoran"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">

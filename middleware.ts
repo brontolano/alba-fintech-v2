@@ -49,11 +49,12 @@ export async function middleware(req: NextRequest) {
   // PIMPINAN: sederhana — blok profil operasional & layanan unit.
   // Halaman/API-nya tetap ada untuk MANAGER/STAFF; pimpinan hanya
   // navigasi tingkat lembaga (menu di Sidebar sudah dipangkas sejalan).
+  // PENGECUALIAN (atas persetujuan pemilik): /dashboard/handovers dibuka
+  // untuk PIMPINAN agar bisa terima/tolak stor kas dari unit.
   const UNIT_SERVICE_PATHS = [
     "/dashboard/kpak/",
     "/dashboard/savings",
     "/dashboard/reconciliation",
-    "/dashboard/handovers",
   ];
   if (token.role === "PIMPINAN") {
     const blocked = UNIT_SERVICE_PATHS.some((p) =>

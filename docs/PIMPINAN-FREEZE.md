@@ -53,7 +53,19 @@ Routing:
 - Nav Pimpinan: grup Sidebar "Kelola" (termasuk "Belanja Stok") + tautan
   "Persetujuan" (`/dashboard/approvals`).
 
-## Catatan
+## Amandemen (atas persetujuan pemilik)
+- PIMPINAN dibuka aksesnya ke:
+  - `app/dashboard/handovers` — terima/tolak stor kas dari unit
+    (middleware tidak lagi memblokir path ini untuk PIMPINAN;
+    API `handovers` + `[id]` sudah mendukung PIMPINAN sejak awal).
+  - `app/dashboard/budget` (BARU) — tetapkan alokasi anggaran per unit
+    + pantau realisasi via API `kpak/allocations` (POST/DELETE/GET
+    sudah mendukung PIMPINAN scoped lembaga).
+- MANAGER mendapat form "Setor Kas ke Pimpinan" di halaman handovers
+  (POST `handovers`, unit milik sendiri) — melengkapi serah terima
+  otomatis KPAK (`reconcile`) untuk unit retail.
+- Halaman operasional lain (`kpak/*`, `savings`, `reconciliation`) tetap
+  diblok untuk PIMPINAN.
 - Alur Belanja Stok sisi Pimpinan (halaman + `purchase-requests`) DIKUNCI di
   `docs/RETAIL-STAFF-FREEZE.md` — jangan duplikasi ke file baru tanpa
   persetujuan kedua doc tersebut.
