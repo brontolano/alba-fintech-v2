@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
-import { findOpenPosSession, autoClosePosSession } from "../pos-session/route";
+import { findOpenPosSession, autoClosePosSession } from "@/lib/pos-session";
 
 // WIB (UTC+7) agar konsisten dgn modul lain.
 const WIB = 7 * 3600 * 1000;

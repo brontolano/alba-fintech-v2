@@ -12,7 +12,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npm run prisma:generate && next build",
+    "build": "npm run prisma:generate && next build --webpack",
     "start": "next start",
     "type-check": "tsc --noEmit",
     "test": "tsx --test lib/storage.test.ts lib/modules/transactions/summary.test.ts lib/modules/approvals/scope.test.ts lib/modules/reports/scope.test.ts lib/modules/kpak/staff-freeze.test.ts lib/modules/kpak/manager-freeze.test.ts lib/modules/retail/retail-freeze.test.ts lib/modules/retail/retail-staff-freeze.test.ts lib/modules/pimpinan/pimpinan-freeze.test.ts lib/modules/superadmin/superadmin-freeze.test.ts lib/modules/savings/savings-freeze.test.ts lib/modules/nfc/nfc-freeze.test.ts",

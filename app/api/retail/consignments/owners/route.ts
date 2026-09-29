@@ -14,7 +14,7 @@ const ownerSchema = z.object({
 });
 
 /** Normalisasi + validasi nomor WA Indonesia (08… / 628…). */
-export function normalizeWhatsapp(raw: unknown): string | null {
+function normalizeWhatsapp(raw: unknown): string | null {
   if (raw == null) return null;
   const digits = String(raw).replace(/\D/g, "");
   const norm = digits.startsWith("62") ? digits : digits.startsWith("0") ? `62${digits.slice(1)}` : digits;

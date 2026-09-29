@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
 import { guardRetail, resolveUnitId } from "@/lib/retail-guard";
-import { findOpenPosSession, summarizePosSession } from "../pos-session/route";
+import { findOpenPosSession, summarizePosSession } from "@/lib/pos-session";
 
 // WIB (UTC+7) — konsisten dengan modul shift retail.
 const WIB = 7 * 3600 * 1000;

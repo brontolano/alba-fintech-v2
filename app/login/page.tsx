@@ -12,7 +12,7 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: { reason?: string };
+  searchParams?: Promise<{ reason?: string }>;
 }) {
   let session = null;
   try {
@@ -25,7 +25,7 @@ export default async function LoginPage({
     redirect("/dashboard");
   }
 
-  const showSessionBanner = searchParams?.reason === "session";
+  const showSessionBanner = (await searchParams)?.reason === "session";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
