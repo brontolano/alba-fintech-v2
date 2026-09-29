@@ -27,7 +27,7 @@ export default function StaffDashboard() {
   const { data: session } = useSession();
   const canUseRetailModules = session?.user?.unitIsRetail === true;
   const { data, loading, error, formatCurrency, refetch } = useDashboardData({
-    range: "7d",
+    range: "today",
   });
 
   if (loading) {

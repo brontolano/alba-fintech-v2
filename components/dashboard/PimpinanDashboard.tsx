@@ -35,7 +35,7 @@ import { UnitVirtualCard } from "@/components/dashboard/UnitVirtualCard";
 
 export default function PimpinanDashboard() {
   const { data, loading, error, formatCurrency, refetch } = useDashboardData({
-    range: "7d",
+    range: "today",
   });
 
   // Hooks harus dipanggil sebelum early return apapun (Rules of Hooks)

@@ -68,7 +68,7 @@ export function RetailStaffLedger({ manage = false }: { manage?: boolean }) {
   const [q, setQ] = useState("");
   const [type, setType] = useState("");
   const [status, setStatus] = useState("");
-  const [period, setPeriod] = useState("30d");
+  const [period, setPeriod] = useState("today");
 
   useEffect(() => {
     const t = setTimeout(() => setQ(search.trim()), 300);
@@ -132,7 +132,7 @@ export function RetailStaffLedger({ manage = false }: { manage?: boolean }) {
     setSearch("");
     setType("");
     setStatus("");
-    setPeriod("30d");
+    setPeriod("today");
     setPage(1);
   };
 

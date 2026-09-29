@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { BarChart3, Loader2, Printer, RefreshCw } from "lucide-react";
 import { printData, escapeHtml } from "@/lib/print";
@@ -15,9 +15,16 @@ const fmt = (n: number) =>
 type StudentRow = { studentId: string; name: string; studentNumber: string; total: number; count: number };
 type UnitRow = { unitId: string; unitName: string; total: number; count: number; students: StudentRow[] };
 
+const todayLocal = () => {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+};
+
 export default function SavingsCrossUnitPage() {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [from, setFrom] = useState(todayLocal);
+  const [to, setTo] = useState(todayLocal);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [data, setData] = useState<UnitRow[]>([]);
@@ -41,6 +48,12 @@ export default function SavingsCrossUnitPage() {
       setLoading(false);
     }
   }, [from, to]);
+
+  // Default harian: langsung muat data hari ini saat halaman dibuka.
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const printReport = () => {
     if (data.length === 0) return;

@@ -28,7 +28,7 @@ export default function ManagerDashboard() {
   const unitId = session?.user?.unitId;
   const canUseRetailModules = session?.user?.unitIsRetail === true;
   const { data, loading, error, formatCurrency, refetch } = useDashboardData({
-    range: "30d",
+    range: "today",
     unitId: unitId ?? undefined,
   });
 

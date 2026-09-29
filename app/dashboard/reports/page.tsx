@@ -103,7 +103,7 @@ export default function ReportsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
   const [filters, setFilters] = useState({
-    period: "6months",
+    period: "daily",
     unitId: "",
   });
 

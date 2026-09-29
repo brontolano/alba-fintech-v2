@@ -90,7 +90,7 @@ export default function TransactionsPage() {
     startDate: "",
     endDate: "",
   });
-  const [datePreset, setDatePreset] = useState("all");
+  const [datePreset, setDatePreset] = useState("today");
   const [showDateMenu, setShowDateMenu] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -193,6 +193,7 @@ export default function TransactionsPage() {
   useEffect(() => {
     fetchUnits();
     fetchCategories();
+    applyDatePreset("today");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

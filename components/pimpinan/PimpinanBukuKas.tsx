@@ -102,7 +102,7 @@ export function PimpinanBukuKas() {
     startDate: "",
     endDate: "",
   });
-  const [datePreset, setDatePreset] = useState<string>("all");
+  const [datePreset, setDatePreset] = useState<string>("today");
   const [showDateMenu, setShowDateMenu] = useState(false);
 
   const formatCurrency = (amount: number) =>
@@ -177,6 +177,7 @@ export function PimpinanBukuKas() {
 
   useEffect(() => {
     fetchCategories();
+    applyDatePreset("today");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

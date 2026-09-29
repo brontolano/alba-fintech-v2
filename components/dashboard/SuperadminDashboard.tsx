@@ -116,7 +116,7 @@ export default function SuperadminDashboard() {
     refetch,
     activeRange,
   } = useDashboardData({
-    range: "7d",
+    range: "today",
   });
 
   if (loading && !data) {
