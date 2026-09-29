@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pelatihan ALBA Finance — Pondok Pesantren Al-Basyariyah</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Open+Sans:wght@400;500;600;700&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ===== Design tokens (Swiss-minimal + Trust palette) ===== */
+  :root{
+    --e950:#052e23; --e900:#07352a; --e800:#0b5c44; --e700:#0e7355; --e600:#109a6d;
+    --e100:#d8f0e3; --e50:#eef7f1;
+    --gold:#b98f1c; --gold-l:#e8cf7a; --gold-s:#faf3dd;
+    --paper:#fbf9f3; --card:#ffffff;
+    --ink:#152420; --body:#2c3d37; --muted:#4c5f57;
+    --line:#e2d8bc; --line-soft:#ece5cf;
+    --shadow-sm:0 1px 2px rgba(21,36,32,.06),0 4px 14px rgba(21,36,32,.07);
+    --shadow-md:0 2px 4px rgba(21,36,32,.08),0 14px 34px rgba(7,53,42,.16);
+    --r:14px;
+    --font-h:'Poppins',system-ui,sans-serif;
+    --font-b:'Open Sans',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:var(--font-b); background:#0a2a21; color:var(--body);
+    display:flex; align-items:center; justify-content:center; min-height:100vh; overflow:hidden}
+  .ic{width:18px;height:18px;flex:0 0 auto;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .ic.lg{width:22px;height:22px}
+  /* ===== stage & progress ===== */
+  #stage{position:relative; width:min(1180px,96vw); aspect-ratio:16/9; max-height:94vh}
+  #progress{position:absolute; top:0; left:26px; right:26px; height:3px; background:rgba(255,255,255,.25);
+    border-radius:99px; z-index:5; overflow:hidden; display:none}
+  .slide.active ~ #progress, #stage.lit #progress{display:block}
+  #progress i{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--gold),var(--gold-l)); border-radius:99px; transition:width .3s ease}
+  .slide{position:absolute; inset:0; display:none; background:var(--paper); border-radius:20px;
+    overflow:hidden; box-shadow:var(--shadow-md); border:1px solid var(--line)}
+  .slide.active{display:flex; flex-direction:column; animation:rise .3s ease}
+  @keyframes rise{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+  /* ===== header band ===== */
+  .band{flex:0 0 auto; position:relative; background:linear-gradient(120deg,var(--e950) 0%,var(--e900) 55%,var(--e800) 100%);
+    display:flex; align-items:center; gap:16px; padding:14px 36px 15px; color:#fff; border-bottom:2px solid var(--gold)}
+  .band::after{content:""; position:absolute; inset:0; opacity:.13; pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23e8cf7a' stroke-width='1.3'%3E%3Crect x='22' y='22' width='28' height='28'/%3E%3Crect x='22' y='22' width='28' height='28' transform='rotate(45 36 36)'/%3E%3Ccircle cx='36' cy='36' r='3.5'/%3E%3C/g%3E%3C/svg%3E")}
+  .kicker{position:relative; z-index:1; font-family:var(--font-h); font-weight:600; font-size:11px; letter-spacing:.14em;
+    color:var(--gold-l); border:1px solid rgba(232,207,122,.55); padding:5px 12px; border-radius:999px; white-space:nowrap}
+  .band h2{position:relative; z-index:1; font-family:var(--font-h); font-size:clamp(17px,2.2vw,26px); font-weight:700; line-height:1.25; letter-spacing:-.01em}
+  .band p{position:relative; z-index:1; font-size:12px; color:#cfddd5; margin-top:2px}
+  .pageno{position:relative; z-index:1; margin-left:auto; font-family:var(--font-h); font-weight:600; font-size:12px;
+    color:var(--gold-l); border-left:1px solid rgba(232,207,122,.4); padding-left:16px; white-space:nowrap}
+  .brand{position:relative; z-index:1; height:46px; width:46px; object-fit:contain; flex:0 0 auto;
+    background:#fff; border-radius:13px; padding:3px; border:1.5px solid var(--gold-l); box-shadow:0 2px 8px rgba(0,0,0,.3)}
+  .cover-logo{position:relative; z-index:1; width:132px; height:132px; object-fit:contain;
+    background:#fff; border-radius:30px; padding:10px; border:2.5px solid var(--gold-l);
+    box-shadow:0 14px 40px rgba(0,0,0,.4)}
+  .body{flex:1; padding:20px 36px 18px; overflow:auto}
+  /* ===== cover ===== */
+  .cover{background:linear-gradient(155deg,#052e23 0%,var(--e900) 50%,var(--e800) 100%); color:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; height:100%; padding:28px 40px; position:relative}
+  .cover::before{content:""; position:absolute; inset:0; opacity:.12;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='88' viewBox='0 0 88 88'%3E%3Cg fill='none' stroke='%23e8cf7a' stroke-width='1.4'%3E%3Crect x='27' y='27' width='34' height='34'/%3E%3Crect x='27' y='27' width='34' height='34' transform='rotate(45 44 44)'/%3E%3Ccircle cx='44' cy='44' r='5'/%3E%3Cpath d='M44 2v12M44 74v12M2 44h12M74 44h12'/%3E%3C/g%3E%3C/svg%3E")}
+  .arch{width:118px; height:138px; border:2px solid var(--gold-l); border-bottom:none; border-radius:70px 70px 6px 6px;
+    display:flex; align-items:center; justify-content:center; background:rgba(232,207,122,.08); position:relative; z-index:1}
+  .arch svg{width:52px; height:52px; stroke:var(--gold-l); fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round}
+  .bismillah{font-family:'Amiri',serif; font-size:30px; color:var(--gold-l); margin:14px 0 4px; position:relative; z-index:1; line-height:1.6}
+  .cover .eyebrow{position:relative; z-index:1; font-family:var(--font-h); font-size:11.5px; font-weight:600; letter-spacing:.28em; color:#9fc3b2; margin-bottom:10px}
+  .cover h1{font-family:var(--font-h); font-size:clamp(30px,4.2vw,50px); font-weight:800; letter-spacing:-.02em; position:relative; z-index:1; line-height:1.08}
+  .cover h1 em{font-style:normal; color:var(--gold-l)}
+  .cover .rule{position:relative; z-index:1; width:120px; height:2px; background:linear-gradient(90deg,transparent,var(--gold-l),transparent); margin:16px 0 12px}
+  .cover .sub{color:#d5e5db; font-size:clamp(12.5px,1.45vw,16px); position:relative; z-index:1; line-height:1.7; max-width:640px}
+  .cover .meta{margin-top:20px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center; position:relative; z-index:1}
+  .meta span{display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.07);
+    border:1px solid rgba(232,207,122,.5); padding:8px 16px; border-radius:999px; font-size:12.5px; font-weight:600}
+  .meta .ic{width:15px; height:15px; stroke:var(--gold-l)}
+  /* ===== grids & cards ===== */
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+  .grid4{display:grid; grid-template-columns:repeat(4,1fr); gap:12px}
+  .grid5{display:grid; grid-template-columns:repeat(5,1fr); gap:10px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:14px 16px; box-shadow:var(--shadow-sm)}
+  .card h3{font-family:var(--font-h); font-size:14.5px; font-weight:600; color:var(--e900); margin-bottom:4px; display:flex; align-items:center; gap:9px}
+  .card h3 .badge-ic{display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; flex:0 0 auto;
+    border-radius:9px; background:var(--e50); color:var(--e800); border:1px solid var(--e100)}
+  .card p, .card li{font-size:12.5px; color:var(--body); line-height:1.6}
+  .card ul, .card ol{padding-left:17px}
+  .role5{text-align:center}
+  .role5 .n{font-family:var(--font-h); font-weight:700; font-size:12px; color:var(--gold); letter-spacing:.06em}
+  .note{display:flex; gap:10px; background:var(--gold-s); border:1px solid var(--gold-l); border-radius:12px;
+    padding:10px 14px; font-size:12px; margin-top:12px; line-height:1.6; color:var(--body)}
+  .note .ic{color:var(--gold); margin-top:1px}
+  .note b{color:var(--e900)}
+  /* ===== feature layout ===== */
+  .feat{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:center; flex:1; min-height:0}
+  .feat .cards{display:flex; flex-direction:column; gap:10px}
+  .fcard{background:var(--card); border:1px solid var(--line); border-left:3px solid var(--gold); border-radius:13px; padding:11px 14px; box-shadow:var(--shadow-sm)}
+  .fcard h3{font-family:var(--font-h); font-size:13.5px; font-weight:600; color:var(--e900); margin-bottom:2px; display:flex; align-items:center; gap:9px}
+  .fcard h3 .badge-ic{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; flex:0 0 auto;
+    border-radius:8px; background:var(--e800); color:#fff}
+  .fcard .guna{font-size:11.5px; color:var(--muted); margin-bottom:5px; line-height:1.5}
+  .fcard ol{padding-left:18px; font-size:12.5px; color:var(--body); line-height:1.6}
+  .fcard b.btn{background:var(--e50); border:1px solid #cfe3d4; border-radius:6px; padding:0 7px; font-size:11.5px; color:var(--e900); white-space:nowrap; font-weight:700}
+  /* ===== screenshots (legacy .shot, kept for fallback) ===== */
+  .shots{display:flex; gap:18px; justify-content:center; align-items:center; min-height:0}
+  .shot{display:flex; flex-direction:column; align-items:center; gap:6px}
+  .shot a{display:block; transition:transform .22s ease; cursor:zoom-in}
+  .shot a:hover{transform:scale(1.03)}
+  .shot a:focus-visible{outline:3px solid var(--gold); outline-offset:3px; border-radius:16px}
+  .shot img{display:block; height:296px; width:auto; background:#f4f6f4}
+  .shot.sm img{height:266px}
+  .hint{text-align:center; font-size:11px; color:var(--muted); margin-top:8px}
+  /* ===== dark rhythm slides ===== */
+  .slide.dark{background:linear-gradient(150deg,#052a20 0%,var(--e900) 55%,#0a4a37 100%); color:#e8f1ec}
+  .slide.dark .band{background:rgba(0,0,0,.18); border-bottom:1px solid rgba(232,207,122,.45)}
+  .slide.dark .band p{color:#b9cec3}
+  .slide.dark .fcard{background:rgba(255,255,255,.055); border:1px solid rgba(232,207,122,.32); box-shadow:none}
+  .slide.dark .fcard h3{color:#fff}
+  .slide.dark .fcard .guna{color:#b9cec3}
+  .slide.dark .fcard ol{color:#e3eee8}
+  .slide.dark .fcard b.btn{background:rgba(232,207,122,.14); border-color:rgba(232,207,122,.5); color:#ffe9a8}
+  .slide.dark .hint{color:#9db8ab}
+  .ghost{position:absolute; right:18px; bottom:26px; font-family:var(--font-h); font-weight:800; font-size:150px;
+    line-height:1; color:rgba(255,255,255,.055); pointer-events:none; z-index:0}
+  .slide.dark .body{position:relative; z-index:1}
+  /* ===== device frames ===== */
+  .device{display:flex; flex-direction:column; align-items:center; background:#0e1b17;
+    border:1px solid rgba(232,207,122,.55); border-radius:28px; padding:10px 10px 6px; box-shadow:var(--shadow-md)}
+  .device .notch{width:64px; height:5px; border-radius:99px; background:#3c4c45; margin:0 auto 8px}
+  .device a{display:block; border-radius:18px; overflow:hidden; transition:transform .22s ease; cursor:zoom-in}
+  .device a:hover{transform:scale(1.03)}
+  .device a:focus-visible{outline:3px solid var(--gold); outline-offset:3px}
+  .device img{display:block; height:400px; width:auto; max-width:100%; background:#f4f6f4}
+  .device.sm img{height:360px}
+  .device .cap{color:var(--gold-l); font-size:11px; font-weight:600; text-align:center; line-height:1.4; padding:7px 6px 4px; max-width:220px}
+  /* ===== big numerals & checklists ===== */
+  .bignum{display:block; font-family:var(--font-h); font-weight:800; font-size:44px; line-height:1; color:var(--gold); margin-bottom:6px}
+  .check ul{list-style:none; padding-left:0}
+  .check li{position:relative; padding-left:26px; margin-bottom:3px}
+  .check li::before{content:""; position:absolute; left:0; top:3px; width:13px; height:13px;
+    border:2px solid var(--e700); border-radius:5px; background:var(--e50)}
+  /* ===== flow ===== */
+  .flow{display:flex; align-items:stretch; margin-top:2px}
+  .flow .f{flex:1; background:var(--card); border:1px solid var(--line); border-left:none; padding:12px 8px; text-align:center; font-size:12px; color:var(--body)}
+  .flow .f:first-child{border-left:1px solid var(--line); border-radius:14px 0 0 14px}
+  .flow .f:last-child{border-radius:0 14px 14px 0; background:var(--e800); color:#fff; border-color:var(--e800)}
+  .flow .f .ic{width:24px; height:24px; margin-bottom:4px}
+  .flow .f:last-child .ic{stroke:var(--gold-l)}
+  .flow .f b{display:block; font-family:var(--font-h); font-size:12.5px; margin:2px 0}
+  .flow .arr{align-self:center; padding:0 5px; color:var(--gold); font-weight:800; font-size:16px}
+  /* ===== controls ===== */
+  #controls{position:fixed; bottom:14px; left:50%; transform:translateX(-50%); display:flex; gap:10px; align-items:center; z-index:50}
+  #controls button{background:#0d2b23; color:#ffe9a8; border:1px solid var(--gold); border-radius:999px;
+    width:44px; height:44px; font-size:18px; cursor:pointer; transition:background .2s ease}
+  #controls button:hover{background:var(--e700)}
+  #controls button:focus-visible{outline:3px solid var(--gold-l); outline-offset:2px}
+  #counter{color:#ffe9a8; font-family:var(--font-h); font-size:12.5px; font-weight:600; background:#0d2b23;
+    border:1px solid var(--gold); padding:11px 16px; border-radius:999px; white-space:nowrap}
+  #dots{position:fixed; right:14px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:7px; z-index:50}
+  #dots button{width:12px; height:12px; border-radius:50%; border:1.5px solid var(--gold-l); background:transparent; cursor:pointer; padding:0; transition:background .2s ease}
+  #dots button.on{background:var(--gold-l)}
+  #dots button:focus-visible{outline:2px solid #fff; outline-offset:2px}
+  .foot{position:absolute; bottom:0; left:0; right:0; height:6px; background:linear-gradient(90deg,var(--gold) 0%,var(--gold-l) 50%,var(--gold) 100%)}
+  :focus-visible{outline:3px solid var(--gold); outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){
+    .slide.active{animation:none}
+    .shot a, #progress i, #controls button{transition:none}
+  }
+  @media print{
+    body{display:block; overflow:visible; background:#fff}
+    #controls,#dots,.hint,#progress{display:none}
+    #stage{width:100%; max-height:none}
+    .slide{position:relative; display:flex !important; page-break-after:always; border-radius:0; aspect-ratio:16/9}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== SVG icon set (consistent 1.8px stroke) ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h5v-5.5h3V20h5v-9.5"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4.5h11a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3z"/><path d="M5 17.5a3 3 0 0 1 3-3h11"/><path d="M9 9h6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/></symbol>
+    <symbol id="i-mega" viewBox="0 0 24 24"><path d="M4 11v3l3 .5V10.5z"/><path d="M7 10.5 18 5v13l-11-3.5"/><path d="M18 8.5a3 3 0 0 1 0 6"/><path d="M9 15.5V19a1.5 1.5 0 0 0 3 0v-2.7"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 4v15.5h16"/><path d="M8.5 15.5v-5M13 15.5V8M17.5 15.5v-8"/></symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M9.5 20.5h5M12 16.5v4"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12V4.5A1 1 0 0 1 4.5 3.5H12L20.5 12a1.4 1.4 0 0 1 0 2L14 20.5a1.4 1.4 0 0 1-2 0z"/><circle cx="8.5" cy="8.5" r="1.4"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4.2 7.5 12 12l7.8-4.5M12 12v8.5"/></symbol>
+    <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4.5h2.4l2.3 11h10.6l2-8H7"/><circle cx="9.6" cy="19.5" r="1.4"/><circle cx="16.6" cy="19.5" r="1.4"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M15.5 5.7a3.2 3.2 0 0 1 0 5.7M17.8 14.4a5.5 5.5 0 0 1 2.7 5.1"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h11A3.5 3.5 0 0 1 20 9.5V18a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18z"/><path d="M4 9h16"/><circle cx="17" cy="14.5" r="1.2"/></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5.5" y="3.5" width="13" height="17" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 15.5h.01M12 15.5h.01M15.5 15.5h.01"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 13.5A8 8 0 1 1 10.5 4 6.6 6.6 0 0 0 20 13.5z"/></symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 12V6a1.5 1.5 0 0 1 3 0v5V4.5a1.5 1.5 0 0 1 3 0V11v-5.5a1.5 1.5 0 0 1 3 0V12"/><path d="M6.5 11.5 5 10a1.6 1.6 0 0 0-2.5 2l4.6 6.2A4.5 4.5 0 0 0 10.7 20H14a4 4 0 0 0 4-4v-4.5a1.5 1.5 0 0 0-3 0"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="m14.5 5.5 4 4L8 20l-5 1 1-5z"/><path d="m12.5 7.5 4 4"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9.5a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19.5a2.2 2.2 0 0 0 4 0"/></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 14.5h4"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><path d="M12 7.8h.01"/></symbol>
+    <symbol id="i-crescent" viewBox="0 0 24 24"><path d="M20 13.2A8.2 8.2 0 1 1 10.8 4 6.8 6.8 0 0 0 20 13.2z"/><path d="M17.5 4.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 17.8h2"/></symbol>
+    <symbol id="i-img" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m5.5 17.5 4.5-4.5 3 3 2.5-2.5 3 3"/></symbol>
+    <symbol id="i-ask" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5A2.5 2.5 0 0 1 12 8c1.4 0 2.5 1 2.5 2.2 0 1.7-2.2 2-2.4 3.3"/><path d="M12 16.5h.01"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3.5h8L19 8.5V20.5H6z"/><path d="M13.5 3.5v5.5H19"/><path d="M9 13h6M9 16.5h6"/></symbol>
+    <symbol id="i-cam" viewBox="0 0 24 24"><rect x="3" y="7" width="13" height="12" rx="2.5"/><path d="m16 10.5 5-3v9l-5-3"/></symbol>
+  </defs>
+</svg>
+
+<div id="stage">
+<div id="progress" aria-hidden="true"><i></i></div>
+
+  <!-- 1 COVER -->
+  <section class="slide active"><div class="cover">
+    <img class="cover-logo" src="logo-baru.png" alt="Logo Pondok Pesantren Al-Basyariyah">
+    <div class="bismillah" lang="ar">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+    <div class="eyebrow">PONDOK PESANTREN AL-BASYARIYAH</div>
+    <h1>ALBA <em>Finance</em></h1>
+    <div class="rule" aria-hidden="true"></div>
+    <p class="sub">Buku kas di HP — pelatihan per tugas: fitur apa saja &amp; cara mengisinya, dengan gambar asli dari aplikasi</p>
+    <div class="meta">
+      <span><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg>Bawa HP masing-masing</span>
+      <span><svg class="ic" aria-hidden="true"><use href="#i-img"/></svg>Gambar = asli aplikasi</span>
+      <span><svg class="ic" aria-hidden="true"><use href="#i-ask"/></svg>Boleh bertanya kapan saja</span>
+    </div>
+  </div><div class="foot"></div></section>
+
+  <!-- 2 PENGENALAN -->
+  <section class="slide">
+    <div class="band"><span class="kicker">PENGENALAN</span><div><h2>ALBA itu buku kas di HP</h2><p>Uang masuk, uang keluar, dan barang — tercatat rapi, bisa dipantau pimpinan</p></div><span class="pageno">02 / 18</span></div>
+    <div class="body">
+      <div class="grid4">
+        <div class="card"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg></span>KPAK</h3><p>Urus santri: data, nabung, dan bayar-bayar. Contoh: santri nabung Rp10.000 langsung tercatat.</p></div>
+        <div class="card"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-cart"/></svg></span>Koperasi Buku</h3><p>Jualan buku &amp; alat tulis pakai kasir HP, stok berkurang sendiri.</p></div>
+        <div class="card"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-box"/></svg></span>Kantin Umi</h3><p>Jualan makanan, gantian jaga tercatat, uang diserahkan rapi.</p></div>
+        <div class="card"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span>Kantin Baru</h3><p>Sama seperti Kantin Umi — beda tim, beda laporan.</p></div>
+      </div>
+      <div class="note"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span><b>Intinya:</b> terima uang → catat. Butuh uang → minta izin dulu. Ganti jaga → serahkan uangnya. Pimpinan bisa lihat semuanya dari HP beliau.</span></div>
+    </div><div class="foot"></div>
+  </section>
+
+  <!-- 3 LIMA TUGAS -->
+  <section class="slide">
+    <div class="band"><span class="kicker">KENALAN</span><div><h2>Kita ada 5 tugas — Anda yang mana?</h2><p>Tiap tugas beda isi HP-nya. Setelah ini tiap tugas dibahas fiturnya satu per satu</p></div><span class="pageno">03 / 18</span></div>
+    <div class="body">
+      <div class="grid5">
+        <div class="card role5"><span class="n">TUGAS 1</span><h3 style="justify-content:center">Pimpinan</h3><p>10 menu<br>Memantau &amp; memberi izin</p></div>
+        <div class="card role5"><span class="n">TUGAS 2</span><h3 style="justify-content:center">Manager KPAK</h3><p>7 menu<br>Atur petugas &amp; tutup buku</p></div>
+        <div class="card role5"><span class="n">TUGAS 3</span><h3 style="justify-content:center">Staff KPAK</h3><p>5 menu<br>Layani santri</p></div>
+        <div class="card role5"><span class="n">TUGAS 4</span><h3 style="justify-content:center">Manager Toko</h3><p>14 menu<br>Atur toko &amp; periksa</p></div>
+        <div class="card role5"><span class="n">TUGAS 5</span><h3 style="justify-content:center">Staff Toko</h3><p>7 menu<br>Kasir &amp; stok</p></div>
+      </div>
+      <div class="note"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span><b>“Toko”</b> = Koperasi Buku, Kantin Umi, Kantin Baru. <b>“KPAK”</b> = kantor yang melayani santri (nabung &amp; bayar-bayar).</span></div>
+    </div><div class="foot"></div>
+  </section>
+
+  <!-- 4 CARA MASUK -->
+  <section class="slide">
+    <div class="band"><span class="kicker">MULAI</span><div><h2>Cara masuk: isi 2 kotak, tekan 1 tombol</h2><p>Semua tugas caranya sama — kita praktik bareng sekarang</p></div><span class="pageno">04 / 18</span></div>
+    <div class="body"><div class="feat"><div class="cards">
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg></span>Layar Masuk — pintu depan aplikasi</h3>
+        <ol><li>Klik link dari panitia → muncul logo &amp; tulisan MASUK.</li><li>Kotak <b class="btn">Email</b> → ketik email Anda. Kotak <b class="btn">Password</b> → ketik kata sandi (bisa intip lewat ikon mata).</li><li>Tekan tombol hijau <b class="btn">Masuk</b>. Lupa sandi? Tekan “Lupa kata sandi?”.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg></span>Profil Saya — pastikan datanya benar</h3>
+        <ol><li>Buka menu <b class="btn">Profil</b> (ikon orang, kanan bawah).</li><li>Kalau nama/tugas keliru → angkat tangan, lapor panitia.</li></ol></div>
+    </div>
+    <div class="shots"><div class="device"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/login.png" target="_blank"><img src="presentasi/img/login.png" alt="Foto asli layar masuk aplikasi ALBA"></a><p class="cap">Layar masuk — persis seperti ini</p></div></div>
+    </div><p class="hint">Klik gambar untuk memperbesar</p></div><div class="foot"></div>
+  </section>
+
+  <!-- 5 PIMPINAN A -->
+  <section class="slide dark">
+    <span class="ghost" aria-hidden="true">05</span>
+    <div class="band"><span class="kicker">TUGAS 1 · PIMPINAN — 1/2</span><div><h2>Pimpinan: pantau uang &amp; beri izin</h2><p>Tiga fitur yang paling sering dipakai</p></div><span class="pageno">05 / 18</span></div>
+    <div class="body"><div class="feat"><div class="cards">
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg></span>Halaman Utama — ringkasan semua unit</h3>
+        <ol><li>Baca kartu <b>“Menunggu Persetujuan”</b> → tekan angkanya untuk melihat daftar.</li><li>Baca kartu <b>Total Saldo</b> &amp; <b>Hari Ini</b> untuk kondisi kas.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg></span>Buku Kas — lihat &amp; bisa mencatat sendiri</h3>
+        <ol><li>Catat cepat: isi <b class="btn">Jumlah (Rp)</b> → <b class="btn">Keterangan</b> (“Beli …”) → <b class="btn">Kategori</b> → <b class="btn">Simpan ke buku</b>.</li><li>Ada struk? Pakai form lengkap → tambah <b class="btn">Foto Nota</b>.</li><li>Menyaring: pilih unit / kategori / tanggal.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span>Minta Uang — beri izin atas permintaan unit</h3>
+        <ol><li>Buka daftar → tekan satu permintaan → baca siapa, untuk apa, berapa.</li><li>Tekan <b class="btn">Setujui</b> — atau <b class="btn">Tolak + tulis alasan</b>. Tercatat atas nama Anda.</li></ol></div>
+    </div>
+    <div class="shots">
+      <div class="device sm"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/pimpinan-utama.png" target="_blank"><img src="presentasi/img/pimpinan-utama.png" alt="Foto asli halaman utama pimpinan"></a><p class="cap">Halaman utama</p></div>
+      <div class="device sm"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/pimpinan-izin.png" target="_blank"><img src="presentasi/img/pimpinan-izin.png" alt="Foto asli daftar permintaan izin"></a><p class="cap">Daftar yang minta izin</p></div>
+    </div>
+    </div><p class="hint">Klik gambar untuk memperbesar</p></div><div class="foot"></div>
+  </section>
+
+  <!-- 6 PIMPINAN B -->
+  <section class="slide">
+    <div class="band"><span class="kicker">TUGAS 1 · PIMPINAN — 2/2</span><div><h2>Pimpinan: kabari, baca laporan, rapikan data</h2><p>Empat fitur pendukung — cara mengisinya</p></div><span class="pageno">06 / 18</span></div>
+    <div class="body"><div class="grid2">
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-mega"/></svg></span>Pengumuman — kabari semua pengguna</h3>
+        <ol><li>Tekan <b class="btn">Buat</b> → isi <b class="btn">Judul*</b> dan <b class="btn">Isi pesan*</b> (wajib).</li><li>Pilih <b class="btn">Jenis</b> (Info/Peringatan) + <b class="btn">Tujuan</b> (semua / unit tertentu).</li><li>Centang <b class="btn">Kirim sekarang</b> = langsung terkirim; tak dicentang = tersimpan draft. Lalu <b class="btn">Kirim</b> / <b class="btn">Simpan Draft</b>.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span>Laporan — bahan sebelum rapat</h3>
+        <ol><li>Buka → pilih <b class="btn">Unit</b> + <b class="btn">Tanggal</b>.</li><li>Baca ringkasan pemasukan–pengeluaran–saldo. Tidak perlu mengisi apa-apa.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-monitor"/></svg></span>Papan Pantau — lihat aktivitas unit</h3>
+        <ol><li>Buka saja tiap pagi — tidak ada yang perlu diisi.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg></span>Kategori + Unit + Pegawai — rapikan data pokok</h3>
+        <ol><li>Tambah kategori: isi <b class="btn">Nama</b> + <b class="btn">Kode</b> → pilih <b class="btn">Pemasukan/Pengeluaran</b> → <b class="btn">Tambah</b>.</li><li>Unit &amp; Pegawai: lihat daftar, tambah/nonaktifkan bila ada perubahan.</li></ol></div>
+    </div></div><div class="foot"></div>
+  </section>
+
+  <!-- 7 MANAGER KPAK A -->
+  <section class="slide dark">
+    <span class="ghost" aria-hidden="true">07</span>
+    <div class="band"><span class="kicker">TUGAS 2 · MANAGER KPAK — 1/2</span><div><h2>Manager KPAK: pagi–siang atur &amp; putuskan</h2><p>Tiga fitur kerja harian</p></div><span class="pageno">07 / 18</span></div>
+    <div class="body"><div class="feat"><div class="cards">
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg></span>Kerja Hari Ini — agenda harian Anda</h3>
+        <ol><li>Buka tiap pagi → baca siapa jaga &amp; apa yang menunggu → kerjakan dari atas.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span>Perlu Dicek — setujui laporan &amp; permintaan staff</h3>
+        <ol><li>Buka → tekan satu item → baca isinya. Angka merah = antrean.</li><li>Tekan <b class="btn">Setujui</b> — atau <b class="btn">Kembalikan + tulis kurangnya</b>. Target: antrean nol tiap sore.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg></span>Petugas &amp; Kinerja — pastikan semua absen</h3>
+        <ol><li>Buka → lihat siapa belum absen masuk → hubungi yang bersangkutan.</li></ol></div>
+    </div>
+    <div class="shots">
+      <div class="device sm"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/manager-kpak-kerja.png" target="_blank"><img src="presentasi/img/manager-kpak-kerja.png" alt="Foto asli halaman kerja hari ini manager KPAK"></a><p class="cap">Kerja hari ini</p></div>
+      <div class="device sm"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/manager-kpak-cek.png" target="_blank"><img src="presentasi/img/manager-kpak-cek.png" alt="Foto asli halaman perlu dicek"></a><p class="cap">Perlu dicek</p></div>
+    </div>
+    </div><p class="hint">Klik gambar untuk memperbesar</p></div><div class="foot"></div>
+  </section>
+
+  <!-- 8 MANAGER KPAK B -->
+  <section class="slide">
+    <div class="band"><span class="kicker">TUGAS 2 · MANAGER KPAK — 2/2</span><div><h2>Manager KPAK: sore tutup buku</h2><p>Tiga fitur penutup hari</p></div><span class="pageno">08 / 18</span></div>
+    <div class="body"><div class="feat"><div class="cards">
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span>Tutup Hari — kunci hari, wajib tiap sore</h3>
+        <ol><li>Hitung <b>uang asli</b> di laci → samakan dengan angka di HP.</li><li>Kalau beda → tulis selisih &amp; sebabnya dengan jujur.</li><li>Tekan kunci/selesaikan hari. Setelah dikunci, hari itu tidak bisa diubah.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-wallet"/></svg></span>Uang Saya — pantau pagu vs pemakaian</h3>
+        <ol><li>Buka → baca sisa pagu sebelum menyetujui belanja baru.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span>Rekap &amp; Data Santri — evaluasi + cari santri</h3>
+        <ol><li>Rekap: pilih tanggal → baca hasilnya.</li><li>Data santri: ketik nama/nomor → <b class="btn">Cari</b>.</li></ol></div>
+    </div>
+    <div class="shots"><div class="device"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/manager-kpak-tutup.png" target="_blank"><img src="presentasi/img/manager-kpak-tutup.png" alt="Foto asli halaman tutup hari"></a><p class="cap">Tutup hari</p></div></div>
+    </div><p class="hint">Klik gambar untuk memperbesar</p></div><div class="foot"></div>
+  </section>
+
+  <!-- 9 STAFF KPAK A -->
+  <section class="slide dark">
+    <span class="ghost" aria-hidden="true">09</span>
+    <div class="band"><span class="kicker">TUGAS 3 · STAFF KPAK — 1/2</span><div><h2>Staff KPAK: absen dulu, siapkan data</h2><p>Tanpa absen, menu layanannya terkunci</p></div><span class="pageno">09 / 18</span></div>
+    <div class="body"><div class="feat"><div class="cards">
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg></span>Absen Saya — pembuka semua menu</h3>
+        <ol><li>Datang → buka → pilih <b class="btn">Tabungan</b> (nabung/ambil) atau <b class="btn">Keuangan</b> (bayar-bayar) → tekan Masuk.</li><li>Pulang → hitung uang → tulis laporan → tekan Pulang.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg></span>Data Santri — cari &amp; daftarkan santri</h3>
+        <ol><li>Ketik nomor/nama → <b class="btn">Cari</b> → pastikan orangnya benar.</li><li>Belum terdaftar? Tekan <b class="btn">Santri Baru</b> → isi datanya → <b class="btn">Simpan Santri</b>.</li><li>Bisa juga <b class="btn">Cetak Kartu Tabungan</b> bila diminta.</li></ol></div>
+    </div>
+    <div class="shots"><div class="device"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/staff-kpak-absen.png" target="_blank"><img src="presentasi/img/staff-kpak-absen.png" alt="Foto asli halaman absen shift KPAK"></a><p class="cap">Absen: pilih Tabungan / Keuangan</p></div></div>
+    </div><p class="hint">Klik gambar untuk memperbesar</p></div><div class="foot"></div>
+  </section>
+
+  <!-- 10 STAFF KPAK B -->
+  <section class="slide">
+    <div class="band"><span class="kicker">TUGAS 3 · STAFF KPAK — 2/2</span><div><h2>Staff KPAK: layani nabung &amp; bayar</h2><p>Dua fitur layanan — ucapkan nominalnya biar jelas</p></div><span class="pageno">10 / 18</span></div>
+    <div class="body"><div class="feat"><div class="cards">
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-wallet"/></svg></span>Tabungan Santri — nabung &amp; ambil</h3>
+        <p class="guna">Aktif saat absen “Tabungan”.</p>
+        <ol><li><b class="btn">Cari</b> santrinya dulu → pastikan nama benar.</li><li>Tekan <b class="btn">Setor</b> (nabung) atau <b class="btn">Pengambilan</b> (ambil).</li><li>Isi <b class="btn">Nominal</b> → <b class="btn">Simpan Setoran</b> / <b class="btn">Simpan Pengambilan</b>.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span>Layanan Bayar — HER, daftar ulang, dsb.</h3>
+        <p class="guna">Aktif saat absen “Keuangan”.</p>
+        <ol><li>Pilih <b class="btn">Layanan</b> (mis. HER) → <b class="btn">Cari</b> santrinya.</li><li>Isi <b class="btn">Nominal (Rp)</b> + <b class="btn">Keterangan</b> (“HER September”).</li><li>Tekan <b class="btn">Catat Pembayaran</b>. Bisa tunai / potong tabungan.</li></ol></div>
+    </div>
+    <div class="shots"><div class="device"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/staff-kpak-layani.png" target="_blank"><img src="presentasi/img/staff-kpak-layani.png" alt="Foto asli halaman layanan tabungan santri"></a><p class="cap">Layanan: nabung, ambil, bayar</p></div></div>
+    </div><p class="hint">Klik gambar untuk memperbesar · Kalau terkunci = belum absen / salah pilih layanan</p></div><div class="foot"></div>
+  </section>
+
+  <!-- 11 MANAGER TOKO A -->
+  <section class="slide dark">
+    <span class="ghost" aria-hidden="true">11</span>
+    <div class="band"><span class="kicker">TUGAS 4 · MANAGER TOKO — 1/2</span><div><h2>Manager Toko: siapkan &amp; periksa</h2><p>Berlaku untuk Koperasi Buku, Kantin Umi, &amp; Kantin Baru</p></div><span class="pageno">11 / 18</span></div>
+    <div class="body"><div class="feat"><div class="cards">
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg></span>Kerja Hari Ini + Absen — mulai hari</h3>
+        <ol><li>Buka → mulai jaga Anda → bantu kasir kalau antre panjang.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-box"/></svg></span>Periksa Barang Masuk — sahkan catatan staff</h3>
+        <ol><li>Buka satu kiriman → cocokkan barang vs nota supplier.</li><li>Cocok → <b class="btn">Sahkan</b>. Kurang cocok → <b class="btn">Kembalikan + tulis kurangnya</b>.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-calc"/></svg></span>Sahkan Hitung Sisa — setujui opname staff</h3>
+        <ol><li>Buka hasil hitungan → periksa yang janggal → sahkan.</li></ol></div>
+    </div>
+    <div class="shots">
+      <div class="device sm"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/manager-toko-utama.png" target="_blank"><img src="presentasi/img/manager-toko-utama.png" alt="Foto asli halaman utama manager toko"></a><p class="cap">Halaman utama toko</p></div>
+      <div class="device sm"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/manager-toko-periksa.png" target="_blank"><img src="presentasi/img/manager-toko-periksa.png" alt="Foto asli halaman periksa barang"></a><p class="cap">Periksa barang</p></div>
+    </div>
+    </div><p class="hint">Klik gambar untuk memperbesar</p></div><div class="foot"></div>
+  </section>
+
+  <!-- 12 MANAGER TOKO B -->
+  <section class="slide">
+    <div class="band"><span class="kicker">TUGAS 4 · MANAGER TOKO — 2/2</span><div><h2>Manager Toko: belanja, titipan, laporan</h2><p>Tiga fitur pengelola toko</p></div><span class="pageno">12 / 18</span></div>
+    <div class="body"><div class="grid3">
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-cart"/></svg></span>Belanja Stok — pesan ke supplier</h3>
+        <ol><li><b class="btn">+ Tambah Baris</b> → isi nama, jumlah, harga.</li><li><b class="btn">Pesan ke Supplier</b> (+ catatan bila perlu).</li><li>Barang datang → <b class="btn">Bayar &amp; Catat Transaksi</b>.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-hand"/></svg></span>Titipan Warga — catat terpisah</h3>
+        <ol><li>Catat barang + nama pemiliknya, PISAH dari stok toko.</li><li>Laku baru dihitung → serah-terimakan uangnya ke pemilik.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span>Buku Kas + Laporan — hasil toko Anda</h3>
+        <ol><li>Buka → pilih tanggal → baca.</li><li>Butuh dana? Ajukan via <b class="btn">Minta Uang</b>.</li></ol></div>
+    </div></div><div class="foot"></div>
+  </section>
+
+  <!-- 13 STAFF TOKO A -->
+  <section class="slide dark">
+    <span class="ghost" aria-hidden="true">13</span>
+    <div class="band"><span class="kicker">TUGAS 5 · STAFF TOKO — 1/2</span><div><h2>Staff Toko: absen, lalu jualan</h2><p>Kasir hanya bisa dibuka setelah absen</p></div><span class="pageno">13 / 18</span></div>
+    <div class="body"><div class="feat"><div class="cards">
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg></span>Absen — buka kasir &amp; catat siapa jaga</h3>
+        <ol><li>Tekan <b class="btn">Check-in Kasir</b> (jualan) atau <b class="btn">Check-in Inventori</b> (urus stok).</li><li>Isi <b class="btn">Modal awal (Rp)</b> → <b class="btn">Open POS</b>. Pulang: tutup via <b class="btn">Shift Kasir</b>.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-cart"/></svg></span>Kasir — ikuti 4 langkah di layar</h3>
+        <ol><li><b>Katalog</b>: ketik nama/scan → pilih barang + jumlah.</li><li><b>Bayar</b>: terima uang, pastikan pas.</li><li><b>Struk</b>: berikan bila diminta. <b>Selesai</b>: otomatis tercatat.</li></ol></div>
+    </div>
+    <div class="shots">
+      <div class="device sm"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/staff-toko-absen.png" target="_blank"><img src="presentasi/img/staff-toko-absen.png" alt="Foto asli halaman absen shift toko"></a><p class="cap">Absen dulu</p></div>
+      <div class="device sm"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/staff-toko-kasir.png" target="_blank"><img src="presentasi/img/staff-toko-kasir.png" alt="Foto asli halaman kasir"></a><p class="cap">Kasir 4 langkah</p></div>
+    </div>
+    </div><p class="hint">Klik gambar untuk memperbesar</p></div><div class="foot"></div>
+  </section>
+
+  <!-- 14 STAFF TOKO B -->
+  <section class="slide">
+    <div class="band"><span class="kicker">TUGAS 5 · STAFF TOKO — 2/2</span><div><h2>Staff Toko: urus barang &amp; setor uang</h2><p>Catatan Anda masih draf sampai disahkan manager</p></div><span class="pageno">14 / 18</span></div>
+    <div class="body"><div class="feat"><div class="cards">
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-box"/></svg></span>Barang Datang — catat dari supplier</h3>
+        <ol><li>Isi nama, jumlah, supplier → simpan. Statusnya <b>draf</b> → manager yang mengesahkan.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-calc"/></svg></span>Hitung Sisa — opname sore hari</h3>
+        <ol><li>Hitung fisik satu per satu → tulis angkanya → simpan untuk dicocokkan.</li></ol></div>
+      <div class="fcard"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-hand"/></svg></span>Titipan + Serah Terima — pisahkan &amp; serahkan</h3>
+        <ol><li>Titipan warga → catat di <b class="btn">Titipan</b>, jangan campur stok toko.</li><li>Pulang → hitung uang → serahkan → pastikan ada <b class="btn">DITERIMA</b>.</li></ol></div>
+    </div>
+    <div class="shots"><div class="device"><div class="notch" aria-hidden="true"></div><a href="presentasi/img/staff-toko-sisa.png" target="_blank"><img src="presentasi/img/staff-toko-sisa.png" alt="Foto asli halaman hitung sisa"></a><p class="cap">Hitung sisa</p></div></div>
+    </div><p class="hint">Klik gambar untuk memperbesar</p></div><div class="foot"></div>
+  </section>
+
+  <!-- 15 ALUR UANG -->
+  <section class="slide">
+    <div class="band"><span class="kicker">ALUR UANG</span><div><h2>Uang jalan begini — contoh beli plastik Rp20.000</h2><p>Ikuti ceritanya dari kiri ke kanan</p></div><span class="pageno">15 / 18</span></div>
+    <div class="body">
+      <div class="flow">
+        <div class="f"><svg class="ic" aria-hidden="true"><use href="#i-pen"/></svg><b>Catat</b>Staff tulis “beli plastik”</div><span class="arr" aria-hidden="true">›</span>
+        <div class="f"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg><b>Minta izin</b>Ajukan ke atasan</div><span class="arr" aria-hidden="true">›</span>
+        <div class="f"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><b>Disetujui</b>Atasan setuju</div><span class="arr" aria-hidden="true">›</span>
+        <div class="f"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><b>Cocokkan</b>Struk vs uang</div><span class="arr" aria-hidden="true">›</span>
+        <div class="f"><svg class="ic" aria-hidden="true"><use href="#i-hand"/></svg><b>Serahkan</b>Ke giliran berikut</div><span class="arr" aria-hidden="true">›</span>
+        <div class="f"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg><b>Laporan</b>Pimpinan melihat</div>
+      </div>
+      <div class="note"><svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg><span><b>Ceritanya:</b> Kang Udin beli plastik Rp20.000 → catat di HP → minta izin di HP → manager setuju → sore struknya dicocokkan → uang diserahkan ke jaga malam → pimpinan lihat di laporan. <b>Setiap rupiah ketahuan jejaknya.</b></span></div>
+    </div><div class="foot"></div>
+  </section>
+
+  <!-- 16 ATURAN -->
+  <section class="slide">
+    <div class="band"><span class="kicker">ATURAN MAIN</span><div><h2>Tiga aturan supaya tidak kacau</h2><p>Hampir semua masalah berasal dari tiga hal ini</p></div><span class="pageno">16 / 18</span></div>
+    <div class="body">
+      <div class="grid3">
+        <div class="card" style="text-align:center"><h3 style="justify-content:center;flex-direction:column;align-items:center"><span class="bignum" aria-hidden="true">1</span>Absen dulu, baru kerja</h3><p>Belum absen = menu belum kebuka. Itu memang disengaja, HP Anda tidak rusak.</p></div>
+        <div class="card" style="text-align:center"><h3 style="justify-content:center;flex-direction:column;align-items:center"><span class="bignum" aria-hidden="true">2</span>Uang asli = catatan HP</h3><p>Kalau beda, tulis kenapanya dengan jujur. Jangan diubah biar pas.</p></div>
+        <div class="card" style="text-align:center"><h3 style="justify-content:center;flex-direction:column;align-items:center"><span class="bignum" aria-hidden="true">3</span>Satu akun satu orang</h3><p>Jangan pinjam akun teman. Semua tercatat atas nama — biar adil.</p></div>
+      </div>
+    </div><div class="foot"></div>
+  </section>
+
+  <!-- 17 LATIHAN -->
+  <section class="slide">
+    <div class="band"><span class="kicker">LATIHAN · 30 MENIT</span><div><h2>Sekarang giliran Anda — latihan per kelompok</h2><p>Tulis “UJI:” di depan setiap catatan latihan. Pakai nominal kecil.</p></div><span class="pageno">17 / 18</span></div>
+    <div class="body">
+      <div class="grid2">
+        <div class="card check"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-monitor"/></svg></span>Pimpinan — “Lihat &amp; izinkan”</h3><ul><li>Buka halaman utama, sebutkan 1 temuan</li><li>Setujui 1, tolak 1 + tulis alasan</li><li>Kirim 1 pengumuman “UJI: …” (coba simpan draft dulu)</li></ul></div>
+        <div class="card check"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span>Manager — “Periksa &amp; bereskan”</h3><ul><li>Habiskan daftar “perlu dicek” sampai nol</li><li>Periksa 1 barang / 1 laporan petugas</li><li>Praktik tutup hari + cocokkan uang</li></ul></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="card check"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-wallet"/></svg></span>Staff KPAK — “Layani 1 santri”</h3><ul><li>Absen masuk → 1 nabung + 1 ambil (“UJI: …”)</li><li>Catat 1 bayar HER → absen pulang + laporan</li></ul></div>
+        <div class="card check"><h3><span class="badge-ic"><svg class="ic" aria-hidden="true"><use href="#i-cart"/></svg></span>Staff Toko — “Jual &amp; catat”</h3><ul><li>1 jualan di kasir (ikuti 4 langkah) + struk</li><li>1 barang datang + 1 hitung sisa</li><li>Serah terima sampai ada “DITERIMA”</li></ul></div>
+      </div>
+    </div><div class="foot"></div>
+  </section>
+
+  <!-- 18 PENUTUP -->
+  <section class="slide"><div class="cover">
+    <img class="cover-logo" src="logo-baru.png" alt="Logo Pondok Pesantren Al-Basyariyah" style="width:104px;height:104px;border-radius:24px">
+    <div class="bismillah" lang="ar">جَزَاكُمُ اللَّهُ خَيْرًا</div>
+    <div class="eyebrow">PELATIHAN SELESAI</div>
+    <h1>Terima kasih, <em>siap jalan!</em></h1>
+    <div class="rule" aria-hidden="true"></div>
+    <p class="sub">Panduan lengkap + gambar ada di buku manual (docs/manual-pengguna).<br>Ada kendala? Sampaikan ke panitia hari ini juga.</p>
+    <div class="meta">
+      <span><svg class="ic" aria-hidden="true"><use href="#i-ask"/></svg>Tanya jawab</span>
+      <span><svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg>Kumpulkan masukan</span>
+      <span><svg class="ic" aria-hidden="true"><use href="#i-cam"/></svg>Foto bersama</span>
+    </div>
+  </div><div class="foot"></div></section>
+
+</div>
+
+<div id="dots" role="tablist" aria-label="Navigasi slide"></div>
+<div id="controls">
+  <button id="prev" aria-label="Slide sebelumnya">&#8592;</button>
+  <span id="counter" aria-live="polite">1 / 18</span>
+  <button id="next" aria-label="Slide berikutnya">&#8594;</button>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var dots = document.getElementById('dots');
+  var counter = document.getElementById('counter');
+  var bar = document.querySelector('#progress i');
+  var i = 0;
+  document.getElementById('stage').classList.add('lit');
+  document.getElementById('progress').style.display = 'block';
+  slides.forEach(function(_, k){
+    var b = document.createElement('button');
+    b.setAttribute('aria-label','Ke halaman '+(k+1));
+    b.setAttribute('role','tab');
+    b.addEventListener('click', function(){ go(k); });
+    dots.appendChild(b);
+  });
+  function go(k){
+    i = (k + slides.length) % slides.length;
+    slides.forEach(function(s, j){ s.classList.toggle('active', j===i); });
+    Array.prototype.forEach.call(dots.children, function(d, j){
+      d.classList.toggle('on', j===i);
+      d.setAttribute('aria-selected', j===i ? 'true' : 'false');
+    });
+    counter.textContent = (i+1) + ' / ' + slides.length;
+    bar.style.width = ((i+1)/slides.length*100) + '%';
+  }
+  document.getElementById('prev').addEventListener('click', function(){ go(i-1); });
+  document.getElementById('next').addEventListener('click', function(){ go(i+1); });
+  document.addEventListener('keydown', function(e){
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){ e.preventDefault(); go(i+1); }
+    if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); go(i-1); }
+    if(e.key==='Home') go(0);
+    if(e.key==='End') go(slides.length-1);
+  });
+  var sx=null;
+  var stage = document.getElementById('stage');
+  stage.addEventListener('touchstart', function(e){ sx=e.touches[0].clientX; }, {passive:true});
+  stage.addEventListener('touchend', function(e){
+    if(sx===null) return;
+    var dx=e.changedTouches[0].clientX - sx;
+    if(Math.abs(dx)>50) go(i + (dx<0?1:-1));
+    sx=null;
+  }, {passive:true});
+  Array.prototype.forEach.call(document.querySelectorAll('.band'), function(b){
+    b.insertAdjacentHTML('afterbegin', '<img class="brand" src="logo-baru.png" alt="Logo Pondok Pesantren Al-Basyariyah">');
+  });
+  go(0);
+})();
+</script>
+</body>
+</html>
