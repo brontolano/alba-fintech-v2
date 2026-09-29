@@ -684,6 +684,13 @@ export function Sidebar({
     role === "MANAGER" && user?.unitIsRetail === true && user?.unitType !== "KPAK";
   const isPimpinan = role === "PIMPINAN";
 
+  // Avatar cadangan: jika file foto tidak bisa dimuat, tampilkan ikon
+  // pengguna (jangan ikon gambar rusak).
+  const [avatarOk, setAvatarOk] = useState(true);
+  useEffect(() => {
+    setAvatarOk(true);
+  }, [user?.image]);
+
   // Badge pantau live khusus Manager (KPAK: review/crew; Retail: batch/count/review).
   const [badges, setBadges] = useState<{
     review: number;
@@ -911,13 +918,14 @@ export function Sidebar({
         {expanded && user && (
           <div className="p-3 border-b border-border">
             <div className="flex items-center gap-3">
-              {user?.image ? (
+              {user?.image && avatarOk ? (
                 <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-islamic-500 to-islamic-600 flex items-center justify-center overflow-hidden border-2 border-white/50 shadow-inner shadow-lg">
                   <Image
                     src={user.image}
                     alt={user.name || "User"}
                     fill
                     className="object-cover rounded-full"
+                    onError={() => setAvatarOk(false)}
                   />
                 </div>
               ) : (

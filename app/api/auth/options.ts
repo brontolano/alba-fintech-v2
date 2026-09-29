@@ -214,7 +214,26 @@ export const authOptions: NextAuthOptions = {
     },
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      // Update eksplisit dari client (mis. "update({ image })" setelah ganti
+      // foto profil): terapkan langsung tanpa menunggu throttle 60 detik.
+      if (trigger === "update") {
+        const s = session as { image?: string | null } | null | undefined;
+        if (s && typeof s.image !== "undefined") {
+          token.image = s.image ?? null;
+          return token;
+        }
+        try {
+          const fresh = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { image: true },
+          });
+          token.image = fresh?.image ?? null;
+        } catch {
+          // DB tidak bisa dijangkau — pertahankan nilai lama
+        }
+        return token;
+      }
       if (user) {
         // Initial sign-in: copy auth user fields into token
         const authUser = user as AuthUser;

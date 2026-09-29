@@ -20,7 +20,8 @@ import {
   BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 interface UserProfile {
@@ -75,6 +76,8 @@ export default function ProfilePage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const { update: updateSession } = useSession();
+  const router = useRouter();
 
   const fetchData = async () => {
     setLoading(true);
@@ -147,6 +150,14 @@ export default function ProfilePage() {
         profile: result.data,
       }));
       toast.success("Foto profil berhasil diperbarui");
+      // Segarkan sesi agar foto di header & sidebar ikut berubah langsung
+      // (tanpa ini mereka tetap memakai URL foto lama yang sudah dihapus).
+      try {
+        await updateSession({ image: result.data.image ?? null });
+      } catch {
+        // abaikan — router.refresh di bawah sebagai cadangan
+      }
+      router.refresh();
       URL.revokeObjectURL(previewImage || "");
       setPreviewImage(null);
       setSelectedImage(null);
