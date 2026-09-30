@@ -100,3 +100,8 @@ Perilaku:
   (teks UID atau URL `.../dashboard/nfc?uid=UID`) via aplikasi tersebut sekali
   per kartu; halaman `/dashboard/nfc` membaca query `uid` dan langsung
   lookup santri saat dibuka (deep-link tempel kartu).
+
+## Halaman pendaftaran kartu (`/dashboard/nfc/daftar`)
+- Baca dump `nfc.txt` (atau UID saja) menjadi tabel Blok | Isi | Arti,
+  cocokkan UID ke santri via lookup, atau buat santri + pasang kartu + buka
+  rekening dalam satu klik (POST `/api/savings/students`).

@@ -404,7 +404,13 @@ export default function NfcModulePage() {
           Kartu ASC MIFARE mentah tidak bisa ditempel langsung via Web NFC (butuh
           rekaman NDEF). Tempel isi file dump kartu (<code>nfc.txt</code> dari software
           writer) untuk mengurai UID, nama, dan ID santri — lalu pakai UID-nya untuk
-          mencari/mendaftarkan santri.
+          mencari/mendaftarkan santri.{" "}
+          <Link
+            href="/dashboard/nfc/daftar"
+            className="font-medium text-primary underline"
+          >
+            Atau buka halaman khusus pendaftaran kartu →
+          </Link>
         </p>
         <textarea
           value={dump}

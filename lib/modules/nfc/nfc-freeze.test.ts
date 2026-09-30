@@ -165,6 +165,16 @@ test("[NFC] deep-link uid dari rekaman URL langsung cari santri", () => {
   assert.ok(page.includes("lookupStudent(quid)"), "auto lookup uid hilang");
 });
 
+test("[NFC] halaman daftar kartu: tabel arti + buat santri dari kartu", () => {
+  assert.doesNotThrow(() => read("app/dashboard/nfc/daftar/page.tsx"), "halaman daftar hilang");
+  const page = read("app/dashboard/nfc/daftar/page.tsx");
+  assert.ok(page.includes("parseAscDump"), "urai dump hilang");
+  assert.ok(page.includes("Blok"), "kolom Blok hilang");
+  assert.ok(page.includes("Arti"), "kolom Arti hilang");
+  assert.ok(page.includes("/api/savings/students"), "buat santri hilang");
+  assert.ok(page.includes("Buat Santri + Pasang Kartu"), "tombol buat hilang");
+});
+
 test("[NFC] form santri baru bisa prefill dari data kartu", () => {
   const page = read("app/dashboard/kpak/students/new/page.tsx");
   assert.ok(page.includes("window.location.search"), "prefill query hilang");
