@@ -144,7 +144,7 @@ export default function NewStudentPage() {
             value={form.cardUid}
             onChange={(v) => setForm({ ...form, cardUid: v })}
             placeholder="Contoh: AB:CD:EF:12"
-            showHint={false}
+            autoFocus
           />
         </div>
         <button

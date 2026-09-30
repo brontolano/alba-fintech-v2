@@ -34,6 +34,14 @@ test("[NFC] lib/nfc.ts menyediakan normalizeUid (UPPERCASE + strip separator)", 
 });
 
 // Komponen reusable mendukung tempel kartu + input manual
+test("[NFC] NfcUidInput tempel-dari-clipboard otomatis terisi", () => {
+  const source = read("components/nfc/NfcUidInput.tsx");
+  assert.ok(source.includes("onPaste"), "handler paste hilang");
+  assert.ok(source.includes("clipboardData"), "baca clipboard hilang");
+  assert.ok(source.includes("NFC Tools"), "panduan salin UID hilang");
+});
+
+// Komponen reusable mendukung tempel kartu + input manual
 test("[NFC] NfcUidInput mendukung Tempel Kartu + input manual", () => {
   const source = read("components/nfc/NfcUidInput.tsx");
   assert.ok(source.includes('"use client"'), "client component wajib");

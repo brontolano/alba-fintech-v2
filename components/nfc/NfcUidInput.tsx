@@ -39,8 +39,19 @@ export default function NfcUidInput({
   const [scanning, setScanning] = useState(false);
   const webNfc = isWebNfcSupported();
 
-  const handleScan = async () => {
-    if (scanning) return;
+  // Tempel (paste) dari clipboard — mis. UID disalin dari aplikasi NFC Tools:
+  // langsung dinormalisasi (UPPERCASE, separator dibuang) lalu diisi otomatis.
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData?.getData("text") ?? "";
+    const normalized = normalizeUid(text);
+    if (!normalized) return;
+    e.preventDefault();
+    onChange(normalized);
+    toast.success(`UID terisi · ${normalized}`);
+    inputRef.current?.focus();
+  };
+
+  const handleScan = async () => {    if (scanning) return;
     setScanning(true);
     try {
       const uid = await scanNfcUid();
@@ -71,6 +82,7 @@ export default function NfcUidInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
+          onPaste={handlePaste}
           placeholder={placeholder}
           spellCheck={false}
           autoComplete="off"
@@ -98,7 +110,8 @@ export default function NfcUidInput({
           {webNfc
             ? "Tempelkan kartu ke belakang ponsel setelah menekan “Tempel”. "
             : "Tempelkan kartu ke reader USB/Bluetooth — UID terisi otomatis lalu Enter. "}
-          <span className="hidden sm:inline">Bisa juga diketik manual.</span>
+          Salin UID di aplikasi NFC Tools lalu tekan lama kolom ini → Tempel (paste).
+          <span className="hidden sm:inline"> Bisa juga diketik manual.</span>
         </p>
       ) : null}
     </div>
