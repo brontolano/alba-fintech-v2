@@ -1,0 +1,35 @@
+name: NFC Scanner APK
+
+# Build APK debug aplikasi pendamping (companion/alba-nfc-scanner)
+# hanya saat ada perubahan di folder companion. Unduh APK dari
+# halaman Actions → artifact "alba-nfc-scanner-debug".
+on:
+  push:
+    branches: [main]
+    paths:
+      - "companion/**"
+      - ".github/workflows/nfc-scanner-apk.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: companion/alba-nfc-scanner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.9"
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: alba-nfc-scanner-debug
+          path: companion/alba-nfc-scanner/app/build/outputs/apk/debug/app-debug.apk

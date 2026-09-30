@@ -187,6 +187,22 @@ test("[NFC] deep-link uid dari rekaman URL langsung cari santri", () => {
   assert.ok(page.includes("lookupStudent(quid)"), "auto lookup uid hilang");
 });
 
+test("[NFC] aplikasi pendamping scanner ada + buka deep-link uid", () => {
+  assert.doesNotThrow(
+    () => read("companion/alba-nfc-scanner/app/src/main/java/com/albafinance/nfcscanner/MainActivity.kt"),
+    "MainActivity pendamping hilang",
+  );
+  const kt = read(
+    "companion/alba-nfc-scanner/app/src/main/java/com/albafinance/nfcscanner/MainActivity.kt",
+  );
+  assert.ok(kt.includes("MifareClassic"), "baca MIFARE mentah hilang");
+  assert.ok(kt.includes("/dashboard/nfc?uid="), "deep-link uid hilang");
+  assert.ok(
+    read("companion/alba-nfc-scanner/app/src/main/res/xml/nfc_tech_filter.xml").includes("MifareClassic"),
+    "filter tech hilang",
+  );
+});
+
 test("[NFC] halaman daftar kartu: tabel arti + buat santri dari kartu", () => {
   assert.doesNotThrow(() => read("app/dashboard/nfc/daftar/page.tsx"), "halaman daftar hilang");
   const page = read("app/dashboard/nfc/daftar/page.tsx");

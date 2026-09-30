@@ -118,3 +118,9 @@ Perilaku:
   baris urut blok, baris `+Sector: N`/`#` diabaikan (sesuai cara MCT membaca file).
 - Tips: aktifkan salin-UID-otomatis di pengaturan MCT, UID tiap kartu yang
   ditempel siap di-paste ke kolom aplikasi (handler `onPaste` + `normalizeUid`).
+
+## Aplikasi pendamping HP kasir (`companion/alba-nfc-scanner`)
+- Mini app Android: tempel kartu mentah (foreground dispatch
+  `MifareClassic`+`NfcA`, tanpa kunci) lalu buka browser ke deep-link
+  `.../dashboard/nfc?uid=UID`. Tanpa ubah kartu, tanpa reader USB.
+- APK dibuat otomatis oleh workflow `NFC Scanner APK` (Actions artifact).
