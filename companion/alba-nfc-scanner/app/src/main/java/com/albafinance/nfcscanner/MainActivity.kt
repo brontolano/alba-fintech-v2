@@ -123,12 +123,16 @@ class MainActivity : Activity() {
         handleIntent(intent)
     }
 
+    @Suppress("DEPRECATION")
+    private fun getTagLegacy(intent: Intent): Tag? =
+        intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
+
     private fun handleIntent(intent: Intent?) {
+        if (intent == null) return
         val tag: Tag? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent?.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
+            intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
         } else {
-            @Suppress("DEPRECATION")
-            intent?.getParcelableExtra(NfcAdapter.EXTRA_TAG)
+            getTagLegacy(intent)
         }
         if (tag == null) return
         val uid = tag.id.joinToString("") { "%02X".format(it) }
