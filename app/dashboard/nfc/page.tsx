@@ -559,6 +559,14 @@ export default function NfcModulePage() {
           gagal format (kartu terkunci), kartu itu tetap bisa dipakai via reader USB
           atau ketik UID manual.
         </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Tips MIFARE Classic Tool: aktifkan salin UID otomatis di pengaturannya,
+          lalu UID tiap kartu yang ditempel langsung bisa ditempel (paste) di kolom
+          aplikasi ini. MCT juga bisa Share file dump (.mct) — tempelkan isinya di
+          halaman pendaftaran kartu. Sebagian HP lama (umumnya Samsung/LG/Motorola
+          lama ber-chip Broadcom) tidak mendukung MIFARE Classic — HP seperti itu
+          wajib pakai reader USB.
+        </p>
       </div>
     </div>
   );

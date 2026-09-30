@@ -105,3 +105,16 @@ Perilaku:
 - Baca dump `nfc.txt` (atau UID saja) menjadi tabel Blok | Isi | Arti,
   cocokkan UID ke santri via lookup, atau buat santri + pasang kartu + buka
   rekening dalam satu klik (POST `/api/savings/students`).
+
+## Pelajaran dari MIFARE Classic Tool (open source, GPLv3)
+- Cara kerja MCT: baca via API Android `MifareClassic` + kunci kamus
+  (`std.keys` berisi FFFFFFFF bawaan pabrik, A0A1A2A3A4A5 MAD, D3F7D3F7D3F7
+  NDEF). Kartu ASC berkunci default sehingga langsung terbaca.
+- Cek kompatibilitas HP ala MCT: chip NXP (`/dev/pn544`) = bisa; Broadcom
+  (`/dev/bcm2079x-i2c`, `libnfc*brcm*`) = tidak bisa MIFARE Classic.
+  Daftar HP tak-kompatibel (umumnya lama): github ikarus23/mifareclassictool
+  `INCOMPATIBLE_DEVICES.md`. HP yang ditolak MCT wajib pakai reader USB.
+- `parseAscDump()` juga menerima format dump MCT (.mct/Share): 32 heksa per
+  baris urut blok, baris `+Sector: N`/`#` diabaikan (sesuai cara MCT membaca file).
+- Tips: aktifkan salin-UID-otomatis di pengaturan MCT, UID tiap kartu yang
+  ditempel siap di-paste ke kolom aplikasi (handler `onPaste` + `normalizeUid`).

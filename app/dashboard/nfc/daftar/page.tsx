@@ -237,7 +237,7 @@ export default function NfcDaftarPage() {
               value={dump}
               onChange={(e) => setDump(e.target.value)}
               rows={5}
-              placeholder="[ AF:C2:99:E7: ... ] Alamat 00 : ..."
+              placeholder="Tempel nfc.txt (Alamat XX) atau Share dump .mct dari MIFARE Classic Tool"
               className="w-full rounded-xl border border-border bg-background p-3 font-mono text-xs text-foreground outline-none focus:border-primary"
             />
             <button

@@ -119,21 +119,46 @@ function detectCardKind(block0Hex: string): string {
 }
 
 /**
- * Urai teks dump kartu ASC. Mengembalikan null bila tidak ada blok valid.
+ * Urai teks dump kartu ASC. Dua format didukung:
+ *  1. Dump software writer: “[ .. ] Alamat XX” per baris.
+ *  2. Dump MIFARE Classic Tool (.mct / Share): 32 digit heksa per baris
+ *     urut blok 0..63; baris “+Sector: N”, komentar “#”, dan baris kosong
+ *     diabaikan (sesuai cara MCT membaca file-nya).
+ * Mengembalikan null bila tidak ada blok valid.
  * Trailer sektor (blok 3,7,11,... — kunci akses) otomatis dilewati.
  */
 export function parseAscDump(text: string): AscCardData | null {
   const blocks: AscDataBlock[] = [];
-  const lineRe = /\[\s*([0-9A-Fa-f:\s]+?)\s*\]\s*Alamat\s*([0-9A-Fa-f]+)/g;
-  let m: RegExpExecArray | null;
-  while ((m = lineRe.exec(text ?? "")) !== null) {
-    const hex = m[1].replace(/[\s:]/g, "").toUpperCase();
-    const block = parseInt(m[2], 16);
-    if (!/^[0-9A-F]+$/.test(hex) || hex.length !== 32) continue;
-    if (Number.isNaN(block) || block < 0 || block > 63) continue;
-    if (block % 4 === 3) continue; // trailer: KEYA/ACCESS/KEYB
-    const ascii = hexToAscii(hex);
-    blocks.push({ block, hex, ascii, decoded: tryBase64Decode(ascii) });
+  const pushBlock = (block: number, hex: string) => {
+    const clean = hex.replace(/[\s:]/g, "").toUpperCase();
+    if (!/^[0-9A-F]+$/.test(clean) || clean.length !== 32) return;
+    if (Number.isNaN(block) || block < 0 || block > 63) return;
+    if (block % 4 === 3) return; // trailer: KEYA/ACCESS/KEYB
+    const ascii = hexToAscii(clean);
+    blocks.push({ block, hex: clean, ascii, decoded: tryBase64Decode(ascii) });
+  };
+
+  const src = text ?? "";
+  if (/Alamat/i.test(src)) {
+    const lineRe = /\[\s*([0-9A-Fa-f:\s]+?)\s*\]\s*Alamat\s*([0-9A-Fa-f]+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = lineRe.exec(src)) !== null) {
+      pushBlock(parseInt(m[2], 16), m[1]);
+    }
+  } else {
+    // Format MCT: tiap baris = 1 blok, urutan = nomor blok.
+    let block = 0;
+    for (const rawLine of src.split(/\r?\n/)) {
+      let line = rawLine.trim();
+      if (!line || line.startsWith("#")) continue;
+      if (/^\+?sector\s*:?\s*\d+/i.test(line)) continue;
+      line = line.split("#")[0].trim();
+      if (/^[0-9A-Fa-f]{32}$/.test(line)) {
+        pushBlock(block, line);
+        block += 1;
+        if (block > 63) break;
+      }
+    }
   }
   if (blocks.length === 0) return null;
   blocks.sort((a, b) => a.block - b.block);

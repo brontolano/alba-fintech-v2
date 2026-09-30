@@ -139,6 +139,28 @@ test("[NFC] parseAscDump menolak teks sampah", () => {
   assert.equal(parseAscDump("halo dunia"), null);
 });
 
+test("[NFC] parseAscDump membaca format dump MIFARE Classic Tool (.mct)", () => {
+  const mct = [
+    "# MCT dump contoh",
+    "+Sector: 0",
+    "AFC299E7130804006263646566676869",
+    "00000000000000000000000000000000",
+    "00000000000000000000000000000000",
+    "00000000FF078069FFFFFFFFFFFF0000",
+    "32303236303732343137333332380000",
+    "4D513D3D000000000000000000000000",
+  ].join("\n");
+  const card = parseAscDump(mct);
+  assert.ok(card, "dump MCT gagal diurai");
+  assert.equal(card.uid, "AFC299E7");
+  assert.equal(card.cardKind, "MIFARE Classic 1K");
+  assert.equal(card.timestamp, "20260724173328");
+  assert.ok(
+    card.blocks.every((b) => b.block % 4 !== 3),
+    "blok trailer ikut terurai",
+  );
+});
+
 test("[NFC] aktivasi sekali tulis NDEF tersedia (writeNfcText)", () => {
   const source = read("lib/nfc.ts");
   assert.ok(source.includes("writeNfcText"), "writeNfcText hilang");
