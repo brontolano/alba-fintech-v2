@@ -28,8 +28,10 @@ jobs:
           gradle-version: "8.9"
       - name: Install Android platform SDK
         run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          if [ -z "$ANDROID_HOME" ]; then export ANDROID_HOME=/usr/local/lib/android/sdk; fi
+          SDKMGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMGR" --licenses > /dev/null 2>&1 || true
+          "$SDKMGR" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon
       - name: Upload APK
