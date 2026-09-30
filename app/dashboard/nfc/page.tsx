@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Nfc,
@@ -75,8 +75,8 @@ export default function NfcModulePage() {
     }
   };
 
-  const lookupStudent = async () => {
-    const key = uid || normalizeUid(manual);
+  const lookupStudent = async (keyOverride?: string) => {
+    const key = keyOverride ?? uid ?? normalizeUid(manual);
     if (!key) {
       toast.error("UID kosong — tempel kartu atau ketik UID dulu");
       return;
@@ -106,6 +106,25 @@ export default function NfcModulePage() {
   };
 
   const isCardForStudent = uid && student && student.cardUid === uid;
+
+  // Deep-link dari kartu NFC Tools (rekaman URL):
+  // https://alba.brontolano.com/dashboard/nfc?uid=AFC299E7
+  // Tempel kartu ber-URL di HP mana pun → browser terbuka → santri langsung dicari.
+  useEffect(() => {
+    try {
+      const quid = normalizeUid(
+        new URLSearchParams(window.location.search).get("uid") ?? "",
+      );
+      if (quid) {
+        setUid(quid);
+        setManual(quid);
+        lookupStudent(quid);
+      }
+    } catch {
+      // abaikan — halaman tetap bisa dipakai manual
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleParseDump = () => {
     setDumpError(null);
@@ -247,7 +266,7 @@ export default function NfcModulePage() {
 
           <button
             type="button"
-            onClick={lookupStudent}
+            onClick={() => lookupStudent()}
             disabled={searching || !uid}
             className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -512,10 +531,15 @@ export default function NfcModulePage() {
             pabrik sehingga format langsung berhasil.
           </li>
           <li>
-            <span className="font-medium text-foreground">Isi UID:</span> masih di NFC
-            Tools → <span className="font-medium text-foreground">Write → Add a record → Text</span> →
+            <span className="font-medium text-foreground">Isi UID (pilih satu):</span>{" "}
+            (a) di aplikasi ini via tombol hijau “Tulis UID ke Kartu”; atau (b) di
+            NFC Tools → <span className="font-medium text-foreground">Write → Add a record → Text</span> →
             ketik UID kartu (mis. <code>AFC299E7</code> — salin dari hasil “Urai Data
-            Kartu” di atas) → Write → tempel kartu yang sama.
+            Kartu” di atas) → Write → tempel kartu yang sama; atau (c)
+            <span className="font-medium text-foreground"> rekaman URL</span> di NFC
+            Tools berisi <code>https://alba.brontolano.com/dashboard/nfc?uid=UID_KARTU</code> —
+            kartu yang ditempel di HP mana pun langsung membuka aplikasi + mencari
+            santrinya otomatis.
           </li>
           <li>
             <span className="font-medium text-foreground">Uji di aplikasi ini:</span>{" "}

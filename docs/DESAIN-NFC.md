@@ -93,3 +93,10 @@ Perilaku:
   ("Aktifkan Sekali per Kartu"): format via NFC Tools (Write, Format as NDEF;
   kunci masih default pabrik) lalu tulis rekaman Text berisi UID — bisa via
   NFC Tools atau tombol hijau "Tulis UID ke Kartu" (`writeNfcText()`).
+
+## Integrasi aplikasi pembaca native (mis. NFC Tools)
+- Aplikasi native membaca blok mentah via API Android `MifareClassic` — web
+  tidak bisa meniru ini. Pola integrasi yang didukung: tulis rekaman NDEF
+  (teks UID atau URL `.../dashboard/nfc?uid=UID`) via aplikasi tersebut sekali
+  per kartu; halaman `/dashboard/nfc` membaca query `uid` dan langsung
+  lookup santri saat dibuka (deep-link tempel kartu).

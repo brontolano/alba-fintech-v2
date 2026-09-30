@@ -151,6 +151,12 @@ test("[NFC] halaman modul punya panel aktivasi kartu ASC", () => {
   assert.ok(page.includes("Daftarkan dengan data kartu ini"), "link daftar dari kartu hilang");
 });
 
+test("[NFC] deep-link uid dari rekaman URL langsung cari santri", () => {
+  const page = read("app/dashboard/nfc/page.tsx");
+  assert.ok(page.includes("window.location.search"), "baca query uid hilang");
+  assert.ok(page.includes("lookupStudent(quid)"), "auto lookup uid hilang");
+});
+
 test("[NFC] form santri baru bisa prefill dari data kartu", () => {
   const page = read("app/dashboard/kpak/students/new/page.tsx");
   assert.ok(page.includes("window.location.search"), "prefill query hilang");
