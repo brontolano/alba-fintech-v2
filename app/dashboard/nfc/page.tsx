@@ -15,7 +15,8 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { isWebNfcSupported, normalizeUid, scanNfcUid } from "@/lib/nfc";
+import { isWebNfcSupported, normalizeUid, parseAscDump, scanNfcUid } from "@/lib/nfc";
+import type { AscCardData } from "@/lib/nfc";
 import NfcUidInput from "@/components/nfc/NfcUidInput";
 import { usePageGuard } from "@/lib/use-page-guard";
 
@@ -39,6 +40,10 @@ export default function NfcModulePage() {
   const [searching, setSearching] = useState(false);
   const [student, setStudent] = useState<StudentResult | null>(null);
   const [notFound, setNotFound] = useState<string | null>(null);
+  // Cek data kartu ASC (dump MIFARE dari software writer)
+  const [dump, setDump] = useState("");
+  const [card, setCard] = useState<AscCardData | null>(null);
+  const [dumpError, setDumpError] = useState<string | null>(null);
 
   const handleScan = async () => {
     if (scanning) return;
@@ -100,6 +105,31 @@ export default function NfcModulePage() {
   };
 
   const isCardForStudent = uid && student && student.cardUid === uid;
+
+  const handleParseDump = () => {
+    setDumpError(null);
+    setCard(null);
+    if (!dump.trim()) {
+      setDumpError("Tempel dulu isi file dump kartu (nfc.txt).");
+      return;
+    }
+    const parsed = parseAscDump(dump);
+    if (!parsed || !parsed.uid) {
+      setDumpError("Dump tidak dikenali — pastikan format “[ .. ] Alamat XX”.");
+      return;
+    }
+    setCard(parsed);
+    toast.success(`Kartu ${parsed.cardKind} · UID ${parsed.uid}`);
+  };
+
+  const handleUseCardUid = () => {
+    if (!card?.uid) return;
+    setUid(card.uid);
+    setManual(card.uid);
+    setStudent(null);
+    setNotFound(null);
+    toast.success(`UID ${card.uid} dimasukkan ke kolom pencarian`);
+  };
 
   return (
     <div className="space-y-6">
@@ -304,6 +334,14 @@ export default function NfcModulePage() {
               <li className="flex items-start gap-3">
                 <User size={18} className="mt-0.5 shrink-0 text-primary" />
                 <span>
+                  <span className="font-medium text-foreground">Kartu ASC MIFARE mentah.</span>{" "}
+                  Tidak bisa ditempel via Web NFC (tanpa NDEF). Pakai reader USB,
+                  ketik UID manual, atau urai file dump di panel “Cek Data Kartu ASC”.
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <User size={18} className="mt-0.5 shrink-0 text-primary" />
+                <span>
                   <span className="font-medium text-foreground">Input Manual.</span>{" "}
                   Ketik UID (contoh AB:CD:EF:12). Pemakaian di kolom ketik pada POS,
                   Tabungan, dan Data Santri otomatis dinormalkan.
@@ -316,6 +354,95 @@ export default function NfcModulePage() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Cek Data Kartu ASC (MIFARE Classic, dump dari software writer) */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        <div className="text-lg font-semibold">Cek Data Kartu ASC</div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Kartu ASC MIFARE mentah tidak bisa ditempel langsung via Web NFC (butuh
+          rekaman NDEF). Tempel isi file dump kartu (<code>nfc.txt</code> dari software
+          writer) untuk mengurai UID, nama, dan ID santri — lalu pakai UID-nya untuk
+          mencari/mendaftarkan santri.
+        </p>
+        <textarea
+          value={dump}
+          onChange={(e) => setDump(e.target.value)}
+          rows={5}
+          placeholder="[ AF:C2:99:E7: ... ] Alamat 00 : ..."
+          className="mt-4 w-full rounded-xl border border-border bg-background p-3 font-mono text-xs text-foreground outline-none focus:border-primary"
+        />
+        {dumpError ? (
+          <p className="mt-2 text-sm text-rose-600">{dumpError}</p>
+        ) : null}
+        <button
+          type="button"
+          onClick={handleParseDump}
+          className="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+        >
+          <ScanLine size={16} />
+          Urai Data Kartu
+        </button>
+
+        {card ? (
+          <div className="mt-4 rounded-xl border border-border bg-background p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                  UID kartu · {card.cardKind}
+                </p>
+                <code className="font-mono text-xl font-bold text-foreground">
+                  {card.uid}
+                </code>
+              </div>
+              <button
+                type="button"
+                onClick={handleUseCardUid}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-2 text-sm font-medium text-primary transition hover:bg-primary/15"
+              >
+                Pakai UID ini <ArrowRight size={14} />
+              </button>
+            </div>
+            <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+              <p>
+                <span className="text-muted-foreground">Nama di kartu: </span>
+                <span className="font-medium text-foreground">{card.name ?? "—"}</span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">ID di kartu: </span>
+                <span className="font-medium text-foreground">{card.studentId ?? "—"}</span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">Nominal di kartu: </span>
+                <span className="font-medium text-foreground">
+                  {card.amounts.length > 0 ? card.amounts.join(" · ") : "—"}
+                </span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">Tanggal di kartu: </span>
+                <span className="font-medium text-foreground">
+                  {[
+                    ...(card.timestamp ? [`tulis ${card.timestamp}`] : []),
+                    ...card.dates,
+                  ].join(" · ") || "—"}
+                </span>
+              </p>
+            </div>
+            <p className="mt-3 text-xs text-amber-600">
+              UID kartu ({card.uid}) berbeda dengan ID santri di blok data
+              {card.studentId ? ` (${card.studentId})` : ""} — daftarkan
+              <span className="font-semibold"> UID</span>-nya di Data Santri, bukan ID-nya.
+            </p>
+            {notFound ? (
+              <Link
+                href="/dashboard/kpak/students/new"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-muted px-3 py-2 text-sm font-medium transition hover:bg-muted/80"
+              >
+                Daftarkan Santri Baru <ArrowRight size={14} />
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );

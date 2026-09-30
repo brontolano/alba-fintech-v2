@@ -68,3 +68,15 @@ Perilaku:
 ## Posisi NFC tambahan (di luar freeze)
 - KPAK: pencarian keuangan di halaman rekap belum memakai kartu â€” dapat ditambahkan
   `NfcUidInput` bila dibutuhkan (di luar lingkup freeze).
+## Kartu ASC (Al-Basyariyah Smart Card, MIFARE Classic 1K)
+- Kartu ASC ditulis software writer kartu (BUKAN NDEF): blok data 16 byte berisi
+  teks ASCII langsung (nama, tanggal) atau base64 dari angka (ID, nominal, PIN).
+- Web NFC di HP TIDAK bisa membaca blok mentah ini. Alur didukung: baca UID via
+  reader USB keyboard-wedge / ketik manual, lalu lookup server (`cardUid`).
+- UID kartu (blok 0, mis. `AFC299E7`) BERBEDA dengan ID santri di blok data
+  (mis. `14526047`) — daftarkan UID-nya di Data Santri.
+- `parseAscDump()` (`lib/nfc.ts`) mengurai teks dump `nfc.txt` (`[ .. ] Alamat XX`);
+  panel "Cek Data Kartu ASC" di `/dashboard/nfc` memakai parser ini + tombol
+  "Pakai UID ini" untuk isi kolom pencarian otomatis.
+- Contoh kartu uji: UID `AFC299E7`, nama `MUHAMMAD SHAFA M`, ID `14526047`,
+  nominal `920000`/`3295000`/`2375000`, tanggal `2026-09-29`, PIN `123456`.

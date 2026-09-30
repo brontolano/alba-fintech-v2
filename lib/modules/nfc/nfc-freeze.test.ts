@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join, normalize } from "node:path";
+import { normalizeUid, parseAscDump } from "../../nfc";
 
 // Dijalankan dari root repo (npm test) — ikut pola freeze lain.
 const root = process.cwd();
@@ -88,4 +89,44 @@ test("[NFC] lookup tabungan mendukung UID dengan separator", () => {
   assert.ok(lookup.includes("toUpperCase"), "normalisasi UID lookup hilang");
   assert.ok(lookup.includes("replace"), "fallback strip separator lookup hilang");
   assert.ok(lookup.includes("studentNumber"), "lookup by NIS hilang");
+});
+
+// Parser dump kartu ASC (MIFARE Classic 1K, nfc.txt dari software writer)
+const SAMPLE_DUMP = [
+  "[ AF:C2:99:E7:13:08:04:00:62:63:64:65:66:67:68:69 ] Alamat 00 : UID0-UID3 / MANUFACTURER",
+  "[ 00:00:00:00:00:00:FF:07:80:69:FF:FF:FF:FF:FF:FF ] Alamat 03 : KEYA / ACCESS / KEYB",
+  "[ 32:30:32:36:30:37:32:34:31:37:33:33:32:38:00:00 ] Alamat 08 : DATA",
+  "[ 4D:51:3D:3D:00:00:00:00:00:00:00:00:00:00:00:00 ] Alamat 09 : DATA",
+  "[ 4D:6A:41:79:4E:69:30:77:4F:53:30:79:4F:51:3D:3D ] Alamat 0C : DATA",
+  "[ 4D:54:49:7A:4E:44:55:32:00:00:00:00:00:00:00:00 ] Alamat 0E : DATA",
+  "[ 4D:54:51:31:4D:6A:59:77:4E:44:63:3D:00:00:00:00 ] Alamat 14 : DATA",
+  "[ 4D:55:48:41:4D:4D:41:44:20:53:48:41:46:41:20:4D ] Alamat 15 : DATA",
+  "[ 4D:6A:4D:33:4E:54:41:77:4D:41:3D:3D:00:00:00:00 ] Alamat 1E : DATA",
+].join("\n");
+
+test("[NFC] parseAscDump membaca UID + jenis kartu MIFARE Classic 1K", () => {
+  const card = parseAscDump(SAMPLE_DUMP);
+  assert.ok(card, "dump valid gagal diurai");
+  assert.equal(card.uid, "AFC299E7");
+  assert.equal(card.uid, normalizeUid("af:c2:99:e7"));
+  assert.equal(card.cardKind, "MIFARE Classic 1K");
+});
+
+test("[NFC] parseAscDump melewati trailer dan mengurai field base64", () => {
+  const card = parseAscDump(SAMPLE_DUMP);
+  assert.ok(card, "dump valid gagal diurai");
+  assert.ok(
+    card.blocks.every((b) => b.block % 4 !== 3),
+    "blok trailer ikut terurai",
+  );
+  assert.equal(card.name, "MUHAMMAD SHAFA M");
+  assert.equal(card.studentId, "14526047");
+  assert.ok(card.amounts.includes("2375000"), "nominal hilang");
+  assert.ok(card.dates.includes("2026-09-29"), "tanggal hilang");
+  assert.equal(card.timestamp, "20260724173328");
+});
+
+test("[NFC] parseAscDump menolak teks sampah", () => {
+  assert.equal(parseAscDump(""), null);
+  assert.equal(parseAscDump("halo dunia"), null);
 });
