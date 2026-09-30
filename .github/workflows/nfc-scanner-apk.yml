@@ -25,7 +25,7 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: "8.9"
+          gradle-version: "8.7"
       - name: Install Android platform SDK
         run: |
           if [ -z "$ANDROID_HOME" ]; then export ANDROID_HOME=/usr/local/lib/android/sdk; fi
