@@ -15,7 +15,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { isWebNfcSupported, normalizeUid, parseAscDump, scanNfcUid } from "@/lib/nfc";
+import { isWebNfcSupported, normalizeUid, parseAscDump, scanNfcUid, writeNfcText } from "@/lib/nfc";
 import type { AscCardData } from "@/lib/nfc";
 import NfcUidInput from "@/components/nfc/NfcUidInput";
 import { usePageGuard } from "@/lib/use-page-guard";
@@ -44,6 +44,7 @@ export default function NfcModulePage() {
   const [dump, setDump] = useState("");
   const [card, setCard] = useState<AscCardData | null>(null);
   const [dumpError, setDumpError] = useState<string | null>(null);
+  const [writing, setWriting] = useState(false);
 
   const handleScan = async () => {
     if (scanning) return;
@@ -120,6 +121,27 @@ export default function NfcModulePage() {
     }
     setCard(parsed);
     toast.success(`Kartu ${parsed.cardKind} · UID ${parsed.uid}`);
+  };
+
+  const handleWriteCard = async () => {
+    if (!card?.uid || writing) return;
+    if (!isWebNfcSupported()) {
+      toast.error("Tulis kartu hanya bisa dari Chrome Android dengan NFC.");
+      return;
+    }
+    const ok = confirm(
+      `Tulis UID ${card.uid} ke kartu yang ditempelkan? Sekali saja per kartu — setelah ini kartu bisa dibaca via tombol “Tempel” di semua HP. Data blok kartu tidak diubah.`,
+    );
+    if (!ok) return;
+    setWriting(true);
+    try {
+      await writeNfcText(card.uid);
+      toast.success("Kartu aktif — sekarang bisa dibaca via “Tempel” di semua HP");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Gagal menulis kartu");
+    } finally {
+      setWriting(false);
+    }
   };
 
   const handleUseCardUid = () => {
@@ -403,6 +425,23 @@ export default function NfcModulePage() {
                 Pakai UID ini <ArrowRight size={14} />
               </button>
             </div>
+            {webNfc ? (
+              <button
+                type="button"
+                onClick={handleWriteCard}
+                disabled={writing}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {writing ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Nfc size={16} />
+                )}
+                {writing
+                  ? "Tempelkan kartu — menulis..."
+                  : "Tulis UID ke Kartu (aktivasi sekali)"}
+              </button>
+            ) : null}
             <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
               <p>
                 <span className="text-muted-foreground">Nama di kartu: </span>

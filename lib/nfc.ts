@@ -250,7 +250,7 @@ export function scanNfcUid(options: ScanNfcOptions = {}): Promise<string> {
         settle(
           new NfcError(
             "NFC_READ_FAILED",
-            "Kartu terbaca tanpa data UID (rekaman NDEF kosong). Ketik manual, atau isi kartu dengan rekaman teks/URL berisi UID.",
+            "Kartu terdeteksi tapi tanpa rekaman NDEF (khas kartu ASC MIFARE mentah). Solusi: (1) pakai reader USB — UID terketik otomatis, (2) aktifkan kartu via tombol “Tulis UID ke Kartu” di bawah sekali saja, atau (3) ketik UID manual.",
           ),
         );
         return;
@@ -263,7 +263,7 @@ export function scanNfcUid(options: ScanNfcOptions = {}): Promise<string> {
       settle(
         new NfcError(
           "NFC_READ_FAILED",
-          "Gagal membaca kartu. Dekatkan kartu kembali dan coba lagi.",
+          "Kartu tidak terbaca (kemungkinan kartu MIFARE tanpa NDEF seperti ASC mentah). Dekatkan kembali, atau pakai reader USB / ketik UID manual.",
         ),
       );
     };
@@ -303,4 +303,85 @@ export function scanNfcUid(options: ScanNfcOptions = {}): Promise<string> {
       else signal.addEventListener("abort", onAbort, { once: true });
     }
   });
+}
+
+/**
+ * Aktivasi sekali-saja kartu ASC MIFARE mentah: menulis rekaman NDEF teks
+ * berisi UID ke kartu yang ditempelkan, supaya selanjutnya kartu bisa dibaca
+ * via tombol “Tempel” (Web NFC) di semua HP — tanpa reader USB.
+ *
+ * Data blok mentah kartu TIDAK diubah (NDEF menempati area MAD/sektor 0).
+ * Syarat: Chrome Android + NFC aktif + kartu mendukung tulis NDEF. Kartu yang
+ * belum diformat NDEF kadang ditolak — format dulu via aplikasi NFC Tools,
+ * lalu ulangi di sini. Melempar `NfcError` bila gagal.
+ */
+export async function writeNfcText(
+  text: string,
+  options: ScanNfcOptions = {},
+): Promise<void> {
+  const { timeoutMs = 30000, signal } = options;
+  if (!isWebNfcSupported()) {
+    throw new NfcError(
+      "WEB_NFC_UNSUPPORTED",
+      "Web NFC tidak didukung browser/perangkat ini. Tulis NDEF hanya bisa dari Chrome Android.",
+    );
+  }
+  const value = (text ?? "").trim();
+  if (!value) {
+    throw new NfcError("NFC_READ_FAILED", "Teks UID kosong — tidak ada yang ditulis.");
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const NDEFReaderCtor = (window as any).NDEFReader;
+  const reader = new NDEFReaderCtor();
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      reader.write({ records: [{ recordType: "text", data: value }] }),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () =>
+            reject(
+              new NfcError(
+                "NFC_TIMEOUT",
+                `Tidak ada kartu ditempelkan dalam ${Math.round(timeoutMs / 1000)} detik — penulisan dibatalkan.`,
+              ),
+            ),
+          timeoutMs,
+        );
+        if (signal) {
+          if (signal.aborted)
+            reject(new NfcError("NFC_ABORTED", "Penulisan kartu dibatalkan."));
+          else
+            signal.addEventListener(
+              "abort",
+              () =>
+                reject(new NfcError("NFC_ABORTED", "Penulisan kartu dibatalkan.")),
+              { once: true },
+            );
+        }
+      }),
+    ]);
+  } catch (error: unknown) {
+    if (error instanceof NfcError) throw error;
+    const name = error instanceof Error ? error.name : String(error);
+    if (name === "NotAllowedError" || name === "SecurityError") {
+      throw new NfcError(
+        "NFC_NOT_ALLOWED",
+        "Izin NFC ditolak. Aktifkan NFC dan izinkan situs ini di pengaturan ponsel.",
+      );
+    }
+    if (name === "NotSupportedError" || name === "NotReadableError") {
+      throw new NfcError(
+        "NFC_READ_FAILED",
+        "Kartu menolak tulisan NDEF (belum diformat NDEF / tidak mendukung tulis). Format dulu via aplikasi NFC Tools (Write → Format as NDEF), lalu ulangi di sini.",
+      );
+    }
+    throw new NfcError(
+      "NFC_READ_FAILED",
+      `Gagal menulis kartu (${name}). Dekatkan kartu ke ponsel dan coba lagi; pastikan kartu masih menempel selama proses.`,
+    );
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }

@@ -80,3 +80,9 @@ Perilaku:
   "Pakai UID ini" untuk isi kolom pencarian otomatis.
 - Contoh kartu uji: UID `AFC299E7`, nama `MUHAMMAD SHAFA M`, ID `14526047`,
   nominal `920000`/`3295000`/`2375000`, tanggal `2026-09-29`, PIN `123456`.
+
+## Aktivasi kartu ASC mentah (sekali per kartu)
+- Kartu ASC tanpa NDEF tidak bisa ditempel via Web NFC — `writeNfcText()`
+  menulis rekaman teks berisi UID; setelah itu tombol "Tempel" bisa dipakai
+  di semua HP. Data blok mentah tidak diubah.
+- Kartu yang menolak tulis (belum format NDEF) diformat dulu via NFC Tools.

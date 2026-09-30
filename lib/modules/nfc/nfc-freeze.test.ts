@@ -130,3 +130,22 @@ test("[NFC] parseAscDump menolak teks sampah", () => {
   assert.equal(parseAscDump(""), null);
   assert.equal(parseAscDump("halo dunia"), null);
 });
+
+test("[NFC] aktivasi sekali tulis NDEF tersedia (writeNfcText)", () => {
+  const source = read("lib/nfc.ts");
+  assert.ok(source.includes("writeNfcText"), "writeNfcText hilang");
+  assert.ok(source.includes("recordType"), "rekaman NDEF teks hilang");
+});
+
+test("[NFC] pesan gagal baca mengarahkan kartu MIFARE mentah", () => {
+  const source = read("lib/nfc.ts");
+  assert.ok(source.includes("MIFARE"), "panduan MIFARE hilang");
+  assert.ok(source.includes("reader USB"), "solusi reader USB hilang");
+});
+
+test("[NFC] halaman modul punya panel aktivasi kartu ASC", () => {
+  const page = read("app/dashboard/nfc/page.tsx");
+  assert.ok(page.includes("Cek Data Kartu ASC"), "panel ASC hilang");
+  assert.ok(page.includes("writeNfcText"), "tombol tulis kartu hilang");
+  assert.ok(page.includes("Pakai UID ini"), "tombol pakai UID hilang");
+});
