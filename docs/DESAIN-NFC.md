@@ -86,3 +86,10 @@ Perilaku:
   menulis rekaman teks berisi UID; setelah itu tombol "Tempel" bisa dipakai
   di semua HP. Data blok mentah tidak diubah.
 - Kartu yang menolak tulis (belum format NDEF) diformat dulu via NFC Tools.
+
+## Aktivasi kartu mentah (wajib sekali per kartu)
+- Kartu ASC dari writer masih mentah (blok NDEF kosong) sehingga HP menolak
+  dibaca maupun ditulisi via Web NFC. Panduan di halaman `/dashboard/nfc`
+  ("Aktifkan Sekali per Kartu"): format via NFC Tools (Write, Format as NDEF;
+  kunci masih default pabrik) lalu tulis rekaman Text berisi UID — bisa via
+  NFC Tools atau tombol hijau "Tulis UID ke Kartu" (`writeNfcText()`).

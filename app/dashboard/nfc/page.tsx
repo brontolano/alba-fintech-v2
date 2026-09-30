@@ -483,6 +483,47 @@ export default function NfcModulePage() {
           </div>
         ) : null}
       </div>
+
+      {/* Panduan aktivasi kartu ASC mentah (sekali per kartu) */}
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-6">
+        <div className="text-lg font-semibold">
+          Kartu Mentah Ditolak? Aktifkan Sekali per Kartu
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Kartu ASC dari writer masih mentah (tanpa NDEF) sehingga HP menolak
+          dibaca maupun ditulisi. Aktifkan dulu — cukup sekali per kartu:
+        </p>
+        <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm text-muted-foreground">
+          <li>
+            <span className="font-medium text-foreground">Install “NFC Tools”</span>{" "}
+            (Play Store) di HP Android yang ada NFC-nya, lalu aktifkan NFC di
+            pengaturan HP.
+          </li>
+          <li>
+            <span className="font-medium text-foreground">Format kartu:</span> buka
+            NFC Tools → <span className="font-medium text-foreground">Write → Format as NDEF</span> →
+            tempel kartu → tunggu tulisan sukses. Kunci kartu ASC masih bawaan
+            pabrik sehingga format langsung berhasil.
+          </li>
+          <li>
+            <span className="font-medium text-foreground">Isi UID:</span> masih di NFC
+            Tools → <span className="font-medium text-foreground">Write → Add a record → Text</span> →
+            ketik UID kartu (mis. <code>AFC299E7</code> — salin dari hasil “Urai Data
+            Kartu” di atas) → Write → tempel kartu yang sama.
+          </li>
+          <li>
+            <span className="font-medium text-foreground">Uji di aplikasi ini:</span>{" "}
+            tekan tombol <span className="font-medium text-foreground">“Tempel”</span> di
+            atas lalu tempel kartu — UID harus terbaca. Atau pakai tombol hijau
+            “Tulis UID ke Kartu” sebagai pengganti langkah 3.
+          </li>
+        </ol>
+        <p className="mt-4 border-t border-border pt-4 text-xs text-muted-foreground">
+          Tiap kartu butuh aktivasi ini sekali saja (±30 detik/kartu). Kalau NFC Tools
+          gagal format (kartu terkunci), kartu itu tetap bisa dipakai via reader USB
+          atau ketik UID manual.
+        </p>
+      </div>
     </div>
   );
 }
