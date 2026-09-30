@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Loader2, UserPlus } from "lucide-react";
 import NfcUidInput from "@/components/nfc/NfcUidInput";
 import { normalizeUid } from "@/lib/nfc";
@@ -26,6 +26,27 @@ export default function NewStudentPage() {
     cardUid: "",
   });
   const [saving, setSaving] = useState(false);
+
+  // Prefill dari panel "Cek Data Kartu ASC" (/dashboard/nfc):
+  // ?uid=AFC299E7&nis=14526047&name=MUHAMMAD%20SHAFA%20M
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const uid = normalizeUid(q.get("uid") ?? "");
+      const nis = (q.get("nis") ?? "").trim();
+      const name = (q.get("name") ?? "").trim();
+      if (uid || nis || name) {
+        setForm((p) => ({
+          ...p,
+          cardUid: uid || p.cardUid,
+          studentNumber: nis || p.studentNumber,
+          name: name || p.name,
+        }));
+      }
+    } catch {
+      // abaikan — form tetap kosong
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

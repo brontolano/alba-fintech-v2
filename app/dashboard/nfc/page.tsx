@@ -472,12 +472,18 @@ export default function NfcModulePage() {
               {card.studentId ? ` (${card.studentId})` : ""} — daftarkan
               <span className="font-semibold"> UID</span>-nya di Data Santri, bukan ID-nya.
             </p>
-            {notFound ? (
+            {card && !student ? (
               <Link
-                href="/dashboard/kpak/students/new"
+                href={`/dashboard/kpak/students/new?${(() => {
+                  const q = new URLSearchParams();
+                  if (card?.uid) q.set("uid", card.uid);
+                  if (card?.studentId) q.set("nis", card.studentId);
+                  if (card?.name) q.set("name", card.name);
+                  return q.toString();
+                })()}`}
                 className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-muted px-3 py-2 text-sm font-medium transition hover:bg-muted/80"
               >
-                Daftarkan Santri Baru <ArrowRight size={14} />
+                Daftarkan dengan data kartu ini <ArrowRight size={14} />
               </Link>
             ) : null}
           </div>

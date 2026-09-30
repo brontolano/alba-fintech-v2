@@ -148,4 +148,11 @@ test("[NFC] halaman modul punya panel aktivasi kartu ASC", () => {
   assert.ok(page.includes("Cek Data Kartu ASC"), "panel ASC hilang");
   assert.ok(page.includes("writeNfcText"), "tombol tulis kartu hilang");
   assert.ok(page.includes("Pakai UID ini"), "tombol pakai UID hilang");
+  assert.ok(page.includes("Daftarkan dengan data kartu ini"), "link daftar dari kartu hilang");
+});
+
+test("[NFC] form santri baru bisa prefill dari data kartu", () => {
+  const page = read("app/dashboard/kpak/students/new/page.tsx");
+  assert.ok(page.includes("window.location.search"), "prefill query hilang");
+  assert.ok(page.includes('"uid"'), "param uid hilang");
 });
