@@ -1,31 +1,31 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
 }
 
 android {
-    namespace = "com.albafinance.nfcscanner"
-    compileSdk = 34
+    namespace 'com.albafinance.nfcscanner'
+    compileSdk 34
 
     defaultConfig {
-        applicationId = "com.albafinance.nfcscanner"
-        minSdk = 24
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        applicationId 'com.albafinance.nfcscanner'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            minifyEnabled false
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = '17'
     }
 }
 
