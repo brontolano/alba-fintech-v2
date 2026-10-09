@@ -18,17 +18,19 @@ export function NotificationBell() {
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications?limit=8");
-      if (!res.ok) return;
+      if (!res.ok) throw new Error("Notifikasi gagal dimuat");
       const data = await res.json();
       setItems(data.data ?? []);
       setUnread(data.summary?.unreadCount ?? 0);
+      setError(null);
     } catch {
-      // silent — bell tidak boleh mengganggu halaman
+      setError("Notifikasi belum dapat dimuat.");
     }
   }, []);
 
@@ -58,12 +60,20 @@ export function NotificationBell() {
   };
 
   const markAllRead = async () => {
-    await fetch("/api/notifications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ markAll: true }),
-    });
-    fetchNotifications();
+    setLoading(true);
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAll: true }),
+      });
+      if (!res.ok) throw new Error("Gagal menandai notifikasi");
+      await fetchNotifications();
+    } catch {
+      setError("Notifikasi belum dapat ditandai sebagai dibaca.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -73,6 +83,7 @@ export function NotificationBell() {
         className="relative p-2 rounded-xl bg-muted hover:bg-accent/10 text-muted-foreground hover:text-foreground transition-colors"
         aria-label={`Notifikasi${unread > 0 ? ` (${unread} belum dibaca)` : ""}`}
         aria-expanded={open}
+        aria-controls="notification-panel"
       >
         <Bell className="w-5 h-5" />
         {unread > 0 && (
@@ -83,7 +94,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-popover rounded-xl shadow-xl border border-border overflow-hidden z-50">
+        <div id="notification-panel" role="dialog" aria-label="Daftar notifikasi" className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-popover rounded-xl shadow-xl border border-border overflow-hidden z-50">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <p className="text-sm font-semibold text-foreground">Notifikasi</p>
             {unread > 0 && (
@@ -96,7 +107,14 @@ export function NotificationBell() {
             )}
           </div>
           <div className="max-h-80 overflow-y-auto divide-y divide-border">
-            {loading ? (
+            {error ? (
+              <div className="p-4 text-center text-sm text-destructive">
+                <p>{error}</p>
+                <button type="button" onClick={fetchNotifications} className="mt-2 font-medium underline">
+                  Coba lagi
+                </button>
+              </div>
+            ) : loading ? (
               <p className="p-4 text-sm text-muted-foreground text-center">Memuat...</p>
             ) : items.length === 0 ? (
               <p className="p-6 text-sm text-muted-foreground text-center">

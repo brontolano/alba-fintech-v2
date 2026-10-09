@@ -4,6 +4,14 @@ import { authOptions } from "@/app/api/auth/options";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { buildReportScope } from "@/lib/modules/reports/scope";
+import {
+  buildWeeklyBuckets,
+  weekKey,
+  buildDailyBuckets,
+  dayKey,
+  buildMonthlyBuckets,
+  monthKey,
+} from "@/lib/modules/reports/buckets";
 
 // Schema for query parameters
 const querySchema = z.object({
@@ -53,24 +61,31 @@ export async function GET(request: NextRequest) {
     let groupBy: "day" | "week" | "month";
 
     if (parsed.data.period === "daily") {
-      startDate = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() - 6,
-      );
+      // Anchor "hari ini" memakai perspektif WIB agar startDate tidak
+      // meleset pada transaksi subuh WIB (server default = UTC).
+      const todayKey = buildDailyBuckets(new Date(), 1)[0];
+      const [y, m, d] = todayKey.split("-").map((s) => Number(s));
+      // Date.UTC(...) - 7h → epoch yang setelah di-shift +7h (=asWib)
+      // menghasilkan komponen UTC = tanggal hari ini versi WIB.
+      startDate = new Date(Date.UTC(y, m - 1, d - 6) - 7 * 3600 * 1000);
       groupBy = "day";
     } else if (parsed.data.period === "weekly") {
-      startDate = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() - 27,
-      );
+      // Sama: anchor 4 Senin terakhir versi WIB, mundur 28 hari dari
+      // Senin minggu ini (inklusif).
+      const thisMonKey = buildWeeklyBuckets(new Date(), 1)[0];
+      const [y, m, d] = thisMonKey.split("-").map((s) => Number(s));
+      startDate = new Date(Date.UTC(y, m - 1, d - 27) - 7 * 3600 * 1000);
       groupBy = "week";
     } else if (parsed.data.period === "monthly") {
-      startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+      const thisMonKey = buildMonthlyBuckets(new Date(), 1)[0];
+      const [y, m] = thisMonKey.split("-").map((s) => Number(s));
+      // 5 bulan sebelumnya + bulan ini = 6 total; anchor pada hari 1.
+      startDate = new Date(Date.UTC(y, m - 6, 1) - 7 * 3600 * 1000);
       groupBy = "month";
     } else {
-      startDate = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
+      const thisMonKey = buildMonthlyBuckets(new Date(), 1)[0];
+      const [y, m] = thisMonKey.split("-").map((s) => Number(s));
+      startDate = new Date(Date.UTC(y, m - months, 1) - 7 * 3600 * 1000);
       groupBy = "month";
     }
     const txWhere: any = {
@@ -140,35 +155,20 @@ export async function GET(request: NextRequest) {
       { INCOME: number; EXPENSE: number; TRANSFER: number }
     > = {};
 
+    /** Bucket keys dihasilkan oleh helper @/lib/modules/reports/buckets:
+     *  dayKey, weekKey, monthKey — semua memakai perspektif WIB. */
+
     if (groupBy === "day") {
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate() - 6 + i,
-        );
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      for (const key of buildDailyBuckets(now, 7)) {
         monthlyData[key] = { INCOME: 0, EXPENSE: 0, TRANSFER: 0 };
       }
     } else if (groupBy === "week") {
-      const weeks = 4;
-      for (let i = 0; i < weeks; i++) {
-        const d = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate() - (weeks - 1 - i) * 7,
-        );
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-W${i + 1}`;
+      // 4 Senin terakhir, inklusif Senin minggu ini — dijamin unik dan berjarak 7 hari.
+      for (const key of buildWeeklyBuckets(now, 4)) {
         monthlyData[key] = { INCOME: 0, EXPENSE: 0, TRANSFER: 0 };
       }
     } else {
-      for (let i = 0; i < months; i++) {
-        const d = new Date(
-          now.getFullYear(),
-          now.getMonth() - months + 1 + i,
-          1,
-        );
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      for (const key of buildMonthlyBuckets(now, months)) {
         monthlyData[key] = { INCOME: 0, EXPENSE: 0, TRANSFER: 0 };
       }
     }
@@ -178,12 +178,11 @@ export async function GET(request: NextRequest) {
       const d = new Date(tx.date);
       let key: string;
       if (groupBy === "day") {
-        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        key = dayKey(d);
       } else if (groupBy === "week") {
-        const weekNum = Math.ceil(d.getDate() / 7);
-        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-W${weekNum}`;
+        key = weekKey(d);
       } else {
-        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        key = monthKey(d);
       }
       if (monthlyData[key]) {
         monthlyData[key][tx.type] += Number(tx.amount);

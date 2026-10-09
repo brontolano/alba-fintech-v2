@@ -250,8 +250,10 @@ export function useDashboardData(
         const message =
           err instanceof Error ? err.message : "Gagal memuat data dashboard";
         setError(message);
-        // Fallback ke data kosong agar UI tetap render
-        setData(DEFAULT_DATA);
+        // Pertahankan data sebelumnya agar kegagalan refresh tidak terlihat
+        // sebagai keadaan bisnis kosong (saldo/transaksi nol).
+        // Pada pemuatan pertama, komponen memakai DEFAULT_DATA bersama error
+        // untuk menampilkan state retry, bukan state "tidak ada data".
       } finally {
         setLoading(false);
       }

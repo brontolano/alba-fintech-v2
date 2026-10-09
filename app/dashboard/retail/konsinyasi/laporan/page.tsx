@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import Link from "next/link";
 import { BarChart3, Loader2, Wallet, CheckCircle2, XCircle, Printer } from "lucide-react";
 import { printData, escapeHtml } from "@/lib/print";
@@ -46,7 +46,7 @@ export default function LaporanPage() {
   const [err, setErr] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setErr(null);
     try {
@@ -66,11 +66,11 @@ export default function LaporanPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [from, to]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const createPayout = async (ownerId: string) => {
     setActing(ownerId);

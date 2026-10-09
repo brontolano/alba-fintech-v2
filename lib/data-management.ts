@@ -9,6 +9,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
+import { wibDateStr } from "./date-wib";
 
 const DEMO_PASSWORD = "bismillah";
 
@@ -258,7 +259,11 @@ export async function createServerBackup(prisma: PrismaClient) {
 
   const directory = path.resolve(process.env.BACKUP_DIRECTORY || "backups");
   await mkdir(directory, { recursive: true, mode: 0o700 });
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  // Tanggal pakai WIB (bukan UTC) supaya nama file konsisten dengan hari
+  // operasional pesantren, terutama saat backup dijadwalkan 00:00–07:00 WIB
+  // yang masih "hari kemarin" menurut UTC. Komponen jam tetap UTC ISO demi
+  // keunikan timestamp.
+  const stamp = `${wibDateStr()}_${new Date().toISOString().replace(/[:.]/g, "-")}`;
   const filePath = path.join(directory, `alba-backup-${stamp}.json`);
   const backup = await exportDatabase(prisma);
   await writeFile(filePath, JSON.stringify(backup), {
@@ -785,20 +790,31 @@ export async function seedDemoData(prisma: PrismaClient) {
         });
       }
 
+      // `today` adalah composite-key untuk posSession.date & cashHandover.date
+      // (UTC midnight server-local, konsisten dengan data historis). JANGAN
+      // dipakai untuk label bulan / rentang waktu harian.
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const monthPrefix = `${today.getFullYear()}-${String(
-        today.getMonth() + 1,
-      ).padStart(2, "0")}`;
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      // Anchor WIB untuk label & rentang bulan: `monthPrefix`,
+      // `monthStart`, dan `monthEnd` mengikuti hari/bulan operasional
+      // pesantren (WIB/UTC+7), bukan local-time server. Tanpa anchor WIB,
+      // container `TZ=UTC` (Hostinger) akan:
+      //   - `monthPrefix` jatuh ke bulan sebelumnya pada jam 00:00–07:00 WIB
+      //     (UTC masih hari/bulan sebelumnya) → `period: M2026-09` padahal
+      //     user pesantren sudah Oktober 2026.
+      //   - `monthStart`/`monthEnd` di-Date constructor server-local
+      //     (UTC midnight), sehingga alokasi demo `startDate`/`endDate` di
+      //     DB menjadi UTC bukan WIB — inkonsisten dengan helper
+      //     `wibDayStart`/`wibDayEnd` di modul lain.
+      // Pola perbaikan sama dengan audit "Batas hari memakai timezone
+      // server" (6 modul sebelumnya: handovers, reconciliation, retail/sisa,
+      // dashboard/aggregates, transactions, kpak/allocations, purchase-requests).
+      const monthPrefix = wibDateStr().slice(0, 7);
+      const [yy, mm] = monthPrefix.split("-").map((s) => Number(s));
+      const monthStart = new Date(Date.UTC(yy, mm - 1, 1, 0, 0, 0, 0));
+      // Hari terakhir bulan = hari 0 bulan berikutnya (Date.UTC normal).
       const monthEnd = new Date(
-        today.getFullYear(),
-        today.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
-        999,
+        Date.UTC(yy, mm, 0, 23, 59, 59, 999),
       );
 
       const addOrderItems = async (

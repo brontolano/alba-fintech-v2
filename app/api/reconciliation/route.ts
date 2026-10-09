@@ -35,8 +35,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { unitId, date } = parsed.data;
-    const startDate = new Date(`${date}T00:00:00`);
-    const endDate = new Date(`${date}T23:59:59.999`);
+    // WIB (UTC+7) — konsisten dengan modul shift dan handover
+    const startDate = new Date(`${date}T00:00:00+07:00`);
+    const endDate = new Date(`${date}T23:59:59.999+07:00`);
 
     if (role === "MANAGER" && session.user.unitId !== unitId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

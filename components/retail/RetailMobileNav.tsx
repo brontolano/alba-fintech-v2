@@ -44,13 +44,8 @@ export function RetailMobileNav({ user }: RetailMobileNavProps) {
   const primaryActionKey = RETAIL_PRIMARY_ACTION[role];
   const primaryItem = primary[0];
 
-  // Mobile items: 4 secondary items + FAB for primary
-  const mobileItems = secondary.slice(0, 4).map(item => ({
-    key: item.key,
-    label: item.label,
-    href: item.href,
-    icon: item.iconName,
-  }));
+  // Mobile items: shift, stok, belanja, dan laporan; POS tetap menjadi FAB.
+  const mobileItems = [...secondary.slice(0, 3), ...tertiary.slice(0, 1)];
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -67,12 +62,7 @@ export function RetailMobileNav({ user }: RetailMobileNavProps) {
 
       {/* Bottom Bar - 4 items */}
       <div className="flex h-16 items-end justify-around px-2 border-t border-border bg-white/95 backdrop-blur-xl shadow-[0_-6px_20px_rgba(0,0,0,0.05)] dark:bg-gray-900/95">
-        {[
-          { key: "pos", label: "POS", href: "/dashboard/pos", iconName: "ShoppingCart" },
-          { key: "inventory", label: "Stok", href: "/dashboard/retail/inventory", iconName: "Package" },
-          { key: "belanja", label: "Belanja", href: "/dashboard/retail/belanja", iconName: "ShoppingBag" },
-          { key: "laporan", label: "Laporan", href: "/dashboard/reports", iconName: "BarChart2" },
-        ].map(item => (
+        {mobileItems.map(item => (
           <button
             key={item.key}
             onClick={() => router.push(item.href)}

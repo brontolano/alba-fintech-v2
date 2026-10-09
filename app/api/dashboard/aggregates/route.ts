@@ -3,10 +3,9 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
 import { buildLedgerSummary } from "@/lib/modules/ledger/ledger";
 import { buildApprovalScope } from "@/lib/modules/approvals/scope";
+import { wibDateStr, wibDayStart, wibLabelShort } from "@/lib/date-wib";
 
 // Schema for query parameters
 const querySchema = z.object({
@@ -51,7 +50,11 @@ export async function GET(request: NextRequest) {
 
     switch (parsed.data.range) {
       case "today":
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        // Anchor "hari ini" memakai perspektif WIB (bukan server-local TZ)
+        // agar 00:00–07:00 WIB (yang jatuh di UTC hari sebelumnya) ikut
+        // tercakup saat server dijalankan di UTC. Konsisten dengan
+        // handovers/reconciliation/retail/sisa yang sudah memakai wibDayStart.
+        startDate = wibDayStart(wibDateStr(now.getTime()));
         break;
       case "7d":
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -223,11 +226,10 @@ export async function GET(request: NextRequest) {
     const totalIncome = ledgerSummary.totalIncome;
     const totalExpense = ledgerSummary.totalExpense;
 
-    const todayStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-    );
+    // todayStart mengikuti WIB — konsisten dengan case "today" di atas.
+    // Server UTC akan menganggap 00:00 UTC = awal hari, padahal untuk pesantren
+    // (WIB) 00:00–07:00 WIB masih bagian dari "hari ini".
+    const todayStart = wibDayStart(wibDateStr(now.getTime()));
     const todayTransactions = transactions.filter(
       (tx) => tx.date && new Date(tx.date) >= todayStart,
     );
@@ -282,20 +284,12 @@ export async function GET(request: NextRequest) {
     const expenseByPeriod: number[] = [];
 
     if (parsed.data.range === "today") {
-      // 24 hours of today
+      // 24 hours of today — anchor pada 00:00 WIB (bukan 00:00 server-local),
+      // sehingga bucket jam mengikuti operasional pesantren.
+      const dayBase = wibDayStart(wibDateStr(now.getTime())).getTime();
       for (let h = 0; h < 24; h++) {
-        const hourStart = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-          h,
-        );
-        const hourEnd = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-          h + 1,
-        );
+        const hourStart = new Date(dayBase + h * 60 * 60 * 1000);
+        const hourEnd = new Date(dayBase + (h + 1) * 60 * 60 * 1000);
         const periodTxs = transactions.filter(
           (tx) =>
             tx.date &&
@@ -313,12 +307,23 @@ export async function GET(request: NextRequest) {
         expenseByPeriod.push(exp);
       }
     } else {
-      // Daily buckets for 7d/30d/90d
+      // Daily buckets for 7d/30d/90d.
+      //
+      // Setiap bucket mewakili satu hari kalender **dalam WIB**, jadi
+      // batasnya `wibDayStart(dateStr)` (bukan `setHours(0,0,0,0)` di server
+      // UTC). Kalau pakai `setHours(0,0,0,0)` di container UTC, `dayStart`
+      // jatuh ke 00:00 UTC = 07:00 WIB — window bukan 00:00–24:00 WIB, dan
+      // transaksi subuh pesantren (00:00–07:00 WIB) akan salah masuk bucket
+      // hari sebelumnya. Label juga dibangun dari `dateStr` (string) lewat
+      // `wibLabelShort` agar tidak bergantung `date-fns/format` yang memakai
+      // local-time proses — di server UTC, `format(date, "dd MMM")` untuk
+      // Date 00:00 WIB (= 17:00 UTC hari sebelumnya) akan tercetak tanggal
+      // kemarin.
       const days =
         parsed.data.range === "7d" ? 7 : parsed.data.range === "30d" ? 30 : 90;
       for (let d = days - 1; d >= 0; d--) {
-        const dayStart = new Date(now.getTime() - d * 24 * 60 * 60 * 1000);
-        dayStart.setHours(0, 0, 0, 0);
+        const dateStr = wibDateStr(now.getTime() - d * 24 * 60 * 60 * 1000);
+        const dayStart = wibDayStart(dateStr);
         const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
         const periodTxs = transactions.filter(
           (tx) =>
@@ -332,7 +337,7 @@ export async function GET(request: NextRequest) {
         const exp = periodTxs
           .filter((t) => t.type === "EXPENSE")
           .reduce((s, t) => s + Number(t.amount), 0);
-        chartLabels.push(format(dayStart, "dd MMM", { locale: id }));
+        chartLabels.push(wibLabelShort(dateStr));
         incomeByPeriod.push(inc);
         expenseByPeriod.push(exp);
       }

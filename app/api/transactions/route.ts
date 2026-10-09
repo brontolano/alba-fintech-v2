@@ -16,6 +16,7 @@ import {
 } from "@/lib/approvalRouting";
 import { buildTransactionSummary } from "@/lib/modules/transactions/summary";
 import { validateBusinessFlow } from "@/lib/modules/units/business-rules";
+import { wibDateStr, wibDayEnd, wibDayStart } from "@/lib/date-wib";
 
 // Schema for creating transactions
 const createTransactionSchema = z.object({
@@ -129,15 +130,18 @@ export async function GET(request: NextRequest) {
       where.categoryId = parsed.data.categoryId;
     }
     // Filter by transaction date, not createdAt
+    // startDate & endDate di-anchor ke WIB (00:00–23:59 WIB) konsisten
+    // dengan helper `wibDayStart` / `wibDayEnd` dari @/lib/date-wib.
+    // Tanpa anchor WIB, `new Date("2026-10-08")` jatuh ke UTC midnight
+    // (= 07:00 WIB), sehingga transaksi 00:00–06:59 WIB pada tanggal
+    // tersebut akan terlewat dari filter `gte` walaupun endDate benar.
     if (parsed.data.startDate || parsed.data.endDate) {
       where.date = {};
       if (parsed.data.startDate) {
-        where.date.gte = new Date(parsed.data.startDate);
+        where.date.gte = wibDayStart(parsed.data.startDate);
       }
       if (parsed.data.endDate) {
-        const end = new Date(parsed.data.endDate);
-        end.setHours(23, 59, 59, 999);
-        where.date.lte = end;
+        where.date.lte = wibDayEnd(parsed.data.endDate);
       }
     }
 
@@ -147,11 +151,7 @@ export async function GET(request: NextRequest) {
       let startDate: Date | null = null;
       switch (parsed.data.range) {
         case "today":
-          startDate = new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate(),
-          );
+          startDate = wibDayStart(wibDateStr(Date.now()));
           break;
         case "7d":
           startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -205,8 +205,7 @@ export async function GET(request: NextRequest) {
 
     const total = await prisma.transaction.count({ where });
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const todayStart = wibDayStart(wibDateStr(Date.now()));
 
     const summaryBaseWhere = {
       ...where,

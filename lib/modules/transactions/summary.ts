@@ -37,9 +37,14 @@ export function buildTransactionSummary({
   todayExpense?: number;
   netToday?: number;
 }): TransactionSummary {
+  // Fallback menghitung dari totalIncome/totalExpense & todayIncome/todayExpense.
+  // Jangan paksa 0 untuk defisit: saldo negatif valid untuk laporan (UI
+  // sudah memilih tone "expense"/merah untuk nilai < 0, mis. ManagerDashboard
+  // dan PimpinanBukuKas). Konsisten dengan buildLedgerSummary yang juga
+  // mengembalikan netBalance = income - expense tanpa clamping.
   const resolvedNetBalance =
-    netBalance ?? Math.max(0, totalIncome - totalExpense);
-  const resolvedNetToday = netToday ?? Math.max(0, todayIncome - todayExpense);
+    netBalance ?? totalIncome - totalExpense;
+  const resolvedNetToday = netToday ?? todayIncome - todayExpense;
 
   return {
     total,

@@ -10,8 +10,10 @@ import { authOptions } from "@/app/api/auth/options";
  * Digunakan untuk integrasi NFC reader di gerbang masuk / kantin.
  *
  * Scope:
- * - SUPERADMIN / PIMPINAN: bisa cek saldo santri di semua unit
- * - MANAGER / STAFF: hanya bisa cek saldo santri di unit mereka sendiri
+ * - SUPERADMIN: bisa cek saldo santri di semua lembaga
+ * - PIMPINAN: hanya lembaga sendiri
+ * - MANAGER / STAFF: hanya unit sendiri
+ * - role lain: ditolak
  */
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -29,13 +31,24 @@ export async function GET(request: NextRequest) {
     );
 
   const role = session.user.role;
+  if (!["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"].includes(role ?? ""))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const where: any = { isActive: true };
   if (cardUid) where.cardUid = cardUid;
   else where.studentNumber = studentNumber;
 
-  // Scope: MANAGER/STAFF hanya lihat santri di unit mereka
-  if (role === "MANAGER" || role === "STAFF")
+  // Scope: MANAGER/STAFF hanya unit sendiri; PIMPINAN hanya lembaga sendiri.
+  if (role === "MANAGER" || role === "STAFF") {
+    if (!session.user.unitId)
+      return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 403 });
     where.unitId = session.user.unitId;
+  }
+  if (role === "PIMPINAN") {
+    if (!session.user.lembagaId)
+      return NextResponse.json({ error: "Lembaga tidak ditemukan" }, { status: 403 });
+    where.lembagaId = session.user.lembagaId;
+  }
 
   const student = await prisma.student.findFirst({
     where,

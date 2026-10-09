@@ -3,14 +3,10 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
+import { wibDateStr, wibDayStart, wibDayEnd, wibKeyDate, wibHM } from "@/lib/date-wib";
 
-// Perhitungan hari memakai WIB (UTC+7) agar konsisten dgn modul lain.
-const WIB = 7 * 3600 * 1000;
-const wibDateStr = (now = Date.now()) =>
-  new Date(now + WIB).toISOString().slice(0, 10);
-const dayStart = (s: string) => new Date(`${s}T00:00:00.000Z`);
-const wibHM = (now = Date.now()) =>
-  new Date(now + WIB).toISOString().slice(11, 16);
+// keyStart: composite-key untuk ShiftAttendance.date (UTC midnight, konsisten dgn data historis).
+const keyStart = wibKeyDate;
 
 const actionSchema = z.object({
   action: z.enum(["check-in", "check-out"]),
@@ -48,7 +44,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 400 });
 
   const dateStr = searchParams.get("date") || wibDateStr();
-  const start = dayStart(dateStr);
+  const start = keyStart(dateStr);
 
   // ?history=1: log shift saya 14 hari + durasi + jumlah transaksi
   if (searchParams.get("history") === "1") {
@@ -60,8 +56,9 @@ export async function GET(request: NextRequest) {
     const history = await Promise.all(
       rows.map(async (r) => {
         const d = new Date(r.date).toISOString().slice(0, 10);
-        const ds = new Date(`${d}T00:00:00.000Z`);
-        const de = new Date(`${d}T23:59:59.999Z`);
+        // Range query untuk transaction.date — pakai WIB agar hari operasional benar.
+        const ds = wibDayStart(d);
+        const de = wibDayEnd(d);
         const txCount = await prisma.transaction.count({
           where: {
             unitId,
@@ -111,7 +108,7 @@ export async function GET(request: NextRequest) {
       where: {
         unitId,
         createdById: session.user.id!,
-        date: { gte: start, lte: new Date(`${dateStr}T23:59:59.999Z`) },
+        date: { gte: wibDayStart(dateStr), lte: wibDayEnd(dateStr) },
         status: { not: "REJECTED" },
       },
     }),
@@ -148,7 +145,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 400 });
 
   const dateStr = wibDateStr();
-  const start = dayStart(dateStr);
+  const start = keyStart(dateStr);
 
   try {
     if (parsed.data.action === "check-in") {

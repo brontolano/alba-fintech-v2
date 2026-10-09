@@ -4,6 +4,8 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
 import { guardRetail, resolveUnitId } from "@/lib/retail-guard";
+import { parseIntInRange } from "@/lib/parse-int-in-range";
+import { wibDateStr, wibDayStart } from "@/lib/date-wib";
 
 /**
  * Pengajuan Belanja Stok Unit Retail — modul baru (pengganti reorder lama).
@@ -59,7 +61,13 @@ export async function GET(request: NextRequest) {
   const role = session.user.role;
   const q = request.nextUrl.searchParams;
   const requestedUnit = q.get("unitId");
-  const limit = Math.min(Number(q.get("limit") ?? 50), 200);
+  // `limit` diamankan: `Number(val)` tanpa validasi menerima NaN (input non-angka)
+  // atau bilangan negatif yang membuat Prisma `take` error. parseIntInRange
+  // fallback ke default saat NaN/negatif, dan `Math.min(..., 200)` menutup
+  // upper-bound (lihat audit DoS pada endpoint listing).
+  const PURCHASE_REQUEST_LIMIT_MAX = 200;
+  const limitRaw = q.get("limit");
+  const limit = parseIntInRange(limitRaw ?? "50", 50, 1, PURCHASE_REQUEST_LIMIT_MAX);
   const status = q.get("status") || undefined;
 
   const where: any = { status };
@@ -202,14 +210,21 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const today = new Date();
-  const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  // Anchor WIB untuk counter & nomor pengajuan: pesantren beroperasi pada
+  // zona WIB, sehingga `dayStart` dan `ymd` mengikuti hari kalender WIB
+  // (00:00 WIB) — bukan local-time server. Tanpa anchor WIB, container
+  // `TZ=UTC` (Hostinger) akan:
+  //   - `dayStart` jatuh ke 00:00 UTC hari ini → transaksi 02:00 WIB
+  //     (= 19:00 UTC kemarin) dihitung "kemarin", `countToday` overlap.
+  //   - `ymd` merepresentasikan YYYYMMDD server-local, sehingga
+  //     `requestNo` memakai tanggal yang bukan hari operasional pesantren.
+  // Konsisten dengan 6 modul lain (handovers, reconciliation, retail/sisa,
+  // dashboard/aggregates, transactions, kpak/allocations).
+  const dayStart = wibDayStart(wibDateStr());
   const countToday = await prisma.purchaseRequest.count({
     where: { createdAt: { gte: dayStart } },
   });
-  const ymd = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(
-    today.getDate(),
-  ).padStart(2, "0")}`;
+  const ymd = wibDateStr().replace(/-/g, "");
   const requestNo = `BEL-${ymd}-${String(countToday + 1).padStart(3, "0")}`;
 
   const estSummary = rows

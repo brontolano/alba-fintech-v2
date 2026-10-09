@@ -5,6 +5,7 @@ import { ArrowDownRight, ArrowLeft, ArrowUpRight, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import { wibDateStr } from "@/lib/date-wib";
 import {
   getDefaultCategorySuggestions,
   validateBusinessFlow,
@@ -30,7 +31,11 @@ export default function UnitCashPage() {
     description: "",
     categoryId: "",
     reference: "",
-    date: new Date().toISOString().split("T")[0],
+    // Tanggal default mengikuti hari operasional pesantren (WIB) agar
+    // konsisten dengan helper date-wib yang dipakai API & modul shift.
+    // Sebelumnya: UTC ISO date — meleset satu hari di jam 00:00–07:00 WIB
+    // (yaitu sore/malam hari sebelumnya di UTC, common saat kasir tutup).
+    date: wibDateStr(),
   });
 
   const kpakSuggestions = getDefaultCategorySuggestions(

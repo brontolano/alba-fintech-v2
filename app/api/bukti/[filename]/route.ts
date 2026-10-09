@@ -25,26 +25,9 @@ export async function GET(
   if (!ALLOWED.test(filename))
     return NextResponse.json({ error: "File tidak valid" }, { status: 400 });
 
-  // Baca dari penyimpanan terpusat; fallback ke lokasi legasi data/bukti
-  let data: Uint8Array | null = await resolveStoredFile("bukti", filename);
-  if (!data) {
-    try {
-      data = new Uint8Array(
-        await readFile(join(process.cwd(), "data", "bukti", filename)),
-      );
-    } catch {
-      data = null;
-    }
-  }
-  if (!data)
-    return NextResponse.json({ error: "Bukti tidak ditemukan" }, { status: 404 });
+  // Satu pintu otorisasi: route baru memeriksa relasi file ke transaksi,
+  // unit, dan lembaga sebelum file dikirim.
+  return NextResponse.redirect(new URL(`/uploads/bukti/${filename}`, _request.url));
 
-  const ext = filename.split(".").pop() || "jpg";
-  return new NextResponse(new Blob([data.slice()]), {
-    headers: {
-      "Content-Type": CONTENT_TYPE[ext] || "image/jpeg",
-      "Content-Length": String(data.byteLength),
-      "Cache-Control": "private, max-age=86400",
-    },
-  });
+
 }

@@ -3,9 +3,9 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
+import { wibDateStr, wibDayEnd, wibDayStart } from "@/lib/date-wib";
 
-const WIB = 7 * 3600 * 1000;
-const wibToday = () => new Date(Date.now() + WIB).toISOString().slice(0, 10);
+const wibToday = () => wibDateStr(Date.now());
 
 type PeriodType = "DAILY" | "WEEKLY" | "MONTHLY" | "AGENDA";
 
@@ -30,9 +30,11 @@ function weekBounds(week: string) {
 }
 
 function dayBounds(date: string) {
+  // Anchor WIB: 00:00–23:59 WIB, bukan UTC midnight yang meleset 7 jam
+  // saat runtime container `TZ=UTC` (Hostinger).
   return {
-    start: new Date(`${date}T00:00:00.000Z`),
-    end: new Date(`${date}T23:59:59.999Z`),
+    start: wibDayStart(date),
+    end: wibDayEnd(date),
   };
 }
 
@@ -79,9 +81,11 @@ function resolveRange(
   // AGENDA
   if (!input.title?.trim() || !input.startDate || !input.endDate)
     return { error: "Agenda butuh judul + tanggal mulai & selesai" };
-  const start = new Date(input.startDate);
-  const end = new Date(input.endDate);
-  end.setHours(23, 59, 59, 999);
+  // Anchor WIB: start 00:00 WIB, end 23:59 WIB. `new Date('YYYY-MM-DD')`
+  // di-parser sebagai UTC midnight sehingga `setHours(23,59,59,999)` server
+  // lokal salah 7 jam di container UTC.
+  const start = wibDayStart(input.startDate);
+  const end = wibDayEnd(input.endDate);
   if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start)
     return { error: "Rentang agenda tidak valid" };
   return {
@@ -115,8 +119,9 @@ export async function GET(request: NextRequest) {
   const month = wibToday().slice(0, 7);
   const from = searchParams.get("from") || `${month}-01`;
   const to = searchParams.get("to") || monthBounds(month).end.toISOString().slice(0, 10);
-  const fromD = new Date(`${from}T00:00:00.000Z`);
-  const toD = new Date(`${to}T23:59:59.999Z`);
+  // Anchor WIB konsisten dengan dayBounds: 00:00–23:59 WIB, bukan UTC.
+  const fromD = wibDayStart(from);
+  const toD = wibDayEnd(to);
 
   const allocations = await prisma.budgetAllocation.findMany({
     where: { unitId, isActive: true },
@@ -127,8 +132,8 @@ export async function GET(request: NextRequest) {
     orderBy: { createdAt: "asc" },
   });
 
-  // Saring yang beririsan dengan rentang lihat + hitung realisasi
-  const result = [];
+  // Saring yang beririsan dengan rentang lihat
+  const overlapping: { alloc: typeof allocations[number]; start: Date; end: Date }[] = [];
   for (const a of allocations) {
     let start = a.startDate;
     let end = a.endDate;
@@ -141,26 +146,68 @@ export async function GET(request: NextRequest) {
       end = b.end;
     }
     if (end < fromD || start > toD) continue;
-    const txs = await prisma.transaction.aggregate({
+    overlapping.push({ alloc: a, start, end });
+  }
+
+  // Hitung realisasi TANPA N+1: satu findMany transaksi yang menyentuh
+  // semua kategori alokasi overlapping, lalu distribusi `amount` ke
+  // masing-masing alokasi secara in-memory. Pendekatan ini mengganti
+  // Promise.all(... aggregate) yang menimbulkan N round-trip DB.
+  //
+  // Bukti kebenaran (preserve behavior):
+  //   - Untuk setiap alokasi, kode lama melakukan aggregate
+  //     `categoryId=alloc.categoryId AND date BETWEEN alloc.start AND
+  //     alloc.end`. Hasilnya identik dengan menjumlahkan amount
+  //     transaksi yang `date`-nya berada di irisan [alloc.start, alloc.end].
+  //   - Filter di bawah memastikan transaksi yang kita fetch benar-benar
+  //     subset dari yang akan dipakai: unitId + type + status + categoryId
+  //     di himpunan kategori alokasi overlapping + date dalam rentang
+  //     lihat [fromD, toD] (subset aman dari union rentang alokasi).
+  //   - Loop in-memory kemudian menyaring lebih ketat: `tx.date` harus
+  //     masuk ke alokasi spesifik. Karena alokasi dengan kategori sama
+  //     bisa overlap (MONTHLY + DAILY), satu transaksi dapat dihitung ke
+  //     >1 alokasi — sama persis dengan perilaku aggregate per-alokasi.
+  const usedByAlloc = new Map<string, number>();
+  if (overlapping.length > 0) {
+    const overlappingCategoryIds = [
+      ...new Set(overlapping.map(({ alloc: a }) => a.categoryId)),
+    ];
+    const transactions = await prisma.transaction.findMany({
       where: {
         unitId,
-        categoryId: a.categoryId,
         type: "EXPENSE",
         status: "APPROVED",
-        date: { gte: start, lte: end },
+        categoryId: { in: overlappingCategoryIds },
+        date: { gte: fromD, lte: toD },
       },
-      _sum: { amount: true },
+      select: { categoryId: true, amount: true, date: true },
     });
-    const used = Number(txs._sum.amount || 0);
-    result.push({
+    for (const tx of transactions) {
+      const txDate = tx.date;
+      if (!txDate) continue;
+      for (const { alloc, start, end } of overlapping) {
+        if (alloc.categoryId !== tx.categoryId) continue;
+        if (txDate >= start && txDate <= end) {
+          usedByAlloc.set(
+            alloc.id,
+            (usedByAlloc.get(alloc.id) ?? 0) + Number(tx.amount),
+          );
+        }
+      }
+    }
+  }
+
+  const result = overlapping.map(({ alloc: a, start, end }) => {
+    const used = usedByAlloc.get(a.id) ?? 0;
+    return {
       ...a,
       amount: a.amount,
       used,
       remaining: Number(a.amount) - used,
       rangeStart: start,
       rangeEnd: end,
-    });
-  }
+    };
+  });
 
   return NextResponse.json({ data: { from, to, allocations: result } });
 }

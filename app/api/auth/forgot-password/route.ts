@@ -33,11 +33,27 @@ export async function POST(req: Request) {
   }
 
   // TODO(whatsapp-gateway): kirim OTP ke nomor WA terdaftar user ini.
-  // Untuk sekarang: respons netral + tandai alur belum tersedia penuh.
-  return NextResponse.json({
-    success: true,
-    mode: 'unavailable',
-    message:
-      'Fitur reset via WhatsApp sedang dalam pengembangan. Silakan hubungi Superadmin untuk reset kata sandi.',
-  });
+  // Untuk sekarang: tandai alur belum tersedia penuh secara eksplisit.
+  //
+  // - HTTP 503 (Service Unavailable) + Retry-After memberi sinyal standar
+  //   ke middleware/proxy/UI bahwa ini BUKAN respons sukses, walau
+  //   field `success: true` & `mode: 'unavailable'` dipertahankan agar
+  //   konsumen lama tidak crash dan UI dapat menampilkan pesan informatif.
+  // - Lihat audit docs/AUDIT-MODUL-2026-10-05 (HIGH — Password reset).
+  return NextResponse.json(
+    {
+      success: true,
+      mode: 'unavailable',
+      message:
+        'Fitur reset via WhatsApp sedang dalam pengembangan. Silakan hubungi Superadmin untuk reset kata sandi.',
+    },
+    {
+      status: 503,
+      headers: {
+        'Retry-After': '86400', // 1 hari — gateway WA pesantren dijadwalkan aktif setelahnya
+        'X-Alba-Feature': 'forgot-password',
+        'X-Alba-Feature-Status': 'unavailable',
+      },
+    },
+  );
 }

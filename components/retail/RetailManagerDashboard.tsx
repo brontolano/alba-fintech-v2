@@ -188,6 +188,7 @@ export function RetailManagerDashboard() {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -205,22 +206,39 @@ export function RetailManagerDashboard() {
   };
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/transactions?range=today&limit=1&type=INCOME").then(r => r.json()).catch(() => ({})),
-      fetch("/api/retail/dashboard").then(r => r.json()).catch(() => ({})),
-      fetch("/api/retail/batches?status=DRAFT&limit=100").then(r => r.json()).catch(() => ({})),
-      fetch("/api/approvals?status=PENDING").then(r => r.json()).catch(() => ({})),
-    ]).then(([sales, dash, drafts, appr]) => {
-      setStats({
-        posToday: sales?.summary?.todayCount ?? 0,
-        posRevenue: sales?.summary?.todayIncome ?? 0,
-        lowStock: dash?.data?.lowStock?.count ?? 0,
-        draftBatch: Array.isArray(drafts?.data) ? drafts.data.length : 0,
-        pendingApprovals: Array.isArray(appr?.data) ? appr.data.length : 0,
-      });
-      if (dash?.data) setData(dash.data as Summary);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    const loadStats = async () => {
+      try {
+        const responses = await Promise.all([
+          fetch("/api/transactions?range=today&limit=1&type=INCOME"),
+          fetch("/api/retail/dashboard"),
+          fetch("/api/retail/batches?status=DRAFT&limit=100"),
+          fetch("/api/approvals?status=PENDING"),
+        ]);
+        const bodies = await Promise.all(responses.map((response) => response.json()));
+        const [sales, dash, drafts, appr] = bodies;
+        const failed = responses.findIndex((response) => !response.ok);
+        if (failed >= 0) {
+          throw new Error(
+            ["transaksi", "dashboard retail", "draf batch", "persetujuan"][failed] +
+              " gagal dimuat",
+          );
+        }
+        setStats({
+          posToday: sales?.summary?.todayCount ?? 0,
+          posRevenue: sales?.summary?.todayIncome ?? 0,
+          lowStock: dash?.data?.lowStock?.count ?? 0,
+          draftBatch: Array.isArray(drafts?.data) ? drafts.data.length : 0,
+          pendingApprovals: Array.isArray(appr?.data) ? appr.data.length : 0,
+        });
+        if (dash?.data) setData(dash.data as Summary);
+        setStatsError(null);
+      } catch (error) {
+        setStatsError(error instanceof Error ? error.message : "Ringkasan gagal dimuat");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadStats();
   }, []);
 
   const shiftAction = async (action: "check-in" | "check-out") => {
@@ -307,9 +325,10 @@ export function RetailManagerDashboard() {
         )}
       </div>
 
-      {err && (
+      {(err || statsError) && (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-sm text-rose-600">
-          {err}
+          {err || statsError}
+          {statsError && !err ? " Coba muat ulang halaman untuk memperbarui ringkasan." : ""}
         </div>
       )}
 

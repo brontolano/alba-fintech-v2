@@ -360,7 +360,7 @@ export default function NfcModulePage() {
                 <Keyboard size={18} className="mt-0.5 shrink-0 text-primary" />
                 <span>
                   <span className="font-medium text-foreground">Reader USB/Bluetooth (utama).</span>{" "}
-                  Arahkan kursor ke kolom UID maka kartu otomatis "diketik" lalu Enter.
+                  Arahkan kursor ke kolom UID maka kartu otomatis &quot;diketik&quot; lalu Enter.
                   Kompatibel di semua perangkat.
                 </span>
               </li>

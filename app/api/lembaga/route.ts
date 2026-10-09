@@ -21,13 +21,19 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Baca daftar lembaga aktif — semua role terautentikasi (PIMPINAN,
-    // MANAGER, STAFF) butuh untuk dropdown broadcast & unit.
-    // Buat/ubah lembaga tetap SUPERADMIN (lihat POST).
+    const role = session.user.role;
+    if (!["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"].includes(role ?? "")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
-    // Fetch lembagas
+    // SUPERADMIN dapat melihat semua lembaga. Role lain hanya lembaganya sendiri.
+    const where =
+      role === "SUPERADMIN"
+        ? { isActive: true }
+        : { isActive: true, id: session.user.lembagaId ?? "__none__" };
+
     const lembagas = await prisma.lembaga.findMany({
-      where: { isActive: true },
+      where,
       include: {
         _count: {
           select: {

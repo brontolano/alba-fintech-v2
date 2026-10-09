@@ -1,6 +1,7 @@
 export type RetailRole = "MANAGER" | "STAFF";
 export type RetailPage = 
-  | "pos" 
+  | "pos"
+  | "shift"
   | "inventory" 
   | "inventory-tambah" 
   | "inventory-titipan" 
@@ -24,7 +25,14 @@ export const RETAIL_NAV_GROUPS = {
     { key: "pos" as RetailPage, label: "POS", href: "/dashboard/pos", iconName: "ShoppingCart", roles: ["MANAGER","STAFF"] as const, primary: true },
   ],
   secondary: [
-    { 
+    {
+      key: "shift" as RetailPage,
+      label: "Shift Saya",
+      href: "/dashboard/retail/shift",
+      iconName: "Clock",
+      roles: ["MANAGER", "STAFF"] as const,
+    },
+    {
       key: "inventory" as RetailPage, 
       label: "Inventori", 
       href: "/dashboard/retail/inventory", 

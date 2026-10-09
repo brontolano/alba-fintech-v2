@@ -53,6 +53,64 @@ test("buildTransactionSummary keeps at least one page even when total is zero", 
   assert.equal(result.pages, 1);
 });
 
+test("buildTransactionSummary fallback netBalance: income - expense, defisit tetap negatif", () => {
+  // Tanpa netBalance/netToday eksplisit, helper harus menghitung dari
+  // totalIncome/totalExpense & todayIncome/todayExpense. Defisit TIDAK boleh
+  // dipaksa menjadi 0 karena UI (ManagerDashboard, PimpinanBukuKas) sudah
+  // menampilkan nilai negatif dengan tone merah / "expense".
+  const result = buildTransactionSummary({
+    total: 10,
+    limit: 10,
+    todayCount: 2,
+    pendingCount: 1,
+    draftCount: 0,
+    totalIncome: 1_000_000,
+    totalExpense: 3_500_000,
+    todayIncome: 200_000,
+    todayExpense: 800_000,
+  });
+
+  assert.equal(result.netBalance, -2_500_000);
+  assert.equal(result.netToday, -600_000);
+});
+
+test("buildTransactionSummary fallback netBalance: surplus tetap positif", () => {
+  const result = buildTransactionSummary({
+    total: 5,
+    limit: 10,
+    todayCount: 1,
+    pendingCount: 0,
+    draftCount: 0,
+    totalIncome: 4_500_000,
+    totalExpense: 1_200_000,
+    todayIncome: 900_000,
+    todayExpense: 100_000,
+  });
+
+  assert.equal(result.netBalance, 3_300_000);
+  assert.equal(result.netToday, 800_000);
+});
+
+test("buildTransactionSummary: nilai eksplisit (route) menang atas fallback", () => {
+  // Caller yang sudah pass netBalance/netToday (mis. app/api/transactions)
+  // tidak boleh di-override oleh fallback. Ini mengunci kontrak supaya
+  // caller yang sengaja mengirim nilai negatif mempertahankan nilai tsb.
+  const result = buildTransactionSummary({
+    total: 1,
+    limit: 10,
+    todayCount: 0,
+    pendingCount: 0,
+    draftCount: 0,
+    totalIncome: 0,
+    totalExpense: 0,
+    netBalance: -7_777_777,
+    netToday: -333_333,
+  });
+
+  assert.equal(result.netBalance, -7_777_777);
+  assert.equal(result.netToday, -333_333);
+});
+
 test("buildReconciliationSummary aggregates task totals and counts correctly", () => {
   const result = buildReconciliationSummary([
     { income: 500000, expense: 200000, variance: 300000, status: "PENDING" },

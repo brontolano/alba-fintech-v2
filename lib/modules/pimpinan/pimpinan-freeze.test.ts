@@ -113,6 +113,48 @@ test("broadcast: hanya SUPERADMIN/PIMPINAN, PIMPINAN scoped ke lembaga", () => {
   }
 });
 
+test("broadcast POST: PIMPINAN tidak boleh override lembagaId body lintas lembaga", () => {
+  // PIMPINAN-FREEZE §"Perilaku yang dikunci" menegaskan: "PIMPINAN hanya
+  // untuk lembaganya sendiri". [id]/route.ts (GET/DELETE) sudah enforce
+  // scope; POST perlu penanda setara agar override lembagaId dari body
+  // tidak membuat broadcast masuk ke lembaga lain.
+  const src = read("app/api/broadcast/route.ts");
+  const postStart = src.indexOf("export async function POST(");
+  assert.ok(postStart >= 0, "fungsi POST hilang dari broadcast/route.ts");
+  const getStart = src.indexOf("export async function GET(", postStart);
+  const postEnd = getStart >= 0 ? getStart : src.length;
+  const post = src.slice(postStart, postEnd);
+
+  // Marker 1: ada cek role === 'SUPERADMIN' yang memperbolehkan override.
+  assert.ok(
+    /role\s*===\s*['"]SUPERADMIN['"]/.test(post),
+    "cabang role === 'SUPERADMIN' (bypass override) hilang dari POST",
+  );
+  // Marker 2: PIMPINAN wajib dibandingkan ke lembagaId sesi, bukan body.
+  assert.ok(
+    /sessionLembagaId/.test(post) || /session\.user\.lembagaId/.test(post),
+    "variabel scope lembaga sesi (sessionLembagaId / session.user.lembagaId) hilang",
+  );
+  // Marker 3: perbandingan explicit lembagaId body vs sesi untuk PIMPINAN
+  // (bukan sekadar || fallback).
+  assert.ok(
+    /parsed\.data\.lembagaId\s*[!=]==?\s*sessionLembagaId/.test(post) ||
+      /parsed\.data\.lembagaId\s*[!=]==?\s*session\.user\.lembagaId/.test(post),
+    "penolakan override lembagaId body untuk PIMPINAN hilang — kembali rentan cross-lembaga",
+  );
+  // Marker 4: pesan error eksplisit saat PIMPINAN override lintas lembaga.
+  assert.ok(
+    /lembaganya sendiri|scope lembaga tidak tersedia/i.test(post),
+    "pesan error spesifik untuk override PIMPINAN hilang",
+  );
+  // Marker 5: lembagaId yang disimpan ke DB HARUS hasil scope check,
+  // bukan parsed.data.lembagaId mentah.
+  assert.ok(
+    /lembagaId:\s*targetLembagaId/.test(post),
+    "broadcast.lembagaId tidak memakai targetLembagaId (scope-checked) — rentan cross-lembaga",
+  );
+});
+
 test("audit approvals: PIMPINAN hanya melihat lembaganya", () => {
   const audit = read("app/api/approvals/audit/route.ts");
   assert.ok(audit.includes("PIMPINAN"), "role PIMPINAN hilang");

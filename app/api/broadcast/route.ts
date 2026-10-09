@@ -91,8 +91,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid data', details: parsed.error.errors }, { status: 400 });
     }
 
-    const lembagaId = (session.user as any)?.lembagaId;
+    const sessionLembagaId = (session.user as any)?.lembagaId as
+      | string
+      | null
+      | undefined;
     const senderId = session.user.id as string;
+
+    // Sesuai PIMPINAN-FREEZE ("PIMPINAN hanya untuk lembaganya sendiri")
+    // dan audit akses-broadcast: PIMPINAN tidak boleh mengirim ke lembaga
+    // lain dengan meng-override `lembagaId` di body. SUPERADMIN boleh lintas
+    // lembaga. (GET/DELETE di /api/broadcast/[id] sudah enforce scope yang
+    // sama — POST ini sebelumnya mempercayai `lembagaId` body.)
+    let targetLembagaId: string | undefined;
+    if (role === 'SUPERADMIN') {
+      targetLembagaId =
+        parsed.data.lembagaId || sessionLembagaId || undefined;
+    } else {
+      // PIMPINAN: abaikan lembagaId body; paksa ke lembaga sesi.
+      if (!sessionLembagaId) {
+        return NextResponse.json(
+          { error: 'Scope lembaga tidak tersedia pada sesi' },
+          { status: 403 },
+        );
+      }
+      if (
+        parsed.data.lembagaId &&
+        parsed.data.lembagaId !== sessionLembagaId
+      ) {
+        return NextResponse.json(
+          { error: 'PIMPINAN hanya boleh mengirim ke lembaganya sendiri' },
+          { status: 403 },
+        );
+      }
+      targetLembagaId = sessionLembagaId;
+    }
 
     const broadcast = await prisma.broadcastMessage.create({
       data: {
@@ -104,15 +136,18 @@ export async function POST(request: NextRequest) {
         isDraft: !parsed.data.isSent,
         isSent: parsed.data.isSent,
         sentAt: parsed.data.isSent ? new Date() : null,
-        lembagaId: parsed.data.lembagaId || lembagaId || undefined,
+        lembagaId: targetLembagaId,
         senderId,
       },
     });
 
     if (parsed.data.isSent) {
+      // Notification broadcast memakai targetLembagaId hasil scope check,
+      // bukan parsed.data.lembagaId — sehingga penerima selalu konsisten
+      // dengan lembaga broadcast yang disimpan.
       const where: any = {};
-      if (parsed.data.lembagaId) {
-        where.lembagaId = parsed.data.lembagaId;
+      if (targetLembagaId) {
+        where.lembagaId = targetLembagaId;
       }
       const users = await prisma.user.findMany({
         where,

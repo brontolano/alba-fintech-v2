@@ -134,10 +134,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { searchParams } = new URL(request.url);
   const accountId = searchParams.get("accountId");
+  const role = session.user.role;
+  if (!["SUPERADMIN", "PIMPINAN", "MANAGER", "STAFF"].includes(role ?? ""))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const where: any = accountId ? { accountId } : {};
-  if (session.user.role === "MANAGER" || session.user.role === "STAFF")
+  if (role === "MANAGER" || role === "STAFF") {
+    if (!session.user.unitId)
+      return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 403 });
     where.unitId = session.user.unitId;
-  if (session.user.role === "PIMPINAN") {
+  }
+  if (role === "PIMPINAN") {
     const units = await prisma.unit.findMany({
       where: { lembagaId: session.user.lembagaId },
       select: { id: true },

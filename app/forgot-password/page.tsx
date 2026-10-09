@@ -28,7 +28,13 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (res.ok && data.success) {
+      // Mode unavailable: backend mengirim HTTP 503 dengan body
+      // { success: true, mode: 'unavailable', message }. Perlakukan
+      // sebagai info (bukan error) agar UI tidak menampilkan pesan
+      // "Terjadi kesalahan" yang menyesatkan user.
+      if (data?.mode === "unavailable" && data?.message) {
+        setNotice(data.message);
+      } else if (res.ok && data.success) {
         setNotice(data.message ?? "Permintaan diterima.");
       } else {
         setNotice(data.error ?? "Terjadi kesalahan. Coba lagi.");

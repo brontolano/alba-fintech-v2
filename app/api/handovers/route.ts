@@ -36,12 +36,23 @@ export async function POST(request: NextRequest) {
     const { unitId, date, cashHanded, note } = parsed.data;
     const userId = session.user.id as string;
 
+    // Validasi unit ada di database
+    const unit = await prisma.unit.findUnique({
+      where: { id: unitId },
+      select: { id: true, lembagaId: true },
+    });
+    if (!unit) {
+      return NextResponse.json({ error: "Unit tidak ditemukan" }, { status: 404 });
+    }
+
+    // MANAGER hanya boleh membuat handover untuk unitnya sendiri
     if (role === "MANAGER" && session.user.unitId !== unitId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const startDate = new Date(`${date}T00:00:00`);
-    const endDate = new Date(`${date}T23:59:59.999`);
+    // WIB (UTC+7) — konsisten dengan modul shift dan rekonsiliasi
+    const startDate = new Date(`${date}T00:00:00+07:00`);
+    const endDate = new Date(`${date}T23:59:59.999+07:00`);
 
     const approvedTxs = await prisma.transaction.findMany({
       where: {
@@ -147,8 +158,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (date) {
-      const startDate = new Date(`${date}T00:00:00`);
-      const endDate = new Date(`${date}T23:59:59.999`);
+      // WIB (UTC+7) — konsisten dengan modul shift dan rekonsiliasi
+      const startDate = new Date(`${date}T00:00:00+07:00`);
+      const endDate = new Date(`${date}T23:59:59.999+07:00`);
       where.date = { gte: startDate, lte: endDate };
     }
 

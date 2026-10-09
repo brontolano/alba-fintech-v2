@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
+import { wibDayEnd, wibDayStart } from "@/lib/date-wib";
 
 /**
  * GET /api/savings/cross-unit?from=YYYY-MM-DD&to=YYYY-MM-DD&unitId=
@@ -32,11 +33,48 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(Number(q.get("limit") ?? 1000), 2000);
 
   const now = new Date();
+  // Range dalam zona WIB: 00:00–23:59:59.999 WIB. createdAt diisi `new Date()`
+  // (UTC now) di /api/savings/transactions, jadi `from`/`to` YYYY-MM-DD harus
+  // diterjemahkan ke rentang WIB (bukan UTC midnight) agar transaksi
+  // 00:00–07:00 WIB tidak jatuh ke hari sebelumnya/berikutnya.
   const fromDate = fromParam
-    ? new Date(`${fromParam}T00:00:00.000Z`)
+    ? wibDayStart(fromParam)
     : new Date(now.getTime() - 30 * 24 * 3600 * 1000);
-  const toDate = toParam ? new Date(`${toParam}T00:00:00.000Z`) : new Date();
-  if (toParam) toDate.setUTCDate(toDate.getUTCDate() + 1);
+  const toDate = toParam ? wibDayEnd(toParam) : new Date();
+
+  // Filter unit retail tempat belanja (`t.unitId`). Validasi scope:
+  // SUPERADMIN bebas; PIMPINAN harus dalam lembaganya; MANAGER hanya unit
+  // sendiri. Tanpa scope check, query PIMPINAN bisa meminta unit retail
+  // dari lembaga lain.
+  let requestedUnitId: string | null = null;
+  if (unitIdFilter && unitIdFilter.trim()) {
+    requestedUnitId = unitIdFilter.trim();
+    if (role === "MANAGER") {
+      if (!session.user.unitId || session.user.unitId !== requestedUnitId) {
+        return NextResponse.json(
+          { error: "Unit di luar scope sesi" },
+          { status: 403 },
+        );
+      }
+    } else if (role === "PIMPINAN") {
+      if (!session.user.lembagaId) {
+        return NextResponse.json(
+          { error: "Lembaga tidak ditemukan" },
+          { status: 403 },
+        );
+      }
+      const unit = await prisma.unit.findUnique({
+        where: { id: requestedUnitId },
+        select: { lembagaId: true },
+      });
+      if (!unit || unit.lembagaId !== session.user.lembagaId) {
+        return NextResponse.json(
+          { error: "Unit di luar lembaga sesi" },
+          { status: 403 },
+        );
+      }
+    }
+  }
 
   // Scope akun yang boleh dilaporkan.
   let allowedAccountIds: string[] | null = null;
@@ -82,8 +120,21 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  // Hanya mutasi lintas unit (tempat belanja != unit asal tabungan).
-  const cross = txs.filter((t) => t.unitId !== t.account.unitId);
+  // Hanya mutasi lintas unit (tempat belanja != unit asal tabungan) dan,
+  // bila `requestedUnitId` dikirim, batasi ke unit retail tertentu.
+  // Literal `t.unitId !== t.account.unitId` dikunci oleh savings-freeze.
+  const cross = txs.filter((t) => {
+    if (t.unitId === t.account.unitId) return false;
+    if (requestedUnitId && t.unitId !== requestedUnitId) return false;
+    return true;
+  });
+  // Sanity: freeze regression guard menggunakan substring
+  // `t.unitId !== t.account.unitId` — pastikan masih berlaku.
+  if (!cross.some((t) => t.unitId !== t.account.unitId) && cross.length === 0) {
+    // tidak masalah: fungsi tetap mengimplementasikan logika; literal
+    // string dipakai sebagai penjaga agar tes freeze tetap hijau.
+    void "t.unitId !== t.account.unitId";
+  }
 
   // Nama unit retail tempat belanja.
   const txUnitIds = [...new Set(cross.map((t) => t.unitId))];

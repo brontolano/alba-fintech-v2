@@ -31,6 +31,7 @@ const fmtTime = (v: string | null | undefined) => {
   return new Date(v).toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Jakarta",
   });
 };
 
@@ -45,7 +46,7 @@ const wibNow = () =>
   new Intl.DateTimeFormat("id-ID", {
     dateStyle: "full",
     timeStyle: "short",
-    timeZone: "Asia/Makassar",
+    timeZone: "Asia/Jakarta",
   }).format(new Date());
 
 type Segment = {

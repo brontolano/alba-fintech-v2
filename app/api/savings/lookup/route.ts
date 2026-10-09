@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
+import { normalizeUid } from "@/lib/nfc";
 import { authOptions } from "@/app/api/auth/options";
 
 export async function GET(request: NextRequest) {
@@ -8,7 +9,8 @@ export async function GET(request: NextRequest) {
   if (!session?.user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { searchParams } = new URL(request.url);
-  const cardUid = searchParams.get("cardUid")?.trim().toUpperCase();
+  const rawCardUid = searchParams.get("cardUid")?.trim().toUpperCase() ?? "";
+  const cardUid = normalizeUid(rawCardUid) || undefined;
   const studentNumber = searchParams.get("studentNumber")?.trim();
   if (!cardUid && !studentNumber)
     return NextResponse.json(

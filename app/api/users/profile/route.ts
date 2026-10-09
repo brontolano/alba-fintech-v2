@@ -8,7 +8,6 @@ import { z } from "zod";
 const updateProfileSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi").optional(),
   email: z.string().email("Format email tidak valid").optional(),
-  unitId: z.string().nullable().optional(),
 });
 
 // Schema for changing password
@@ -113,9 +112,6 @@ export async function PATCH(request: NextRequest) {
       data: {
         ...(parsed.data.name !== undefined && { name: parsed.data.name }),
         ...(parsed.data.email !== undefined && { email: parsed.data.email }),
-        ...(parsed.data.unitId !== undefined && {
-          unitId: parsed.data.unitId ?? null,
-        }),
       },
     });
 

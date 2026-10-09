@@ -5,10 +5,7 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/options";
 import { guardRetail, resolveUnitId } from "@/lib/retail-guard";
 import { notifyUnitManagers } from "@/lib/retail-notify";
-
-const WIB = 7 * 3600 * 1000;
-const wibDateStr = (now = Date.now()) =>
-  new Date(now + WIB).toISOString().slice(0, 10);
+import { wibDateStr, wibDayStart, wibDayEnd, wibKeyDate } from "@/lib/date-wib";
 
 const sisaSchema = z.object({
   ownerId: z.string().min(1).optional().nullable(),
@@ -60,8 +57,9 @@ export async function GET(request: NextRequest) {
   });
 
   // Terjual hari ini (INCOME APPROVED, via order_items).
-  const start = new Date(`${dateStr}T00:00:00.000Z`);
-  const end = new Date(`${dateStr}T23:59:59.999Z`);
+  // WIB boundaries: 00:00–23:59 WIB, bukan UTC.
+  const start = wibDayStart(dateStr);
+  const end = wibDayEnd(dateStr);
   const invIds = items.map((i) => i.inventoryItemId);
   const soldMap = new Map<string, number>();
   if (invIds.length > 0) {

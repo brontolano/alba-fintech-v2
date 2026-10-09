@@ -3,11 +3,24 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/options';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
+import { parseIntInRange } from '@/lib/parse-int-in-range';
 
 // Schema for query parameters
+// `limit` diamankan: parseInt tanpa range check menerima NaN (input non-angka)
+// atau bilangan sangat besar yang membuat Prisma `take` lambat (DoS ringan).
+// parseIntInRange melempar Error → safeParse mengembalikan success=false → 400.
+const NOTIFICATION_LIMIT_MAX = 100;
+
 const querySchema = z.object({
   unreadOnly: z.string().optional().transform((val) => val === 'true'),
-  limit: z.string().optional().transform((val) => (val ? parseInt(val) : 10)),
+  limit: z
+    .string()
+    .optional()
+    .transform((val) =>
+      val
+        ? parseIntInRange(val, 10, 1, NOTIFICATION_LIMIT_MAX)
+        : 10,
+    ),
 });
 
 export async function GET(request: NextRequest) {

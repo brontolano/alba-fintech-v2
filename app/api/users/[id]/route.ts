@@ -64,6 +64,20 @@ export async function GET(
       );
     }
 
+    const caller = session.user;
+    const canRead =
+      caller.role === "SUPERADMIN" ||
+      user.id === caller.id ||
+      (caller.role === "PIMPINAN" &&
+        !!caller.lembagaId &&
+        user.lembagaId === caller.lembagaId) ||
+      ((caller.role === "MANAGER" || caller.role === "STAFF") &&
+        !!caller.unitId &&
+        user.unitId === caller.unitId);
+    if (!canRead) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     return NextResponse.json({
       data: {
         ...user,

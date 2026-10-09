@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/options";
 import prisma from "@/lib/prisma";
+import { wibDateStr } from "@/lib/date-wib";
 import {
   exportDatabase,
   createServerBackup,
@@ -30,7 +31,7 @@ export async function GET() {
   try {
     return NextResponse.json(await exportDatabase(prisma), {
       headers: {
-        "Content-Disposition": `attachment; filename="alba-backup-${new Date().toISOString().slice(0, 10)}.json"`,
+        "Content-Disposition": `attachment; filename="alba-backup-${wibDateStr()}.json"`,
       },
     });
   } catch (error) {
