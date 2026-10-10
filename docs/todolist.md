@@ -20,7 +20,7 @@
 - [x] Pembayaran & verifikasi pembayaran (manual/otomatis)
 - [x] Modul shift, absensi, dan rolling petugas
 - [x] Pelaporan (harian, bulanan, outstanding)
-- [ ] Approval digital & dashboard pimpinan
+- [x] Approval digital & dashboard pimpinan
 
 ## Tugas Sprint Berikutnya
 
