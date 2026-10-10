@@ -19,7 +19,7 @@
 - [x] Implementasi Template & Generator Tagihan — selesai (schema, seed, db push, api routes, verify)
 - [x] Pembayaran & verifikasi pembayaran (manual/otomatis)
 - [x] Modul shift, absensi, dan rolling petugas
-- [ ] Pelaporan (harian, bulanan, outstanding)
+- [x] Pelaporan (harian, bulanan, outstanding)
 - [ ] Approval digital & dashboard pimpinan
 
 ## Tugas Sprint Berikutnya
