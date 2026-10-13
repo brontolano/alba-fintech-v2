@@ -1,0 +1,59 @@
+// Add these models to your main schema.prisma
+
+model Approval {
+  id              String    @id @default(cuid())
+  type            String    // LAPORAN_HARIAN, PEMBAYARAN, TAGIHAN, SHIFT
+  unitId          String
+  unit            Unit      @relation(fields: [unitId], references: [id])
+  requestedById   String
+  requestedBy     User      @relation("ApprovalRequested", fields: [requestedById], references: [id])
+  approvedById    String?
+  approvedBy      User?     @relation("ApprovalApproved", fields: [approvedById], references: [id])
+  referenceId     String    // ID of the entity being approved
+  referenceType   String    // Tagihan, Pembayaran, Shift, LaporanHarian
+  data            Json      // Snapshot of data at request time
+  keterangan      String?
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Notice {
+  id            String    @id @default(cuid())
+  unitId        String
+  unit          Unit      @relation(fields: [unitId], references: [id])
+  title         String
+  message       String
+  targetRoles   String[]  @default(["STAFF"])
+  createdById   String
+  createdBy     User      @relation(fields: [createdById], references: [id])
+  isRead        Boolean   @default(false)
+  reads         NoticeRead[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model NoticeRead {
+  id        String   @id @default(cuid())
+  noticeId  String
+  notice    Notice   @relation(fields: [noticeId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  readAt    DateTime @default(now())
+  @@unique([noticeId, userId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  entityType String  // Tagihan, Pembayaran, Santri, User, Shift, etc.
+  entityId  String
+  action    String  // CREATE, UPDATE, DELETE, APPROVE, REJECT
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  oldData   Json?
+  newData   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}

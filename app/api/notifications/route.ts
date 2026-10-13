@@ -1,116 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { authOptions } from '@/app/api/auth/options';
-import { getServerSession } from 'next-auth';
-import { z } from 'zod';
-import { parseIntInRange } from '@/lib/parse-int-in-range';
+import { PrismaClient } from '@prisma/client';
 
-// Schema for query parameters
-// `limit` diamankan: parseInt tanpa range check menerima NaN (input non-angka)
-// atau bilangan sangat besar yang membuat Prisma `take` lambat (DoS ringan).
-// parseIntInRange melempar Error → safeParse mengembalikan success=false → 400.
-const NOTIFICATION_LIMIT_MAX = 100;
+const prisma = new PrismaClient();
 
-const querySchema = z.object({
-  unreadOnly: z.string().optional().transform((val) => val === 'true'),
-  limit: z
-    .string()
-    .optional()
-    .transform((val) =>
-      val
-        ? parseIntInRange(val, 10, 1, NOTIFICATION_LIMIT_MAX)
-        : 10,
-    ),
-});
-
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    // Auth check
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
+    const isRead = searchParams.get('isRead');
+    const type = searchParams.get('type');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
 
-    // Parse query
-    const { searchParams } = new URL(request.url);
-    const parsed = querySchema.safeParse(Object.fromEntries(searchParams));
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid query parameters', details: parsed.error.errors }, { status: 400 });
-    }
+    const where: any = {};
+    if (userId) where.userId = userId;
+    if (isRead !== null) where.isRead = isRead === 'true';
+    if (type) where.type = type;
 
-    const userId = (session.user as any)?.id;
-
-    // Build where clause
-    const where: any = { userId };
-    if (parsed.data.unreadOnly) {
-      where.isRead = false;
-    }
-
-    // Fetch notifications
-    const notifications = await prisma.notification.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: parsed.data.limit,
-    });
-
-    // Get unread count
-    const unreadCount = await prisma.notification.count({
-      where: { userId, isRead: false },
-    });
+    const [notifications, total] = await Promise.all([
+      prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+        },
+      }),
+      prisma.notification.count({ where }),
+    ]);
 
     return NextResponse.json({
       data: notifications,
-      summary: {
-        unreadCount,
-        total: notifications.length,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-    }, { status: 200 });
-  } catch (error) {
-    console.error('[Notifications API] Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// Mark notification as read
-export async function PATCH(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    // Auth check
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const body = await req.json();
+    const { userId, type, title, message, referenceId, referenceType } = body;
+
+    if (!userId || !type || !title || !message) {
+      return NextResponse.json({ error: 'userId, type, title, message wajib diisi' }, { status: 400 });
     }
 
-    const userId = (session.user as any)?.id;
+    const notification = await prisma.notification.create({
+      data: { userId, type, title, message, referenceId, referenceType },
+    });
 
-    // Parse body
-    const body = await request.json();
-    const { notificationId, markAll } = body;
-
-    if (markAll) {
-      // Mark all as read
-      await prisma.notification.updateMany({
-        where: { userId, isRead: false },
-        data: { isRead: true },
-      });
-      return NextResponse.json({
-        message: 'Semua notifikasi berhasil dibaca',
-      }, { status: 200 });
-    }
-
-    if (notificationId) {
-      const notification = await prisma.notification.update({
-        where: { id: notificationId, userId },
-        data: { isRead: true },
-      });
-      return NextResponse.json({
-        message: 'Notifikasi berhasil dibaca',
-        data: notification,
-      }, { status: 200 });
-    }
-
-    return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
-  } catch (error) {
-    console.error('[Notifications PATCH] Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(notification, { status: 201 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

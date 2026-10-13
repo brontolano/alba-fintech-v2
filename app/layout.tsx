@@ -1,76 +1,37 @@
-import "./globals.css";
-import type { Metadata } from "next";
-import { Toaster } from "sonner";
-import SessionProvider from "@/components/providers/session-provider";
-import PerformanceGuard from "@/components/ui/PerformanceGuard";
-import AppViewportGuard from "@/components/ui/AppViewportGuard";
-import PwaRegister from "@/components/PwaRegister";
-
-// Font via CSS local (see globals.css) to avoid build-time network fetch
-const fontSans = { variable: "--font-sans" };
+import type { Metadata } from 'next';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: {
-    default:
-      "ALBA Finance v7 - Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
-    template: `%s | ALBA Finance v7`,
-  },
-  description: "Aplikasi Keuangan Pondok Pesantren Al-Basyariyah",
-  keywords: [
-    "keuangan",
-    "pondok",
-    "pesantren",
-    "al-basyariyah",
-    "keuangan pesantren",
-  ],
-  authors: [{ name: "Pondok Pesantren Al-Basyariyah" }],
-  openGraph: {
-    type: "website",
-    locale: "id_ID",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  metadataBase: new URL("https://alba.brontolano.com"),
-  icons: {
-    icon: [
-      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
-      { url: "/icons/icon-512.png", type: "image/png", sizes: "512x512" },
-    ],
-    shortcut: "/icons/icon-192.png",
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
-  },
+  title: 'ALBA Finance - Santri',
+  description: 'Manajemen Data Santri KPAK',
 };
 
-// Next.js 16: themeColor wajib di viewport export, bukan metadata
-export const viewport = {
-  themeColor: "#059669",
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" suppressHydrationWarning>
-      <head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"
-        />
-        <link rel="icon" href="/icons/icon-32.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-      </head>
-      <body
-        className={`${fontSans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
-      >
-        <PwaRegister />
-        <AppViewportGuard />
-        <SessionProvider>{children}</SessionProvider>
-        <Toaster position="top-right" closeButton richColors />
-        <PerformanceGuard />
+    <html lang="id">
+      <body className="min-h-screen flex flex-col">
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-4">
+                <h1 className="text-xl font-bold text-gray-800">ALBA Finance</h1>
+                <span className="hidden sm:inline text-sm text-gray-500">| Santri Module</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-600">Role: <span className="font-semibold text-gray-900">SUPERADMIN (Demo)</span></span>
+                <div className="h-9 w-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold">SD</div>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </main>
+        <footer className="bg-white border-t border-gray-200 py-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p className="text-sm text-gray-500">&copy; 2026 ALBA Finance. All rights reserved.</p>
+          </div>
+        </footer>
       </body>
     </html>
   );
